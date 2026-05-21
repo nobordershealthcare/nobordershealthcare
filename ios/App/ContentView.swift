@@ -4,51 +4,6 @@
 //
 
 import SwiftUI
-import Network
-
-// MARK: - NetworkMonitor
-// Drives the status chips in Records / Telemed / Translate / Profile tabs.
-// HomeView and EmergencyView use NetworkCountryDetector.shared directly.
-
-final class NetworkMonitor: ObservableObject {
-
-    enum Status {
-        case online, offline, airplane
-        var icon:  String { switch self { case .online: "🟢"; case .offline: "🟡"; case .airplane: "✈️" } }
-        var label: String { switch self { case .online: "Online"; case .offline: "Offline · Local data"; case .airplane: "Airplane mode" } }
-    }
-
-    private let monitor = NWPathMonitor()
-    private let queue   = DispatchQueue(label: "com.noborders.NetworkMonitor")
-
-    @Published var status:       Status = .online
-    @Published var lastSyncDate: Date   = .now
-
-    init() {
-        monitor.pathUpdateHandler = { [weak self] path in
-            DispatchQueue.main.async {
-                if path.status == .satisfied {
-                    self?.status       = .online
-                    self?.lastSyncDate = .now
-                } else if path.availableInterfaces.isEmpty {
-                    self?.status = .airplane
-                } else {
-                    self?.status = .offline
-                }
-            }
-        }
-        monitor.start(queue: queue)
-    }
-
-    deinit { monitor.cancel() }
-
-    func syncLabel(now: Date) -> String {
-        let mins = Int(now.timeIntervalSince(lastSyncDate) / 60)
-        if mins < 1  { return "Synced just now" }
-        if mins == 1 { return "Synced 1 min ago" }
-        return "Synced \(mins) min ago"
-    }
-}
 
 // MARK: - Adaptive colors
 
@@ -82,20 +37,20 @@ extension Color {
 
 // MARK: - NetworkStatusChip
 // Self-refreshing every 30 s via TimelineView. Used by the 4 secondary tabs.
+// Reads from NetworkCountryDetector (injected as @EnvironmentObject at App level).
 
 struct NetworkStatusChip: View {
-    @EnvironmentObject var net: NetworkMonitor
+    @EnvironmentObject var detector: NetworkCountryDetector
     var showSync: Bool = true
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { ctx in
+        TimelineView(.periodic(from: .now, by: 30)) { _ in
             VStack(alignment: .trailing, spacing: 2) {
-                HStack(spacing: 4) {
-                    Text(net.status.icon).font(.system(size: 10))
-                    Text(net.status.label).font(.caption2).fontWeight(.semibold)
-                }
-                if showSync {
-                    Text(net.syncLabel(now: ctx.date))
+                // .label already contains the emoji: "🟢 Online" etc.
+                Text(detector.networkStatus.label)
+                    .font(.caption2).fontWeight(.semibold)
+                if showSync, let sync = detector.lastSyncDate {
+                    Text("Synced \(sync, style: .relative) ago")
                         .font(.system(size: 9)).opacity(0.65)
                 }
             }
@@ -136,8 +91,8 @@ struct ContentView: View {
 
 struct HomeView: View {
     @Binding var showEmergency: Bool
-    @EnvironmentObject var net: NetworkMonitor
-    // NetworkCountryDetector owns the live country + network status for this tab
+    // NetworkCountryDetector is the single source for network status + country.
+    // @StateObject keeps the singleton alive for the lifetime of this tab.
     @StateObject private var detector = NetworkCountryDetector.shared
 
     var body: some View {
@@ -325,7 +280,7 @@ struct HomeView: View {
 // MARK: - RecordsView
 
 struct RecordsView: View {
-    @EnvironmentObject var net: NetworkMonitor
+    @EnvironmentObject var detector: NetworkCountryDetector
 
     var body: some View {
         NavigationStack {
@@ -356,7 +311,7 @@ struct RecordsView: View {
 // MARK: - TelemedView
 
 struct TelemedView: View {
-    @EnvironmentObject var net: NetworkMonitor
+    @EnvironmentObject var detector: NetworkCountryDetector
 
     var body: some View {
         NavigationStack {
@@ -385,7 +340,7 @@ struct TelemedView: View {
 // MARK: - TranslateView
 
 struct TranslateView: View {
-    @EnvironmentObject var net: NetworkMonitor
+    @EnvironmentObject var detector: NetworkCountryDetector
     @State private var inputText = ""
 
     var body: some View {
@@ -421,7 +376,7 @@ struct TranslateView: View {
 
 struct ProfileView: View {
     @AppStorage("colorScheme") var schemePref: String = "auto"
-    @EnvironmentObject var net: NetworkMonitor
+    @EnvironmentObject var detector: NetworkCountryDetector
 
     var schemeLabel: String {
         switch schemePref {
@@ -470,17 +425,21 @@ struct ProfileView: View {
                     HStack {
                         Text("Status")
                         Spacer()
-                        HStack(spacing: 4) {
-                            Text(net.status.icon)
-                            Text(net.status.label).font(.caption).foregroundStyle(.secondary)
-                        }
+                        // .label includes the emoji: "🟢 Online" etc.
+                        Text(detector.networkStatus.label)
+                            .font(.caption).foregroundStyle(.secondary)
                     }
                     HStack {
                         Text("Last Sync")
                         Spacer()
-                        TimelineView(.periodic(from: .now, by: 30)) { ctx in
-                            Text(net.syncLabel(now: ctx.date))
-                                .font(.caption).foregroundStyle(.secondary)
+                        TimelineView(.periodic(from: .now, by: 30)) { _ in
+                            if let sync = detector.lastSyncDate {
+                                Text("Synced \(sync, style: .relative) ago")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            } else {
+                                Text("Not yet synced")
+                                    .font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }
@@ -651,8 +610,11 @@ struct EmergencyView: View {
         }
         // Detect serving-network country on first open
         .task { await detector.detect() }
-        // Emergency screen ignores app-level colour-scheme preference
-        .preferredColorScheme(.dark)
+        // Scope dark mode to this view tree ONLY.
+        // .environment(\.colorScheme, .dark) changes the SwiftUI environment
+        // without touching UIWindow.overrideUserInterfaceStyle, so the rest
+        // of the app is unaffected when this fullScreenCover is dismissed.
+        .environment(\.colorScheme, .dark)
     }
 
     private func allergyBadge(_ text: String) -> some View {
@@ -679,5 +641,5 @@ struct EmergencyView: View {
 
 #Preview {
     ContentView()
-        .environmentObject(NetworkMonitor())
+        .environmentObject(NetworkCountryDetector.shared)
 }

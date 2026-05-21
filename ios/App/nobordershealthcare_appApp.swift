@@ -8,8 +8,9 @@ import SwiftUI
 @main
 struct nobordershealthcare_appApp: App {
 
-    // Single NWPathMonitor instance for the secondary-tab status chips.
-    @StateObject private var networkMonitor = NetworkMonitor()
+    // Shared singleton — @MainActor + ObservableObject, owns the NWPathMonitor.
+    // Injected as @EnvironmentObject so all tabs can read network + country state.
+    @StateObject private var detector = NetworkCountryDetector.shared
 
     // User-facing colour-scheme preference (mirrors ProfileView's @AppStorage).
     // "auto" → nil → follows iOS system.  "light"/"dark" → override.
@@ -26,7 +27,7 @@ struct nobordershealthcare_appApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .environmentObject(networkMonitor)
+                .environmentObject(detector)
                 .preferredColorScheme(resolvedScheme)
         }
     }
