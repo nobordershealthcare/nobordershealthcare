@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: anonymizer
+  namespace: noborders
+  annotations:
+    # Vault Kubernetes auth role bound to this service account
+    vault.hashicorp.com/role: anonymizer
+---
+# Vault Agent configuration — fetches AES key and Redis ACL token, writes to tmpfs.
+# exit_after_auth = true so the initContainer terminates after the initial fetch.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-agent-config
+  namespace: noborders
+data:
+  vault-agent.hcl: |
+    vault {
+      address = "http://vault.vault.svc.cluster.local:8200"
+    }
+    auto_auth {
+      method "kubernetes" {
+        mount_path = "auth/kubernetes"
+        config = {
+          role = "anonymizer"
+        }
+      }
+      sink "file" {
+        config = {
+          path = "/secrets/vault-token"
+        }
+      }
+    }
+    template {
+      source      = "/vault/templates/aes-key.tpl"
+      destination = "/secrets/aes.key"
+      perms       = "0400"
+    }
+    template {
+      source      = "/vault/templates/redis-acl.tpl"
+      destination = "/secrets/redis-acl.token"
+      perms       = "0400"
+    }
+    exit_after_auth = true
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: anonymizer
+  namespace: noborders
+  annotations:
+    # Operator/admission webhook reads this to enforce pod rotation at 10k requests
+    max-requests: "10000"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: anonymizer
+  template:
+    metadata:
+      labels:
+        app: anonymizer
+      annotations:
+        sidecar.istio.io/inject: "true"
+        # Carried on the pod so the rotation controller can read it from pod metadata
+        max-requests: "10000"
+    spec:
+      serviceAccountName: anonymizer
+      # Immutable pods — no writable root, replaced every 10k req or 1h (architecture.md)
+      automountServiceAccountToken: true
+      initContainers:
+        - name: vault-agent
+          image: hashicorp/vault:1.17
+          args: [agent, -config=/vault/config/vault-agent.hcl]
+          env:
+            - name: VAULT_ADDR
+              value: http://vault.vault.svc.cluster.local:8200
+            - name: SKIP_SETCAP
+              value: "true"
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 100
+            allowPrivilegeEscalation: false
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+              readOnly: true
+            - name: vault-templates
+              mountPath: /vault/templates
+              readOnly: true
+            - name: secrets
+              mountPath: /secrets
+      containers:
+        - name: anonymizer
+          image: ghcr.io/nobordershealthcare/anonymizer:latest
+          ports:
+            - containerPort: 8081
+              name: internal    # pod-local only — see NetworkPolicy in namespace.yaml
+            - containerPort: 8082
+              name: api
+          env:
+            - name: SECRETS_PATH
+              value: /secrets
+            - name: REDIS_ADDR
+              value: redis-cluster.noborders.svc.cluster.local:6379
+            - name: MAX_REQUESTS
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.annotations['max-requests']
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8082
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8082
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-agent-config
+        # Vault templates ConfigMap — must be provisioned separately with .tpl files
+        - name: vault-templates
+          configMap:
+            name: vault-agent-templates
+        # tmpfs — secrets never written to node disk
+        - name: secrets
+          emptyDir:
+            medium: Memory
+            sizeLimit: 1Mi
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi

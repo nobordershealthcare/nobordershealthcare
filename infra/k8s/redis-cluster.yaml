@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-cluster-config
+  namespace: noborders
+data:
+  redis.conf: |
+    cluster-enabled yes
+    cluster-config-file /data/nodes.conf
+    cluster-node-timeout 5000
+    cluster-announce-hostname $(HOSTNAME).redis-cluster.noborders.svc.cluster.local
+    # CRITICAL: no persistence — token→key map must never touch disk (architecture.md)
+    save ""
+    appendonly no
+    # Evict least-recently-used keys when memory is full
+    maxmemory-policy allkeys-lru
+    maxmemory 400mb
+    protected-mode no
+    bind 0.0.0.0
+    loglevel notice
+    # ACL: disallow dangerous commands from application accounts (CLAUDE.md)
+    rename-command CONFIG ""
+    rename-command SLAVEOF ""
+    rename-command DEBUG ""
+---
+# Headless service required for StatefulSet pod DNS and cluster bus (port 16379)
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-cluster
+  namespace: noborders
+spec:
+  clusterIP: None
+  selector:
+    app: redis-cluster
+  ports:
+    - name: redis
+      port: 6379
+      targetPort: 6379
+    - name: cluster-bus
+      port: 16379
+      targetPort: 16379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis-cluster
+  namespace: noborders
+spec:
+  serviceName: redis-cluster
+  replicas: 3
+  selector:
+    matchLabels:
+      app: redis-cluster
+  template:
+    metadata:
+      labels:
+        app: redis-cluster
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [redis-cluster]
+              topologyKey: kubernetes.io/hostname
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          command: [redis-server, /etc/redis/redis.conf]
+          env:
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          ports:
+            - containerPort: 6379
+              name: redis
+            - containerPort: 16379
+              name: cluster-bus
+          resources:
+            requests:
+              cpu: 100m
+              memory: 512Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          securityContext:
+            readOnlyRootFilesystem: false   # redis writes nodes.conf to /data
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            exec:
+              command: [redis-cli, -p, "6379", ping]
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            exec:
+              command: [redis-cli, -p, "6379", ping]
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: redis-config
+              mountPath: /etc/redis
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: redis-config
+          configMap:
+            name: redis-cluster-config
+        # emptyDir — intentionally ephemeral. No PVC. Satisfies "no persistence" requirement.
+        - name: data
+          emptyDir: {}
+  # No volumeClaimTemplates — persistence explicitly prohibited (architecture.md)

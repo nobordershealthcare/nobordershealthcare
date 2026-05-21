@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: noborders
+  labels:
+    name: noborders
+    istio-injection: enabled
+---
+# Namespace-wide strict mTLS — ALL inter-service comms encrypted (CLAUDE.md)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: noborders
+spec:
+  mtls:
+    mode: STRICT
+---
+# Port 8081 (anonymizer internal) accessible ONLY from 127.0.0.1 (pod-local).
+# NetworkPolicy operates at the CNI level and does not apply to loopback traffic
+# within a pod — vault-agent sidecar on 127.0.0.1:8081 is unaffected.
+# Absence of an ingress rule for port 8081 denies all external sources.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: anonymizer-port-isolation
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: anonymizer
+  policyTypes:
+    - Ingress
+  ingress:
+    # Allow API traffic on port 8082 from gatekeeper only
+    - from:
+        - podSelector:
+            matchLabels:
+              app: gatekeeper
+      ports:
+        - port: 8082
+          protocol: TCP
+    # Allow Istio control-plane probes
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+      ports:
+        - port: 15021
+          protocol: TCP
+        - port: 15090
+          protocol: TCP
+    # Port 8081 — NO ingress rule → denied from all external sources.
+    # Loopback (127.0.0.1) vault-agent↔anonymizer communication is unaffected.

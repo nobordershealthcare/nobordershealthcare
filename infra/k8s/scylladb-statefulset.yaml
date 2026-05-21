@@ -1,0 +1,124 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: scylladb
+  namespace: noborders
+spec:
+  clusterIP: None
+  selector:
+    app: scylladb
+  ports:
+    - name: cql
+      port: 9042
+      targetPort: 9042
+    - name: storage
+      port: 7000
+      targetPort: 7000
+    - name: storage-ssl
+      port: 7001
+      targetPort: 7001
+    - name: jmx
+      port: 7199
+      targetPort: 7199
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: scylladb
+  namespace: noborders
+spec:
+  serviceName: scylladb
+  replicas: 3
+  selector:
+    matchLabels:
+      app: scylladb
+  template:
+    metadata:
+      labels:
+        app: scylladb
+      annotations:
+        sidecar.istio.io/inject: "true"
+    spec:
+      # GDPR Art.44 — data must not leave EU. Nodes MUST be in eu-west regions.
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: topology.kubernetes.io/region
+                    operator: In
+                    values:
+                      - eu-west-1   # AWS Ireland
+                      - eu-west-2   # AWS London
+                      - eu-west-3   # AWS Paris
+        # One ScyllaDB pod per AZ — avoids correlated failure and satisfies replication
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values: [scylladb]
+              topologyKey: topology.kubernetes.io/zone
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+      containers:
+        - name: scylladb
+          image: scylladb/scylla:5.4
+          args:
+            - --seeds=scylladb-0.scylladb.noborders.svc.cluster.local
+            - --cluster-name=noborders
+            - --endpoint-snitch=GossipingPropertyFileSnitch
+            - --listen-address=$(POD_IP)
+            - --rpc-address=$(POD_IP)
+            - --broadcast-address=$(POD_IP)
+            - --broadcast-rpc-address=$(POD_IP)
+          env:
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+          ports:
+            - containerPort: 9042
+              name: cql
+            - containerPort: 7000
+              name: storage
+            - containerPort: 7001
+              name: storage-ssl
+            - containerPort: 7199
+              name: jmx
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+            limits:
+              cpu: "4"
+              memory: 8Gi
+          securityContext:
+            allowPrivilegeEscalation: false
+          livenessProbe:
+            exec:
+              command: [/bin/bash, -c, "nodetool status | grep -E '^UN'"]
+            initialDelaySeconds: 90
+            periodSeconds: 30
+            failureThreshold: 5
+          readinessProbe:
+            exec:
+              command: [/bin/bash, -c, "nodetool status | grep -E '^UN'"]
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            failureThreshold: 3
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/scylla
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 100Gi

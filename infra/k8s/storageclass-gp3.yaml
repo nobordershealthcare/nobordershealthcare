@@ -1,0 +1,15 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gp3
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  iops: "3000"
+  throughput: "125"
+  # All ScyllaDB volumes encrypted at rest — EBS-level encryption
+  encrypted: "true"
+  # kmsKeyId: "" — set to your KMS ARN for customer-managed keys
+volumeBindingMode: WaitForFirstConsumer   # bind only when pod is scheduled, respects AZ
+allowVolumeExpansion: true
+reclaimPolicy: Retain                     # prevent accidental data loss on PVC delete

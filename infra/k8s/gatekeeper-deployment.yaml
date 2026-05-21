@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: gatekeeper
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: gatekeeper
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatekeeper
+  namespace: noborders
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: gatekeeper
+  template:
+    metadata:
+      labels:
+        app: gatekeeper
+      annotations:
+        # Istio sidecar injection — required for mTLS termination/origination
+        sidecar.istio.io/inject: "true"
+        # Hold traffic until Envoy proxy is ready to prevent unencrypted bootstrap requests
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+        # mTLS peer cert rotation every 24h (CLAUDE.md)
+        security.istio.io/tlsMode: istio
+    spec:
+      serviceAccountName: gatekeeper
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values: [gatekeeper]
+                topologyKey: kubernetes.io/hostname
+      containers:
+        - name: gatekeeper
+          image: ghcr.io/nobordershealthcare/gatekeeper:latest
+          ports:
+            - containerPort: 8080
+              name: api
+          env:
+            - name: ANONYMIZER_ADDR
+              value: anonymizer.noborders.svc.cluster.local:8082
+            - name: REDIS_ADDR
+              value: redis-cluster.noborders.svc.cluster.local:6379
+          resources:
+            requests:
+              cpu: 200m
+              memory: 256Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+          securityContext:
+            readOnlyRootFilesystem: true
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+---
+# Explicit per-service STRICT mTLS — enforces even if namespace default is overridden
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: gatekeeper-mtls
+  namespace: noborders
+spec:
+  selector:
+    matchLabels:
+      app: gatekeeper
+  mtls:
+    mode: STRICT

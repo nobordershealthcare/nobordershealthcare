@@ -1,0 +1,46 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Claude Code local settings (machine-specific permissions — not for VCS)
+.claude/settings.local.json
+
+# Go
+bin/
+*.exe
+*.test
+vendor/
+go.work.sum
+
+# Swift / Xcode
+build/
+*.xcworkspace/xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+Pods/
+.build/
+
+# Secrets — never commit
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+.env
+.env.*
+secrets.yaml
+secrets.json
+
+# Terraform (future)
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# IDE
+.idea/
+.vscode/
+*.swp
