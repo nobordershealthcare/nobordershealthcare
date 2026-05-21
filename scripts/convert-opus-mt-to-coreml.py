@@ -51,6 +51,7 @@ def check_dependencies() -> None:
 
 check_dependencies()
 
+import numpy as np
 import torch
 import coremltools as ct
 from transformers import MarianMTModel, MarianTokenizer
@@ -71,142 +72,7 @@ MAX_TGT_LEN = 64   # target tokens (translated output, greedy decode cap)
 # numerical issues during conversion.
 COMPUTE_UNITS = ct.ComputeUnit.ALL
 
-# ── Conversion logic ──────────────────────────────────────────────────────
-
-class MarianEncoderWrapper(torch.nn.Module):
-    """
-    Wraps the MarianMT encoder so coremltools can trace it.
-
-    Inputs:
-        input_ids      — Int64 [1, src_len]
-        attention_mask — Int64 [1, src_len]
-    Output:
-        last_hidden_state — Float32 [1, src_len, hidden_size]
-    """
-    def __init__(self, model: MarianMTModel) -> None:
-        super().__init__()
-        self.encoder = model.get_encoder()
-
-    def forward(
-        self,
-        input_ids: torch.Tensor,
-        attention_mask: torch.Tensor,
-    ) -> torch.Tensor:
-        out = self.encoder(input_ids=input_ids, attention_mask=attention_mask)
-        return out.last_hidden_state
-
-
-class MarianDecoderStepWrapper(torch.nn.Module):
-    """
-    Wraps a single autoregressive decoding step of the MarianMT decoder.
-
-    This exports ONE decoder step (next token logits given encoder output
-    and the token generated so far). The Swift inference loop calls this
-    repeatedly until EOS or max_len is reached.
-
-    Inputs:
-        decoder_input_ids — Int64  [1, 1]           (last predicted token)
-        encoder_hidden    — Float32 [1, src_len, hidden]
-        encoder_mask      — Int64  [1, src_len]
-    Output:
-        logits            — Float32 [1, 1, vocab_size]
-    """
-    def __init__(self, model: MarianMTModel) -> None:
-        super().__init__()
-        self.model = model
-
-    def forward(
-        self,
-        decoder_input_ids: torch.Tensor,
-        encoder_hidden: torch.Tensor,
-        encoder_mask: torch.Tensor,
-    ) -> torch.Tensor:
-        out = self.model(
-            input_ids=None,
-            attention_mask=encoder_mask,
-            decoder_input_ids=decoder_input_ids,
-            encoder_outputs=(encoder_hidden,),
-            return_dict=False,
-        )
-        # out[0]: logits [1, 1, vocab_size]
-        return out[0]
-
-
-def convert_encoder(
-    model: MarianMTModel,
-    lang: str,
-    out_dir: Path,
-) -> Path:
-    """Convert the MarianMT encoder to a CoreML .mlpackage."""
-    print(f"  [encoder] Tracing encoder for '{lang}'…")
-    wrapper = MarianEncoderWrapper(model).eval()
-
-    # Example inputs for tracing (values are arbitrary — only shapes matter).
-    dummy_ids  = torch.zeros(1, MAX_SRC_LEN, dtype=torch.long)
-    dummy_mask = torch.ones(1, MAX_SRC_LEN, dtype=torch.long)
-
-    with torch.no_grad():
-        traced = torch.jit.trace(wrapper, (dummy_ids, dummy_mask))
-
-    print(f"  [encoder] Converting to CoreML…")
-    cml_model = ct.convert(
-        traced,
-        convert_to="mlprogram",
-        inputs=[
-            ct.TensorType(name="input_ids",      shape=(1, MAX_SRC_LEN), dtype=int),
-            ct.TensorType(name="attention_mask",  shape=(1, MAX_SRC_LEN), dtype=int),
-        ],
-        outputs=[
-            ct.TensorType(name="encoder_hidden_states"),
-        ],
-        compute_units=COMPUTE_UNITS,
-        minimum_deployment_target=ct.target.iOS16,
-    )
-
-    pkg_path = out_dir / f"opus-mt-en-{lang}-encoder.mlpackage"
-    cml_model.save(str(pkg_path))
-    print(f"  [encoder] Saved: {pkg_path}")
-    return pkg_path
-
-
-def convert_decoder_step(
-    model: MarianMTModel,
-    lang: str,
-    out_dir: Path,
-    hidden_size: int,
-) -> Path:
-    """Convert a single MarianMT decoder step to a CoreML .mlpackage."""
-    print(f"  [decoder] Tracing single-step decoder for '{lang}'…")
-    wrapper = MarianDecoderStepWrapper(model).eval()
-
-    dummy_dec_ids = torch.zeros(1, 1, dtype=torch.long)
-    dummy_enc     = torch.zeros(1, MAX_SRC_LEN, hidden_size)
-    dummy_enc_mask = torch.ones(1, MAX_SRC_LEN, dtype=torch.long)
-
-    with torch.no_grad():
-        traced = torch.jit.trace(wrapper, (dummy_dec_ids, dummy_enc, dummy_enc_mask))
-
-    print(f"  [decoder] Converting to CoreML…")
-    cml_model = ct.convert(
-        traced,
-        convert_to="mlprogram",
-        inputs=[
-            ct.TensorType(name="decoder_input_ids", shape=(1, 1),                           dtype=int),
-            ct.TensorType(name="encoder_hidden",    shape=(1, MAX_SRC_LEN, hidden_size),    dtype=float),
-            ct.TensorType(name="encoder_mask",      shape=(1, MAX_SRC_LEN),                 dtype=int),
-        ],
-        outputs=[
-            ct.TensorType(name="logits"),
-        ],
-        compute_units=COMPUTE_UNITS,
-        minimum_deployment_target=ct.target.iOS16,
-    )
-
-    pkg_path = out_dir / f"opus-mt-en-{lang}-decoder.mlpackage"
-    cml_model.save(str(pkg_path))
-    print(f"  [decoder] Saved: {pkg_path}")
-    return pkg_path
-
+# ── Vocabulary helper ─────────────────────────────────────────────────────
 
 def copy_vocab(tokenizer: MarianTokenizer, lang: str, out_dir: Path) -> Path:
     """
@@ -216,8 +82,6 @@ def copy_vocab(tokenizer: MarianTokenizer, lang: str, out_dir: Path) -> Path:
     We copy source.spm — it is the file the on-device SentencePieceTokenizer
     must load to tokenise English input text.
     """
-    # HuggingFace caches the tokenizer files in the same directory as the
-    # model config. vocab_files_names maps logical names to actual filenames.
     spm_path = None
 
     for attr in ("spm_source", "vocab_file"):
@@ -227,7 +91,7 @@ def copy_vocab(tokenizer: MarianTokenizer, lang: str, out_dir: Path) -> Path:
             break
 
     if spm_path is None:
-        # Fallback: walk the tokenizer's save directory.
+        # Fallback: save to a temp dir and pick the first .spm file found.
         with tempfile.TemporaryDirectory() as tmp:
             tokenizer.save_pretrained(tmp)
             candidates = list(Path(tmp).glob("*.spm"))
@@ -246,8 +110,29 @@ def copy_vocab(tokenizer: MarianTokenizer, lang: str, out_dir: Path) -> Path:
     return dest
 
 
+# ── Conversion logic ──────────────────────────────────────────────────────
+
 def convert_language(lang: str, out_dir: Path) -> None:
-    """Download and convert a single language pair."""
+    """
+    Download a Helsinki-NLP/opus-mt-en-{lang} model and convert its encoder
+    to a CoreML .mlpackage.
+
+    Why encoder-only?
+    The MarianMT decoder uses internal ops (new_ones, scatter_) that
+    coremltools 8.x cannot lower to MIL.  The encoder is the expensive
+    part (runs once per sentence) and converts cleanly.  The autoregressive
+    decode loop runs on-device via ONNX Runtime or a server-side beam
+    search until coremltools gains full decoder support.
+
+    Tracing strategy:
+    We trace model.model.encoder directly with return_dict=False so that
+    the output is a plain tuple rather than a ModelOutput dataclass.  This
+    avoids the new_ones op that the wrapper path triggers via
+    BaseModelOutput.__init__.  A warmup forward pass with return_dict=False
+    exercises the same branches, so the JIT tracer never sees new_ones.
+    """
+    import json
+
     model_id = f"{HF_MODEL_PREFIX}{lang}"
     lang_out_dir = out_dir / f"opus-mt-en-{lang}"
     lang_out_dir.mkdir(parents=True, exist_ok=True)
@@ -267,34 +152,78 @@ def convert_language(lang: str, out_dir: Path) -> None:
     model.eval()
 
     hidden_size: int = model.config.d_model
+    enc_path = lang_out_dir / f"opus-mt-en-{lang}-encoder.mlpackage"
 
-    # ── Convert ───────────────────────────────────────────────────────────
-    convert_encoder(model, lang, lang_out_dir)
-    convert_decoder_step(model, lang, lang_out_dir, hidden_size)
+    # ── Trace the encoder ──────────────────────────────────────────────────
+    # Use int32 (not int64/long) — coremltools 8.x maps int32 → MIL int32
+    # cleanly; int64 often triggers unsupported cast ops on the ANE.
+    dummy_ids  = torch.zeros(1, MAX_SRC_LEN, dtype=torch.int32)
+    dummy_mask = torch.ones(1,  MAX_SRC_LEN, dtype=torch.int32)
+
+    print(f"  [encoder] Warming up encoder (return_dict=False)…")
+    with torch.no_grad():
+        _ = model.model.encoder(
+            input_ids=dummy_ids,
+            attention_mask=dummy_mask,
+            return_dict=False,
+        )
+
+    print(f"  [encoder] Tracing encoder…")
+    with torch.no_grad():
+        traced_encoder = torch.jit.trace(
+            model.model.encoder,
+            (dummy_ids, dummy_mask),
+            strict=False,
+        )
+
+    # ── Convert encoder to CoreML ──────────────────────────────────────────
+    print(f"  [encoder] Converting to CoreML (FLOAT16, iOS 16+)…")
+    encoder_mlmodel = ct.convert(
+        traced_encoder,
+        inputs=[
+            ct.TensorType(name="input_ids",     shape=(1, MAX_SRC_LEN), dtype=np.int32),
+            ct.TensorType(name="attention_mask", shape=(1, MAX_SRC_LEN), dtype=np.int32),
+        ],
+        outputs=[
+            ct.TensorType(name="encoder_output"),
+        ],
+        minimum_deployment_target=ct.target.iOS16,
+        compute_precision=ct.precision.FLOAT16,
+        compute_units=COMPUTE_UNITS,
+    )
+    encoder_mlmodel.save(str(enc_path))
+    print(f"  [encoder] Saved: {enc_path}")
+
+    # ── Decoder: skipped (not yet supported) ──────────────────────────────
+    # The autoregressive decoder uses new_ones / scatter_ ops that
+    # coremltools 8.x cannot lower.  Re-enable when support lands.
+    print(f"  [decoder] Skipped — decoder conversion pending coremltools support.")
+
+    # ── Vocabulary ────────────────────────────────────────────────────────
     copy_vocab(tokenizer, lang, lang_out_dir)
 
     # ── Write manifest ────────────────────────────────────────────────────
     manifest = lang_out_dir / "manifest.json"
-    import json
     manifest.write_text(json.dumps({
-        "model_id":     model_id,
-        "lang_pair":    f"en-{lang}",
-        "max_src_len":  MAX_SRC_LEN,
-        "max_tgt_len":  MAX_TGT_LEN,
-        "hidden_size":  hidden_size,
-        "vocab_size":   model.config.vocab_size,
-        "pad_token_id": model.config.pad_token_id,
-        "eos_token_id": model.config.eos_token_id,
-        "bos_token_id": model.config.decoder_start_token_id,
-        "encoder_model": f"opus-mt-en-{lang}-encoder.mlpackage",
-        "decoder_model": f"opus-mt-en-{lang}-decoder.mlpackage",
-        "vocab_file":    f"opus-mt-en-{lang}.spm",
-        "coreml_min_ios": "16.0",
-        "converted_by":  "scripts/convert-opus-mt-to-coreml.py",
+        "model_id":          model_id,
+        "src_lang":          "en",
+        "tgt_lang":          lang,
+        "encoder_seq_len":   MAX_SRC_LEN,
+        "hidden_size":       hidden_size,
+        "vocab_size":        model.config.vocab_size,
+        "pad_token_id":      model.config.pad_token_id,
+        "eos_token_id":      model.config.eos_token_id,
+        "bos_token_id":      model.config.decoder_start_token_id,
+        "encoder_model":     f"opus-mt-en-{lang}-encoder.mlpackage",
+        "decoder_model":     None,   # not yet converted — see docstring above
+        "vocab_file":        f"opus-mt-en-{lang}.spm",
+        "coreml_min_ios":    "16.0",
+        "compute_precision": "FLOAT16",
+        "converted_by":      "scripts/convert-opus-mt-to-coreml.py",
     }, indent=2))
     print(f"  [manifest] Written: {manifest}")
 
-    print(f"\n  ✔ en-{lang} conversion complete.")
+    print(f"\n  ✔ en-{lang} encoder conversion complete.")
 
 
 # ── Entry point ───────────────────────────────────────────────────────────
@@ -351,15 +280,19 @@ def main() -> None:
         print(f"All {len(args.lang)} language(s) converted successfully.")
         print()
         print("Next steps:")
-        print("  1. Build the SentencePiece XCFramework:")
+        print("  1. Build the SentencePiece XCFramework (if not already built):")
         print("     ./scripts/build-sentencepiece-ios.sh")
         print()
-        print("  2. Add .mlpackage and .spm files to Xcode with ODR tags:")
+        print("  2. Add encoder .mlpackage and .spm files to Xcode with ODR tags:")
         for lang in args.lang:
             print(f"     Tag 'opus-mt-en-{lang}' → ios/ODR/opus-mt-en-{lang}/")
         print()
-        print("  3. Update the BOS/EOS token IDs in xLMEngine.swift if they")
-        print("     differ from the Helsinki-NLP defaults (check manifest.json).")
+        print("  3. Check manifest.json for BOS/EOS/PAD token IDs and pass them")
+        print("     to xLMEngine.swift — the encoder-only CoreML model is loaded")
+        print("     there; the decode loop runs separately (ONNX or server-side).")
+        print()
+        print("  NOTE: decoder_model is null in manifest.json — the Marian decoder")
+        print("  uses new_ones/scatter_ ops not yet supported by coremltools 8.x.")
 
 
 if __name__ == "__main__":
