@@ -3,16 +3,16 @@
 # Install with:
 #   pip install -r scripts/requirements-coreml.txt
 #
-# Tested on macOS 14+ (Apple Silicon) with Python 3.11.
+# Requires macOS (Apple Silicon recommended) with Python 3.14+.
 # coremltools requires macOS — conversion cannot run on Linux.
 # PyTorch on macOS uses Metal/MPS acceleration automatically;
 # the +cpu suffix is Linux-only and must not be used here.
 
-torch==2.3.0
+torch>=2.9.0
 transformers>=4.40.0
 sentencepiece>=0.1.99
-coremltools>=7.2
-numpy>=1.24.0
+coremltools>=8.0
+numpy>=2.0.0
 huggingface_hub>=0.23.0
 protobuf>=3.20.0
 sacremoses
