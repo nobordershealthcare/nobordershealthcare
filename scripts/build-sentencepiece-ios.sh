@@ -72,6 +72,16 @@ SIM_SDK="$(xcrun --sdk iphonesimulator --show-sdk-path 2>/dev/null)"
 
 ok "Prerequisites OK (cmake $(cmake --version | head -1 | awk '{print $3}'))"
 
+# ── Clean build directory ──────────────────────────────────────────────────
+# Always start from scratch to avoid stale CMake cache entries that can mask
+# policy errors or pick up the wrong SDK sysroot between runs.
+
+if [[ -d "${BUILD_DIR}" ]]; then
+    info "Removing existing build directory for clean build…"
+    rm -rf "${BUILD_DIR}"
+    ok "Removed ${BUILD_DIR}"
+fi
+
 # ── Clone SentencePiece ────────────────────────────────────────────────────
 
 mkdir -p "${BUILD_DIR}"
@@ -94,22 +104,12 @@ fi
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.h"   "${SPM_SRC}/src/"
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.cpp" "${SPM_SRC}/src/"
 
-# ── CMake 4.x compatibility patch ─────────────────────────────────────────
-# CMake 4.0 removed support for cmake_minimum_required < 3.5.
-# SentencePiece v0.2.0 (and its Abseil submodule) declare older minimums,
-# causing an immediate hard error on CMake 4.x:
-#   "Compatibility with CMake < 3.5 has been removed"
-# Patch every CMakeLists.txt that declares a sub-3.5 minimum to 3.5.
-# The regex matches VERSION followed by 0.x, 1.x, or 2.x.
-
-info "Patching CMakeLists.txt files for CMake 4.x compatibility…"
-find "${SPM_SRC}" -name "CMakeLists.txt" -exec \
-    sed -i '' \
-        's/cmake_minimum_required(VERSION [0-2]\.[0-9]*)/cmake_minimum_required(VERSION 3.5)/g' \
-    {} \;
-ok "CMake version patch applied"
-
 # ── Build function ─────────────────────────────────────────────────────────
+# CMake 4.x policy fix:
+#   CMAKE_POLICY_VERSION_MINIMUM=3.5 tells CMake 4 to apply 3.5 policy
+#   defaults when processing projects that declare an older minimum version,
+#   rather than hard-erroring. This is the official CMake 4.x migration path.
+#   CMAKE_POLICY_DEFAULT_CMP0048=NEW suppresses the related project() warning.
 
 build_slice() {
     local SLICE_NAME="$1"    # e.g. "iphoneos" or "iphonesimulator"
@@ -123,8 +123,13 @@ build_slice() {
     info "Building ${SLICE_NAME}/${ARCH}…"
     mkdir -p "${SLICE_BUILD}" "${SLICE_INSTALL}"
 
+    # CMP0048: project() command manages VERSION variables — set NEW to silence
+    # the warning that accompanies CMAKE_POLICY_VERSION_MINIMUM.
+    export CMAKE_POLICY_DEFAULT_CMP0048=NEW
+
     cmake -S "${SPM_SRC}" -B "${SLICE_BUILD}" \
         -G "Ninja" \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${SLICE_INSTALL}" \
         -DCMAKE_SYSTEM_NAME=iOS \
@@ -134,6 +139,8 @@ build_slice() {
         -DCMAKE_CXX_STANDARD=17 \
         -DCMAKE_C_FLAGS="-fembed-bitcode-marker" \
         -DCMAKE_CXX_FLAGS="-fembed-bitcode-marker ${EXTRA_FLAGS}" \
+        -DSP_BUILD_TEST=OFF \
+        -DSP_ENABLE_SHARED=OFF \
         -DSPM_BUILD_TEST=OFF \
         -DSPM_BUILD_EXAMPLES=OFF \
         -DSPM_ENABLE_SHARED=OFF \
