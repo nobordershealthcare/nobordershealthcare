@@ -99,7 +99,7 @@ enum IPS {
         return filtered
     }
 
-    private static func sectionLOINC(for section: Section) -> String {
+    private static func sectionLOINC(for section: EHRSection) -> String {
         let name = section.name.lowercased()
         if name.contains("allerg")    { return SectionCode.allergies.rawValue }
         if name.contains("medic")     { return SectionCode.medications.rawValue }

@@ -114,3 +114,5 @@ targets:
         # Simulator-only; signing not needed for build-only CI
         CODE_SIGNING_ALLOWED: NO
         CODE_SIGN_IDENTITY: ""
+        # libsentencepiece.a is a C++ static library; link libc++ explicitly
+        OTHER_LDFLAGS: "-lc++ -lstdc++"

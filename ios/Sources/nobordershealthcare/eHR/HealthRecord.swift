@@ -13,11 +13,11 @@ struct Composition: Sendable, Codable, Identifiable {
     let territory: String           // ISO 3166-1 alpha-2
     let composer: String            // SHA3-256(userID)
     let dateCreated: Date
-    var sections: [Section]
+    var sections: [EHRSection]
     var sealedBlob: VaultManager.SealedVault?  // nil if not yet persisted
 }
 
-struct Section: Sendable, Codable, Identifiable {
+struct EHRSection: Sendable, Codable, Identifiable {
     let id: String
     let archetypeID: String         // e.g. "openEHR-EHR-SECTION.medication_summary.v1"
     let name: String

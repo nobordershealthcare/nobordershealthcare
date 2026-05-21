@@ -1,0 +1,731 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		00FB85C28C319F2F3B5F6467 /* NetworkCountryDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84B731839B1EF19BC2D7A339 /* NetworkCountryDetector.swift */; };
+		04394DAB59FB271A62BB9BB7 /* FHIRMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DD7D59BB23AF1DAEC517157 /* FHIRMapper.swift */; };
+		0FD7F8ED5371E17021FE2CD0 /* IPS.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE7A83CED7243C43DC46DA8B /* IPS.swift */; };
+		1A3FF9EC24E6B4AB51ED6431 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0A37DCB1B9E58C6FA51098A /* HealthRecord.swift */; };
+		1AD0B114F65AB0F0BB37A16C /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CF077CD951BA7489302B367 /* VaultManager.swift */; };
+		22097731794B71B48CE67EBF /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84335A2383D67E14DD1B16ED /* BiometricAuth.swift */; };
+		571D454125E773727B282562 /* KeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C4C5ECA86EABAFA44222194 /* KeyManager.swift */; };
+		59192C7F51CE7413467BC69C /* BankIDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A186A706B3FA0B565DD507B /* BankIDClient.swift */; };
+		5CE69A754A87EE0BDE62288F /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD858733241664E61B491F5E /* AttestationService.swift */; };
+		628ED591F4964A64EA44881D /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E847BD3E3BA1CCD5F4185C8 /* CallView.swift */; };
+		7335AC0D5E2D7239D1A4B3A8 /* xLMEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5E99C8B28F247808D3E210 /* xLMEngine.swift */; };
+		7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEDC1416C64BDAF416257DAA /* ContentView.swift */; };
+		82045461E13E4A348862A897 /* SHA3.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8904D3C751214579A3F7925 /* SHA3.swift */; };
+		8EF434F8DEC7CB3B2EF93736 /* sentencepiece-ios.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D595C4D35B9EB5C155A6B4AA /* sentencepiece-ios.xcframework */; };
+		97EF5E073B54F20021A68E7A /* IPFSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EC49DFB11D09746A2BB5FC8 /* IPFSClient.swift */; };
+		9DE8173CF6358211874AA812 /* ShamirShard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B5611C36D250077FAC681F79 /* ShamirShard.swift */; };
+		A5E900F6AB2EFA75DBED7F57 /* DIDWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7F974AC7C7BC0C5132251E0 /* DIDWallet.swift */; };
+		A8141FACC1A90B386CFB004E /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6E59B69E6F720A7525E9597 /* KyberOperations.swift */; };
+		B379AC6CD2CF16F175F50740 /* QRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDC68D153B4361BD7AA4FE6F /* QRGenerator.swift */; };
+		C4C13C8E2C5D9811AF3B4BFA /* ScopeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C09D77F909F246759D0ADDC /* ScopeManager.swift */; };
+		C52F000A4D3ACB2788C9B7C2 /* KyberKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 02735EE24AE9B3C20940065D /* KyberKit.framework */; };
+		CAF573CD0A0AB5ACD409A6A8 /* nobordershealthcare_appApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */; };
+		CEF421BF7B0F6FA049216E30 /* SIPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CAA5D3DF9A21A99CB7F3FB /* SIPClient.swift */; };
+		E3ABAF2FC94A7C2E54570D09 /* SHA3Kit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 95F065F7509B694C77EC6B8B /* SHA3Kit.framework */; };
+		E5E482361605BA8ED1236A95 /* TerminologyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C4EDED3B9048EC5F98B9DC4 /* TerminologyMapper.swift */; };
+		E848025D0E1286C35C98CE7E /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A232710A9A36C749E012D490 /* EmergencyCard.swift */; };
+		FB561C70D9662C04DD652598 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD92F1217756D49BAA2B7D4 /* SecureEnclaveKey.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2BE4F47D6DD4C7C0307B8B95 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F26610A563F025680C8B2A66 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 7B819F9ED29D87BFE4D1C978;
+			remoteInfo = SHA3Kit;
+		};
+		3B9E369B7A7385D71F8C19DC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F26610A563F025680C8B2A66 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F15C3A0460E83A32C4829252;
+			remoteInfo = KyberKit;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		02735EE24AE9B3C20940065D /* KyberKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = KyberKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A186A706B3FA0B565DD507B /* BankIDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankIDClient.swift; sourceTree = "<group>"; };
+		0CF077CD951BA7489302B367 /* VaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultManager.swift; sourceTree = "<group>"; };
+		0DD7D59BB23AF1DAEC517157 /* FHIRMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FHIRMapper.swift; sourceTree = "<group>"; };
+		0EC49DFB11D09746A2BB5FC8 /* IPFSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFSClient.swift; sourceTree = "<group>"; };
+		12CAA5D3DF9A21A99CB7F3FB /* SIPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPClient.swift; sourceTree = "<group>"; };
+		1C4C5ECA86EABAFA44222194 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
+		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C09D77F909F246759D0ADDC /* ScopeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeManager.swift; sourceTree = "<group>"; };
+		5C5E99C8B28F247808D3E210 /* xLMEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = xLMEngine.swift; sourceTree = "<group>"; };
+		6C4EDED3B9048EC5F98B9DC4 /* TerminologyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminologyMapper.swift; sourceTree = "<group>"; };
+		7E847BD3E3BA1CCD5F4185C8 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
+		84335A2383D67E14DD1B16ED /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
+		84B731839B1EF19BC2D7A339 /* NetworkCountryDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCountryDetector.swift; sourceTree = "<group>"; };
+		95F065F7509B694C77EC6B8B /* SHA3Kit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = SHA3Kit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A232710A9A36C749E012D490 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
+		B5611C36D250077FAC681F79 /* ShamirShard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShamirShard.swift; sourceTree = "<group>"; };
+		B6E59B69E6F720A7525E9597 /* KyberOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyberOperations.swift; sourceTree = "<group>"; };
+		BE7A83CED7243C43DC46DA8B /* IPS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPS.swift; sourceTree = "<group>"; };
+		D595C4D35B9EB5C155A6B4AA /* sentencepiece-ios.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = "sentencepiece-ios.xcframework"; path = "Frameworks/sentencepiece-ios.xcframework"; sourceTree = "<group>"; };
+		DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = nobordershealthcare_appApp.swift; sourceTree = "<group>"; };
+		E8904D3C751214579A3F7925 /* SHA3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA3.swift; sourceTree = "<group>"; };
+		EDC68D153B4361BD7AA4FE6F /* QRGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGenerator.swift; sourceTree = "<group>"; };
+		F0A37DCB1B9E58C6FA51098A /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
+		F7F974AC7C7BC0C5132251E0 /* DIDWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIDWallet.swift; sourceTree = "<group>"; };
+		FD858733241664E61B491F5E /* AttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestationService.swift; sourceTree = "<group>"; };
+		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FFD92F1217756D49BAA2B7D4 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		FE35BD75FBEAABFCC86A132F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				8EF434F8DEC7CB3B2EF93736 /* sentencepiece-ios.xcframework in Frameworks */,
+				C52F000A4D3ACB2788C9B7C2 /* KyberKit.framework in Frameworks */,
+				E3ABAF2FC94A7C2E54570D09 /* SHA3Kit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		094287116EF9AE58A84D7886 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				FD858733241664E61B491F5E /* AttestationService.swift */,
+				84335A2383D67E14DD1B16ED /* BiometricAuth.swift */,
+				FFD92F1217756D49BAA2B7D4 /* SecureEnclaveKey.swift */,
+				0CF077CD951BA7489302B367 /* VaultManager.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		2FC623B7E153A1D5F400BDBE /* Identity */ = {
+			isa = PBXGroup;
+			children = (
+				0A186A706B3FA0B565DD507B /* BankIDClient.swift */,
+				F7F974AC7C7BC0C5132251E0 /* DIDWallet.swift */,
+				1C4C5ECA86EABAFA44222194 /* KeyManager.swift */,
+			);
+			path = Identity;
+			sourceTree = "<group>";
+		};
+		4C3DC0687DE34F410D9E874E /* KyberKit */ = {
+			isa = PBXGroup;
+			children = (
+				B6E59B69E6F720A7525E9597 /* KyberOperations.swift */,
+			);
+			path = KyberKit;
+			sourceTree = "<group>";
+		};
+		59994047392FB5AE8DA714DD /* Backup */ = {
+			isa = PBXGroup;
+			children = (
+				0EC49DFB11D09746A2BB5FC8 /* IPFSClient.swift */,
+				B5611C36D250077FAC681F79 /* ShamirShard.swift */,
+			);
+			path = Backup;
+			sourceTree = "<group>";
+		};
+		669BCF20E60EDFF2208329B3 /* nobordershealthcare */ = {
+			isa = PBXGroup;
+			children = (
+				59994047392FB5AE8DA714DD /* Backup */,
+				094287116EF9AE58A84D7886 /* Core */,
+				F61BACC22F6C4265C7456FBB /* eHR */,
+				2FC623B7E153A1D5F400BDBE /* Identity */,
+				730D44C8ACA3F901C8DA659D /* Location */,
+				7C94740809D4768813E23270 /* QR */,
+				67BAA765C0537B20D23EFC73 /* Telemedicine */,
+				DC860FFACFF93B16A06A8153 /* Translation */,
+			);
+			path = nobordershealthcare;
+			sourceTree = "<group>";
+		};
+		67BAA765C0537B20D23EFC73 /* Telemedicine */ = {
+			isa = PBXGroup;
+			children = (
+				7E847BD3E3BA1CCD5F4185C8 /* CallView.swift */,
+				12CAA5D3DF9A21A99CB7F3FB /* SIPClient.swift */,
+			);
+			path = Telemedicine;
+			sourceTree = "<group>";
+		};
+		730D44C8ACA3F901C8DA659D /* Location */ = {
+			isa = PBXGroup;
+			children = (
+				84B731839B1EF19BC2D7A339 /* NetworkCountryDetector.swift */,
+			);
+			path = Location;
+			sourceTree = "<group>";
+		};
+		73ABE03EDAEF356700E6EE35 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D595C4D35B9EB5C155A6B4AA /* sentencepiece-ios.xcframework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7C94740809D4768813E23270 /* QR */ = {
+			isa = PBXGroup;
+			children = (
+				EDC68D153B4361BD7AA4FE6F /* QRGenerator.swift */,
+				5C09D77F909F246759D0ADDC /* ScopeManager.swift */,
+			);
+			path = QR;
+			sourceTree = "<group>";
+		};
+		8AB0085C996365A74D2E32B4 /* SHA3Kit */ = {
+			isa = PBXGroup;
+			children = (
+				E8904D3C751214579A3F7925 /* SHA3.swift */,
+			);
+			path = SHA3Kit;
+			sourceTree = "<group>";
+		};
+		B2AB090C09C26E77B935A2FD /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				02735EE24AE9B3C20940065D /* KyberKit.framework */,
+				30E64324D0111DDADE7820A1 /* nobordershealthcare.app */,
+				95F065F7509B694C77EC6B8B /* SHA3Kit.framework */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B5435C540261B200C074C141 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				4C3DC0687DE34F410D9E874E /* KyberKit */,
+				669BCF20E60EDFF2208329B3 /* nobordershealthcare */,
+				8AB0085C996365A74D2E32B4 /* SHA3Kit */,
+			);
+			path = Sources;
+			sourceTree = "<group>";
+		};
+		BA2071012BEDAE454A06C73D /* App */ = {
+			isa = PBXGroup;
+			children = (
+				FEDC1416C64BDAF416257DAA /* ContentView.swift */,
+				DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		DC860FFACFF93B16A06A8153 /* Translation */ = {
+			isa = PBXGroup;
+			children = (
+				6C4EDED3B9048EC5F98B9DC4 /* TerminologyMapper.swift */,
+				5C5E99C8B28F247808D3E210 /* xLMEngine.swift */,
+			);
+			path = Translation;
+			sourceTree = "<group>";
+		};
+		DFD501DA14A1DF3ED5F269E3 = {
+			isa = PBXGroup;
+			children = (
+				BA2071012BEDAE454A06C73D /* App */,
+				B5435C540261B200C074C141 /* Sources */,
+				73ABE03EDAEF356700E6EE35 /* Frameworks */,
+				B2AB090C09C26E77B935A2FD /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		F61BACC22F6C4265C7456FBB /* eHR */ = {
+			isa = PBXGroup;
+			children = (
+				A232710A9A36C749E012D490 /* EmergencyCard.swift */,
+				0DD7D59BB23AF1DAEC517157 /* FHIRMapper.swift */,
+				F0A37DCB1B9E58C6FA51098A /* HealthRecord.swift */,
+				BE7A83CED7243C43DC46DA8B /* IPS.swift */,
+			);
+			path = eHR;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		707367C639403DCB926318DB /* nobordershealthcare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6694E781F8E3B05FE0576AA0 /* Build configuration list for PBXNativeTarget "nobordershealthcare" */;
+			buildPhases = (
+				9C8D3AEE84EE049F8A2C433E /* Sources */,
+				FE35BD75FBEAABFCC86A132F /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B2C39FC3381A710F8704C492 /* PBXTargetDependency */,
+				95477A472BE95B479A4A3AFA /* PBXTargetDependency */,
+			);
+			name = nobordershealthcare;
+			packageProductDependencies = (
+			);
+			productName = nobordershealthcare;
+			productReference = 30E64324D0111DDADE7820A1 /* nobordershealthcare.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7B819F9ED29D87BFE4D1C978 /* SHA3Kit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5FE046E55F6D4B1AE0EB7F97 /* Build configuration list for PBXNativeTarget "SHA3Kit" */;
+			buildPhases = (
+				2069A26DFE9AF26845403C2A /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SHA3Kit;
+			packageProductDependencies = (
+			);
+			productName = SHA3Kit;
+			productReference = 95F065F7509B694C77EC6B8B /* SHA3Kit.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+		F15C3A0460E83A32C4829252 /* KyberKit */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6BD1D76398F50D7FB2083810 /* Build configuration list for PBXNativeTarget "KyberKit" */;
+			buildPhases = (
+				D370546E9C77A721E89BAEE9 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = KyberKit;
+			packageProductDependencies = (
+			);
+			productName = KyberKit;
+			productReference = 02735EE24AE9B3C20940065D /* KyberKit.framework */;
+			productType = "com.apple.product-type.framework";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		F26610A563F025680C8B2A66 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = A5588DEBE6167482CD828F9D /* Build configuration list for PBXProject "nobordershealthcare" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = DFD501DA14A1DF3ED5F269E3;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B2AB090C09C26E77B935A2FD /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				F15C3A0460E83A32C4829252 /* KyberKit */,
+				7B819F9ED29D87BFE4D1C978 /* SHA3Kit */,
+				707367C639403DCB926318DB /* nobordershealthcare */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		2069A26DFE9AF26845403C2A /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				82045461E13E4A348862A897 /* SHA3.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9C8D3AEE84EE049F8A2C433E /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5CE69A754A87EE0BDE62288F /* AttestationService.swift in Sources */,
+				59192C7F51CE7413467BC69C /* BankIDClient.swift in Sources */,
+				22097731794B71B48CE67EBF /* BiometricAuth.swift in Sources */,
+				628ED591F4964A64EA44881D /* CallView.swift in Sources */,
+				7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */,
+				A5E900F6AB2EFA75DBED7F57 /* DIDWallet.swift in Sources */,
+				E848025D0E1286C35C98CE7E /* EmergencyCard.swift in Sources */,
+				04394DAB59FB271A62BB9BB7 /* FHIRMapper.swift in Sources */,
+				1A3FF9EC24E6B4AB51ED6431 /* HealthRecord.swift in Sources */,
+				97EF5E073B54F20021A68E7A /* IPFSClient.swift in Sources */,
+				0FD7F8ED5371E17021FE2CD0 /* IPS.swift in Sources */,
+				571D454125E773727B282562 /* KeyManager.swift in Sources */,
+				00FB85C28C319F2F3B5F6467 /* NetworkCountryDetector.swift in Sources */,
+				B379AC6CD2CF16F175F50740 /* QRGenerator.swift in Sources */,
+				CEF421BF7B0F6FA049216E30 /* SIPClient.swift in Sources */,
+				C4C13C8E2C5D9811AF3B4BFA /* ScopeManager.swift in Sources */,
+				FB561C70D9662C04DD652598 /* SecureEnclaveKey.swift in Sources */,
+				9DE8173CF6358211874AA812 /* ShamirShard.swift in Sources */,
+				E5E482361605BA8ED1236A95 /* TerminologyMapper.swift in Sources */,
+				1AD0B114F65AB0F0BB37A16C /* VaultManager.swift in Sources */,
+				CAF573CD0A0AB5ACD409A6A8 /* nobordershealthcare_appApp.swift in Sources */,
+				7335AC0D5E2D7239D1A4B3A8 /* xLMEngine.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D370546E9C77A721E89BAEE9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A8141FACC1A90B386CFB004E /* KyberOperations.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		95477A472BE95B479A4A3AFA /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 7B819F9ED29D87BFE4D1C978 /* SHA3Kit */;
+			targetProxy = 2BE4F47D6DD4C7C0307B8B95 /* PBXContainerItemProxy */;
+		};
+		B2C39FC3381A710F8704C492 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = F15C3A0460E83A32C4829252 /* KyberKit */;
+			targetProxy = 3B9E369B7A7385D71F8C19DC /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		60844629344B1553077ABDFB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.SHA3Kit;
+				PRODUCT_MODULE_NAME = SHA3Kit;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		7C9B804CC13C364A6CACDE3F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_ENTITLEMENTS = App/nobordershealthcare.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Frameworks\"",
+				);
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "-lc++ -lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AAF4F4C413A7F71BC428E358 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.KyberKit;
+				PRODUCT_MODULE_NAME = KyberKit;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		AE5D0740A1CE556F278752B9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_ENTITLEMENTS = App/nobordershealthcare.entitlements;
+				CODE_SIGN_IDENTITY = "";
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"\"Frameworks\"",
+				);
+				INFOPLIST_FILE = App/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = "-lc++ -lstdc++";
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
+				SDKROOT = iphoneos;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B36D8C342970CA69A180416B /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.KyberKit;
+				PRODUCT_MODULE_NAME = KyberKit;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		D7603F98B50153301D0E7BD5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "";
+				CURRENT_PROJECT_VERSION = 1;
+				DEFINES_MODULE = YES;
+				DYLIB_COMPATIBILITY_VERSION = 1;
+				DYLIB_CURRENT_VERSION = 1;
+				DYLIB_INSTALL_NAME_BASE = "@rpath";
+				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.SHA3Kit;
+				PRODUCT_MODULE_NAME = SHA3Kit;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Debug;
+		};
+		E3B33CCD09771F72E3BA4D2A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_BITCODE = NO;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		F03DF7FC0FF838EE38A92BD1 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_BITCODE = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = minimal;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		5FE046E55F6D4B1AE0EB7F97 /* Build configuration list for PBXNativeTarget "SHA3Kit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				D7603F98B50153301D0E7BD5 /* Debug */,
+				60844629344B1553077ABDFB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6694E781F8E3B05FE0576AA0 /* Build configuration list for PBXNativeTarget "nobordershealthcare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AE5D0740A1CE556F278752B9 /* Debug */,
+				7C9B804CC13C364A6CACDE3F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6BD1D76398F50D7FB2083810 /* Build configuration list for PBXNativeTarget "KyberKit" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B36D8C342970CA69A180416B /* Debug */,
+				AAF4F4C413A7F71BC428E358 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A5588DEBE6167482CD828F9D /* Build configuration list for PBXProject "nobordershealthcare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F03DF7FC0FF838EE38A92BD1 /* Debug */,
+				E3B33CCD09771F72E3BA4D2A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = F26610A563F025680C8B2A66 /* Project object */;
+}
