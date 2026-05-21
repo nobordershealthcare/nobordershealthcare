@@ -94,6 +94,21 @@ fi
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.h"   "${SPM_SRC}/src/"
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.cpp" "${SPM_SRC}/src/"
 
+# ── CMake 4.x compatibility patch ─────────────────────────────────────────
+# CMake 4.0 removed support for cmake_minimum_required < 3.5.
+# SentencePiece v0.2.0 (and its Abseil submodule) declare older minimums,
+# causing an immediate hard error on CMake 4.x:
+#   "Compatibility with CMake < 3.5 has been removed"
+# Patch every CMakeLists.txt that declares a sub-3.5 minimum to 3.5.
+# The regex matches VERSION followed by 0.x, 1.x, or 2.x.
+
+info "Patching CMakeLists.txt files for CMake 4.x compatibility…"
+find "${SPM_SRC}" -name "CMakeLists.txt" -exec \
+    sed -i '' \
+        's/cmake_minimum_required(VERSION [0-2]\.[0-9]*)/cmake_minimum_required(VERSION 3.5)/g' \
+    {} \;
+ok "CMake version patch applied"
+
 # ── Build function ─────────────────────────────────────────────────────────
 
 build_slice() {
