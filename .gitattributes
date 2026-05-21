@@ -1,0 +1,2 @@
+**/*.xcframework/**/*.a filter=lfs diff=lfs merge=lfs -text
+**/*.mlpackage/** filter=lfs diff=lfs merge=lfs -text
