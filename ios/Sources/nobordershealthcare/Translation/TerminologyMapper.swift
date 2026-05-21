@@ -1,6 +1,15 @@
 // Static lookup tables for LOINC, SNOMED CT, ATC, and ICD-10 display labels (English).
-// The English label from this file is the ONLY thing passed to xLMEngine for translation.
-// xLMEngine never receives raw clinical codes, structured data, or patient content.
+//
+// Translation routing (READ THIS BEFORE CALLING xLMEngine):
+//   clinical code  ──►  englishLabel()  ──►  LocalizedTerminology.label()
+//                                                     │
+//                            ┌────────────────────────┘
+//                            ▼
+//                   xLMEngine.translateMedical()   ← opus-mt CoreML, on-device ONLY
+//
+// NEVER call xLMEngine.translateUI() with output from this file.
+// NEVER pass a raw code (ICD-10, LOINC, ATC, SNOMED) to any translation function.
+// The English label string is the ONLY thing that may enter the translation pipeline.
 
 import Foundation
 
@@ -145,7 +154,9 @@ enum TerminologyMapper {
         case loinc, atc, snomed, icd10
     }
 
-    // Returns the canonical English label. xLMEngine may translate this string.
+    // Returns the canonical English label.
+    // Callers must route this through LocalizedTerminology.label() → xLMEngine.translateMedical()
+    // to get a localised display string. Never pass the result to xLMEngine.translateUI().
     static func englishLabel(code: String, system: TerminologySystem) -> String {
         switch system {
         case .loinc:  return loinc(code: code)

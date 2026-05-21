@@ -1,0 +1,28 @@
+# requirements-coreml.txt — Python dependencies for convert-opus-mt-to-coreml.py
+#
+# Install with:
+#   pip install -r scripts/requirements-coreml.txt
+#
+# Tested on macOS 14+ with Python 3.11.
+# coremltools requires macOS — conversion cannot run on Linux.
+
+# HuggingFace Transformers — download MarianMT weights
+transformers==4.40.2
+
+# coremltools — convert PyTorch → CoreML .mlpackage
+# 7.x targets iOS 16+ mlprogram format (required for ANE support)
+coremltools==7.2
+
+# PyTorch CPU — we only need the forward pass for tracing, no GPU required
+# Use the CPU-only build to keep the environment small (~250 MB vs ~3 GB)
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.3.0+cpu
+
+# SentencePiece Python bindings — used to locate .spm file paths
+sentencepiece==0.2.0
+
+# HuggingFace Hub — download model files from HuggingFace
+huggingface-hub==0.23.2
+
+# numpy — required by coremltools
+numpy>=1.26,<2.0

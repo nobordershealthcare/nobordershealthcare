@@ -1,0 +1,238 @@
+#!/usr/bin/env bash
+# build-sentencepiece-ios.sh — Cross-compile SentencePiece for iOS and produce
+# an XCFramework that Swift can consume via a C module map.
+#
+# Output: ios/Frameworks/sentencepiece-ios.xcframework
+#
+# Prerequisites (installed via Homebrew on macOS):
+#   brew install cmake protobuf abseil
+#   Xcode 15.0+ with iOS 16.0+ SDK
+#
+# Usage:
+#   chmod +x scripts/build-sentencepiece-ios.sh
+#   ./scripts/build-sentencepiece-ios.sh
+#
+# What this script produces:
+#   ios/Frameworks/sentencepiece-ios.xcframework/
+#     ios-arm64/           — real device slice
+#       Headers/           — public C header + module map
+#       libsentencepiece_ios.a
+#     ios-arm64-simulator/ — simulator slice (M-chip Macs)
+#       Headers/
+#       libsentencepiece_ios.a
+#
+# The XCFramework bundles both the device and simulator slices so Xcode picks
+# the right one automatically (no manual lipo needed).
+
+set -euo pipefail
+
+# ── Configuration ──────────────────────────────────────────────────────────
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="${REPO_ROOT}/scripts"
+OUTPUT_DIR="${REPO_ROOT}/ios/Frameworks"
+BUILD_DIR="${REPO_ROOT}/.build/sentencepiece"
+
+XCFRAMEWORK_NAME="sentencepiece-ios"
+XCFRAMEWORK_OUT="${OUTPUT_DIR}/${XCFRAMEWORK_NAME}.xcframework"
+
+# SentencePiece v0.2.0 is the last release that uses the same internal API
+# that Helsinki-NLP opus-mt models were trained with.
+SPM_TAG="v0.2.0"
+SPM_REPO="https://github.com/google/sentencepiece.git"
+SPM_SRC="${BUILD_DIR}/sentencepiece-src"
+
+# iOS deployment target — must match Package.swift
+IOS_DEPLOYMENT_TARGET="16.0"
+
+# ── Colour helpers ─────────────────────────────────────────────────────────
+
+bold="\033[1m"
+green="\033[0;32m"
+yellow="\033[0;33m"
+red="\033[0;31m"
+reset="\033[0m"
+
+info()  { echo -e "${bold}▶${reset} $*"; }
+ok()    { echo -e "${green}✔${reset} $*"; }
+warn()  { echo -e "${yellow}⚠${reset} $*"; }
+die()   { echo -e "${red}✖${reset} $*" >&2; exit 1; }
+
+# ── Preflight checks ───────────────────────────────────────────────────────
+
+info "Checking prerequisites…"
+
+command -v cmake   >/dev/null 2>&1 || die "cmake not found. Install: brew install cmake"
+command -v xcodebuild >/dev/null 2>&1 || die "xcodebuild not found. Install Xcode."
+
+IOS_SDK="$(xcrun --sdk iphoneos   --show-sdk-path 2>/dev/null)"
+SIM_SDK="$(xcrun --sdk iphonesimulator --show-sdk-path 2>/dev/null)"
+[[ -d "${IOS_SDK}" ]] || die "iOS SDK not found. Is Xcode installed?"
+[[ -d "${SIM_SDK}" ]] || die "iOS Simulator SDK not found."
+
+ok "Prerequisites OK (cmake $(cmake --version | head -1 | awk '{print $3}'))"
+
+# ── Clone SentencePiece ────────────────────────────────────────────────────
+
+mkdir -p "${BUILD_DIR}"
+
+if [[ ! -d "${SPM_SRC}/.git" ]]; then
+    info "Cloning google/sentencepiece ${SPM_TAG} (with submodules)…"
+    # Abseil is a submodule — must recurse.
+    git clone --depth 1 --branch "${SPM_TAG}" \
+        --recurse-submodules --shallow-submodules \
+        "${SPM_REPO}" "${SPM_SRC}"
+    ok "Clone complete"
+else
+    info "SentencePiece source already present at ${SPM_SRC}, skipping clone."
+fi
+
+# ── Copy wrapper sources into sentencepiece src ────────────────────────────
+# The C wrapper is compiled as part of the static library so it shares the
+# same compilation unit and can include sentencepiece_processor.h directly.
+
+cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.h"   "${SPM_SRC}/src/"
+cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.cpp" "${SPM_SRC}/src/"
+
+# ── Build function ─────────────────────────────────────────────────────────
+
+build_slice() {
+    local SLICE_NAME="$1"    # e.g. "iphoneos" or "iphonesimulator"
+    local ARCH="$2"           # e.g. "arm64"
+    local SDK_PATH="$3"       # full path to .sdk
+    local EXTRA_FLAGS="$4"    # extra cmake flags (e.g. simulator ABI flag)
+
+    local SLICE_BUILD="${BUILD_DIR}/build-${SLICE_NAME}-${ARCH}"
+    local SLICE_INSTALL="${BUILD_DIR}/install-${SLICE_NAME}-${ARCH}"
+
+    info "Building ${SLICE_NAME}/${ARCH}…"
+    mkdir -p "${SLICE_BUILD}" "${SLICE_INSTALL}"
+
+    cmake -S "${SPM_SRC}" -B "${SLICE_BUILD}" \
+        -G "Ninja" \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX="${SLICE_INSTALL}" \
+        -DCMAKE_SYSTEM_NAME=iOS \
+        -DCMAKE_OSX_ARCHITECTURES="${ARCH}" \
+        -DCMAKE_OSX_SYSROOT="${SDK_PATH}" \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET="${IOS_DEPLOYMENT_TARGET}" \
+        -DCMAKE_CXX_STANDARD=17 \
+        -DCMAKE_C_FLAGS="-fembed-bitcode-marker" \
+        -DCMAKE_CXX_FLAGS="-fembed-bitcode-marker ${EXTRA_FLAGS}" \
+        -DSPM_BUILD_TEST=OFF \
+        -DSPM_BUILD_EXAMPLES=OFF \
+        -DSPM_ENABLE_SHARED=OFF \
+        -DSPM_USE_BUILTIN_PROTOBUF=ON \
+        -DSPM_EXTRA_SOURCES="src/sentencepiece_c_wrapper.cpp" \
+        -DSPM_EXTRA_INCLUDES="${SPM_SRC}/src" \
+        -Wno-dev \
+        2>&1 | grep -E "(error:|warning:|CMake)" | head -40 || true
+
+    cmake --build "${SLICE_BUILD}" --config Release -- -j"$(sysctl -n hw.logicalcpu)"
+    cmake --install "${SLICE_BUILD}" --config Release
+
+    ok "Built ${SLICE_NAME}/${ARCH}: ${SLICE_INSTALL}/lib/libsentencepiece.a"
+}
+
+# ── Compile slices ─────────────────────────────────────────────────────────
+
+# Real device slice — arm64
+build_slice "iphoneos" "arm64" "${IOS_SDK}" ""
+
+# Simulator slice — arm64 (M-chip Macs).
+# The -target flag differentiates device arm64 from simulator arm64.
+SIM_TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}-simulator"
+build_slice "iphonesimulator" "arm64" "${SIM_SDK}" "-target ${SIM_TARGET}"
+
+# ── Merge wrapper into each static lib ────────────────────────────────────
+# CMake already includes sentencepiece_c_wrapper.cpp in the build via
+# SPM_EXTRA_SOURCES. We just need to verify the symbols are present.
+
+info "Verifying C wrapper symbols…"
+for slice in "iphoneos-arm64" "iphonesimulator-arm64"; do
+    LIB="${BUILD_DIR}/install-${slice}/lib/libsentencepiece.a"
+    if nm "${LIB}" 2>/dev/null | grep -q "spm_load"; then
+        ok "  ${slice}: spm_load symbol present"
+    else
+        die "  ${slice}: spm_load symbol NOT found in ${LIB}"
+    fi
+done
+
+# ── Prepare Headers directory ──────────────────────────────────────────────
+# XCFramework needs a Headers/ directory alongside each slice's .a file.
+# We include only the public C header + a module map so Swift sees it.
+
+prepare_headers() {
+    local INSTALL_DIR="$1"
+    local HEADERS_DIR="${INSTALL_DIR}/Headers"
+    mkdir -p "${HEADERS_DIR}"
+
+    cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.h" "${HEADERS_DIR}/"
+
+    # Module map: exposes SentencePieceC as a Swift-importable module.
+    cat > "${HEADERS_DIR}/module.modulemap" << 'MODULEMAP'
+module SentencePieceC {
+    header "sentencepiece_c_wrapper.h"
+    export *
+}
+MODULEMAP
+
+    ok "  Headers prepared in ${HEADERS_DIR}"
+}
+
+info "Preparing Headers directories…"
+prepare_headers "${BUILD_DIR}/install-iphoneos-arm64"
+prepare_headers "${BUILD_DIR}/install-iphonesimulator-arm64"
+
+# ── Assemble XCFramework ───────────────────────────────────────────────────
+
+info "Assembling XCFramework…"
+rm -rf "${XCFRAMEWORK_OUT}"
+mkdir -p "${OUTPUT_DIR}"
+
+xcodebuild -create-xcframework \
+    -library "${BUILD_DIR}/install-iphoneos-arm64/lib/libsentencepiece.a" \
+    -headers "${BUILD_DIR}/install-iphoneos-arm64/Headers" \
+    -library "${BUILD_DIR}/install-iphonesimulator-arm64/lib/libsentencepiece.a" \
+    -headers "${BUILD_DIR}/install-iphonesimulator-arm64/Headers" \
+    -output "${XCFRAMEWORK_OUT}"
+
+ok "XCFramework created: ${XCFRAMEWORK_OUT}"
+
+# ── Smoke test ─────────────────────────────────────────────────────────────
+
+info "Verifying XCFramework structure…"
+
+EXPECTED_SLICES=(
+    "ios-arm64/libsentencepiece.a"
+    "ios-arm64-simulator/libsentencepiece.a"
+    "ios-arm64/Headers/sentencepiece_c_wrapper.h"
+    "ios-arm64/Headers/module.modulemap"
+)
+
+for rel in "${EXPECTED_SLICES[@]}"; do
+    if [[ -f "${XCFRAMEWORK_OUT}/${rel}" ]]; then
+        ok "  Found: ${rel}"
+    else
+        warn "  Missing: ${rel}"
+    fi
+done
+
+# ── Done ───────────────────────────────────────────────────────────────────
+
+echo ""
+echo -e "${bold}${green}Build complete!${reset}"
+echo ""
+echo "Next steps:"
+echo "  1. Add the XCFramework to Package.swift:"
+echo "     .binaryTarget(name: \"SentencePieceC\","
+echo "                   path: \"ios/Frameworks/sentencepiece-ios.xcframework\")"
+echo ""
+echo "  2. Add 'SentencePieceC' to the nobordershealthcare target dependencies."
+echo ""
+echo "  3. Import in Swift: import SentencePieceC"
+echo "     Then replace the TODO stubs in SentencePieceTokenizer."
+echo ""
+echo "  4. Run the CoreML conversion script to generate the .mlpackage files:"
+echo "     pip install -r scripts/requirements-coreml.txt"
+echo "     python scripts/convert-opus-mt-to-coreml.py --lang uk ru de pt"
