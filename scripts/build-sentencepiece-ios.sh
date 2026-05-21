@@ -43,7 +43,7 @@ SPM_REPO="https://github.com/google/sentencepiece.git"
 SPM_SRC="${BUILD_DIR}/sentencepiece-src"
 
 # iOS deployment target — must match Package.swift
-IOS_DEPLOYMENT_TARGET="16.0"
+IOS_DEPLOYMENT_TARGET="26.0"
 
 # ── Colour helpers ─────────────────────────────────────────────────────────
 
@@ -137,8 +137,11 @@ build_slice() {
         -DCMAKE_OSX_SYSROOT="${SDK_PATH}" \
         -DCMAKE_OSX_DEPLOYMENT_TARGET="${IOS_DEPLOYMENT_TARGET}" \
         -DCMAKE_CXX_STANDARD=17 \
-        -DCMAKE_C_FLAGS="-fembed-bitcode-marker" \
-        -DCMAKE_CXX_FLAGS="-fembed-bitcode-marker ${EXTRA_FLAGS}" \
+        -DCMAKE_C_FLAGS="-fembed-bitcode=off" \
+        -DCMAKE_CXX_FLAGS="-fembed-bitcode=off ${EXTRA_FLAGS}" \
+        -DENABLE_BITCODE=OFF \
+        -DCMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE=NO \
+        -DCMAKE_XCODE_ATTRIBUTE_IPHONEOS_DEPLOYMENT_TARGET="${IOS_DEPLOYMENT_TARGET}" \
         -DSP_BUILD_TEST=OFF \
         -DSP_ENABLE_SHARED=OFF \
         -DSPM_BUILD_TEST=OFF \
