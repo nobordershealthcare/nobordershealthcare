@@ -176,6 +176,41 @@ build_slice() {
     cmake --build "${SLICE_BUILD}" --config Release -- -j"$(sysctl -n hw.logicalcpu)"
     cmake --install "${SLICE_BUILD}" --config Release
 
+    # ── Manually compile C wrapper and inject into static lib ─────────────
+    # SPM_EXTRA_SOURCES does not reliably add sources when cross-compiling
+    # with Ninja on iOS — the wrapper object is silently dropped from the
+    # archive.  Compile it explicitly with the same flags and add it with ar.
+
+    local WRAPPER_OBJ="${SLICE_BUILD}/spm_wrapper.o"
+
+    # Derive the correct Clang target triple from the slice being built.
+    local CLANG_TARGET
+    if [[ "${SLICE_NAME}" == "iphonesimulator" ]]; then
+        CLANG_TARGET="${ARCH}-apple-ios${IOS_DEPLOYMENT_TARGET}-simulator"
+    else
+        CLANG_TARGET="${ARCH}-apple-ios${IOS_DEPLOYMENT_TARGET}"
+    fi
+
+    info "  Compiling C wrapper for ${CLANG_TARGET}…"
+    /usr/bin/clang++ \
+        -target "${CLANG_TARGET}" \
+        -isysroot "${SDK_PATH}" \
+        -fembed-bitcode=off \
+        -std=c++17 \
+        -I"${SPM_SRC}/src" \
+        -c "${SCRIPTS_DIR}/sentencepiece_c_wrapper.cpp" \
+        -o "${WRAPPER_OBJ}"
+
+    info "  Adding wrapper object to static lib…"
+    ar rcs "${SLICE_INSTALL}/lib/libsentencepiece.a" "${WRAPPER_OBJ}"
+
+    # Verify the symbol landed in the archive.
+    if nm "${SLICE_INSTALL}/lib/libsentencepiece.a" 2>/dev/null | grep -q "spm_load"; then
+        ok "  ${SLICE_NAME}/${ARCH}: spm_load symbol confirmed in archive"
+    else
+        die "  ${SLICE_NAME}/${ARCH}: spm_load NOT found after ar — check wrapper compilation"
+    fi
+
     ok "Built ${SLICE_NAME}/${ARCH}: ${SLICE_INSTALL}/lib/libsentencepiece.a"
 }
 
@@ -189,17 +224,17 @@ build_slice "iphoneos" "arm64" "${IOS_SDK}" ""
 SIM_TARGET="arm64-apple-ios${IOS_DEPLOYMENT_TARGET}-simulator"
 build_slice "iphonesimulator" "arm64" "${SIM_SDK}" "-target ${SIM_TARGET}"
 
-# ── Merge wrapper into each static lib ────────────────────────────────────
-# CMake already includes sentencepiece_c_wrapper.cpp in the build via
-# SPM_EXTRA_SOURCES. We just need to verify the symbols are present.
+# ── Final symbol verification ──────────────────────────────────────────────
+# nm check already ran inside build_slice after each ar step.
+# This loop is a belt-and-suspenders guard on the installed archives.
 
-info "Verifying C wrapper symbols…"
+info "Final symbol verification…"
 for slice in "iphoneos-arm64" "iphonesimulator-arm64"; do
     LIB="${BUILD_DIR}/install-${slice}/lib/libsentencepiece.a"
     if nm "${LIB}" 2>/dev/null | grep -q "spm_load"; then
-        ok "  ${slice}: spm_load symbol present"
+        ok "  ${slice}: spm_load present ✓"
     else
-        die "  ${slice}: spm_load symbol NOT found in ${LIB}"
+        die "  ${slice}: spm_load MISSING in final archive — build is broken"
     fi
 done
 
