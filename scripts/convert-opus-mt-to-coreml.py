@@ -263,7 +263,7 @@ def convert_language(lang: str, out_dir: Path) -> None:
     tokenizer = MarianTokenizer.from_pretrained(model_id)
 
     print(f"  [download] Fetching model weights (~300–400 MB)…")
-    model = MarianMTModel.from_pretrained(model_id, torchscript=True)
+    model = MarianMTModel.from_pretrained(model_id)
     model.eval()
 
     hidden_size: int = model.config.d_model
