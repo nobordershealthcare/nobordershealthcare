@@ -104,6 +104,25 @@ fi
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.h"   "${SPM_SRC}/src/"
 cp "${SCRIPTS_DIR}/sentencepiece_c_wrapper.cpp" "${SPM_SRC}/src/"
 
+# ── set_xcode_property stub ────────────────────────────────────────────────
+# sentencepiece's CMakeLists.txt calls set_xcode_property() — a macro that
+# is only defined when building with the Xcode generator. When using the
+# Ninja generator (required for cross-compiling to iOS) CMake errors with:
+#   "Unknown CMake command set_xcode_property"
+# We inject an empty stub via CMAKE_PROJECT_sentencepiece_INCLUDE so the
+# macro is defined before any call site is reached, without modifying the
+# upstream source tree.
+
+XCODE_FIX_DIR="${SPM_SRC}/cmake"
+mkdir -p "${XCODE_FIX_DIR}"
+cat > "${XCODE_FIX_DIR}/xcode_fix.cmake" << 'XCODE_FIX'
+# xcode_fix.cmake — stub out set_xcode_property for non-Xcode generators.
+# Injected via -DCMAKE_PROJECT_sentencepiece_INCLUDE at configure time.
+macro(set_xcode_property TARGET XCODE_PROPERTY XCODE_VALUE)
+endmacro()
+XCODE_FIX
+ok "xcode_fix.cmake stub written to ${XCODE_FIX_DIR}"
+
 # ── Build function ─────────────────────────────────────────────────────────
 # CMake 4.x policy fix:
 #   CMAKE_POLICY_VERSION_MINIMUM=3.5 tells CMake 4 to apply 3.5 policy
@@ -129,6 +148,7 @@ build_slice() {
 
     cmake -S "${SPM_SRC}" -B "${SLICE_BUILD}" \
         -G "Ninja" \
+        -DCMAKE_PROJECT_sentencepiece_INCLUDE=cmake/xcode_fix.cmake \
         -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX="${SLICE_INSTALL}" \
