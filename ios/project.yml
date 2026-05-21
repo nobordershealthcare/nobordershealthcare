@@ -1,0 +1,116 @@
+# xcodegen spec — run `xcodegen generate` from the ios/ directory.
+# All paths are relative to this file (ios/).
+
+name: nobordershealthcare
+
+options:
+  bundleIdPrefix: com.valeriy
+  deploymentTarget:
+    iOS: "26.0"
+  createIntermediateGroups: true
+  transitivelyLinkDependencies: true
+  # Keep generated project inside ios/
+  projectName: nobordershealthcare
+
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    # Use "minimal" so existing stubs compile without full Swift 6
+    # data-race checking; tighten to "complete" when all actors are audited.
+    SWIFT_STRICT_CONCURRENCY: minimal
+    IPHONEOS_DEPLOYMENT_TARGET: "26.0"
+    TARGETED_DEVICE_FAMILY: "1,2"
+    ENABLE_BITCODE: NO
+
+# ── Dependency framework targets ─────────────────────────────────────────────
+# SHA3Kit and KyberKit are compiled as separate Swift frameworks so that
+# `import SHA3Kit` / `import KyberKit` resolve inside the app target sources.
+
+targets:
+
+  SHA3Kit:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - Sources/SHA3Kit
+    settings:
+      base:
+        SKIP_INSTALL: YES
+        PRODUCT_MODULE_NAME: SHA3Kit
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+
+  KyberKit:
+    type: framework
+    platform: iOS
+    deploymentTarget: "26.0"
+    sources:
+      - Sources/KyberKit
+    settings:
+      base:
+        SKIP_INSTALL: YES
+        PRODUCT_MODULE_NAME: KyberKit
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+
+  # ── Main application target ─────────────────────────────────────────────
+  nobordershealthcare:
+    type: application
+    platform: iOS
+    deploymentTarget: "26.0"
+    bundleId: com.valeriy.nobordershealthcare
+
+    # Auto-generate Info.plist from these properties
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: nobordershealthcare
+        CFBundleName: nobordershealthcare
+        UILaunchScreen: {}
+        NSFaceIDUsageDescription: "Authenticate to access your health records"
+        NSCameraUsageDescription: "Required for QR code scanning"
+        # Allow network monitor without a full Network Extension entitlement
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+
+    # Auto-generate entitlements file
+    entitlements:
+      path: App/nobordershealthcare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.noborders.emergency
+
+    # Sources: app entry + full library module (compiled into the same target)
+    sources:
+      - path: App
+        excludes:
+          - "Assets.xcassets"   # handled as resource below
+          - "Info.plist"        # generated above
+          - "*.entitlements"    # generated above
+      - path: Sources/nobordershealthcare
+
+    resources:
+      - App/Assets.xcassets
+
+    dependencies:
+      # Inner framework targets (linked, not embedded — static-equivalent)
+      - target: SHA3Kit
+        embed: false
+      - target: KyberKit
+        embed: false
+      # sentencepiece-ios is a STATIC xcframework (libsentencepiece.a).
+      # Static libs are linked into the binary — never embedded.
+      - framework: Frameworks/sentencepiece-ios.xcframework
+        embed: false
+
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.valeriy.nobordershealthcare
+        SWIFT_VERSION: "6.0"
+        SWIFT_STRICT_CONCURRENCY: minimal
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        # Simulator-only; signing not needed for build-only CI
+        CODE_SIGNING_ALLOWED: NO
+        CODE_SIGN_IDENTITY: ""

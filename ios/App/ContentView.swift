@@ -80,7 +80,7 @@ struct ContentView: View {
             ProfileView()
                 .tabItem { Label("Profile",   systemImage: "person.fill") }
         }
-        .tint(.navy)
+        .tint(Color(red: 0.18, green: 0.19, blue: 0.48))
         .fullScreenCover(isPresented: $showEmergency) {
             EmergencyView(isPresented: $showEmergency)
         }
@@ -131,7 +131,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .toolbarBackground(Color.navy, for: .navigationBar)
+            .toolbarBackground(Color(red: 0.18, green: 0.19, blue: 0.48), for: .navigationBar)
             .toolbarBackground(.visible,   for: .navigationBar)
             .toolbarColorScheme(.dark,     for: .navigationBar)
         }
@@ -191,7 +191,7 @@ struct HomeView: View {
     private var quickActions: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                actionBtn("doc.text.fill",   "Health Records", .navy)
+                actionBtn("doc.text.fill",   "Health Records", Color(red: 0.18, green: 0.19, blue: 0.48))
                 actionBtn("video.fill",       "See a Doctor",  .blue)
             }
             HStack(spacing: 10) {
@@ -317,14 +317,14 @@ struct TelemedView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
-                Image(systemName: "video.fill").font(.system(size: 60)).foregroundStyle(.navy)
+                Image(systemName: "video.fill").font(.system(size: 60)).foregroundStyle(Color(red: 0.18, green: 0.19, blue: 0.48))
                 VStack(spacing: 8) {
                     Text("Telemedicine").font(.title2).fontWeight(.bold)
                     Text("Connect with a doctor\nanytime, anywhere.")
                         .foregroundStyle(.secondary).multilineTextAlignment(.center)
                 }
                 Button("Start Consultation") {}
-                    .buttonStyle(.borderedProminent).tint(.navy)
+                    .buttonStyle(.borderedProminent).tint(Color(red: 0.18, green: 0.19, blue: 0.48))
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -359,7 +359,7 @@ struct TranslateView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.25)))
 
                 Button("Translate to English") {}
-                    .buttonStyle(.borderedProminent).tint(.navy).frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent).tint(Color(red: 0.18, green: 0.19, blue: 0.48)).frame(maxWidth: .infinity)
                 Spacer()
             }
             .padding()
@@ -393,7 +393,7 @@ struct ProfileView: View {
                 Section {
                     HStack(spacing: 16) {
                         ZStack {
-                            Circle().fill(Color.navy).frame(width: 56, height: 56)
+                            Circle().fill(Color(red: 0.18, green: 0.19, blue: 0.48)).frame(width: 56, height: 56)
                             Text("MK").font(.title2).fontWeight(.bold).foregroundStyle(.white)
                         }
                         VStack(alignment: .leading, spacing: 4) {
@@ -466,7 +466,7 @@ struct ProfileView: View {
         Button { schemePref = value } label: {
             Text(label)
                 .font(.subheadline).frame(maxWidth: .infinity).padding(.vertical, 8)
-                .background(schemePref == value ? Color.navy : Color.secondary.opacity(0.15))
+                .background(schemePref == value ? Color(red: 0.18, green: 0.19, blue: 0.48) : Color.secondary.opacity(0.15))
                 .foregroundStyle(schemePref == value ? Color.white : Color.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
