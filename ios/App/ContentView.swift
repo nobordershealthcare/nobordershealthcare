@@ -2,6 +2,15 @@
 //  ContentView.swift
 //  nobordershealthcare-app
 //
+//  iOS 26 Liquid Glass design language:
+//  • Tab bar    — Liquid Glass applied automatically when targeting iOS 26
+//                 via the new Tab API (no explicit modifier needed on TabView)
+//  • Cards      — .ultraThinMaterial for depth without full glass tint
+//  • Navigation — inline title, glass nav bar (system default on iOS 26);
+//                 solid toolbarBackground removed so glass renders
+//  • Floating   — NetworkStatusChip + MK avatar use .glassEffect(in:)
+//  • Emergency  — dark solid navy, NO glass (life-critical readability first)
+//
 
 import SwiftUI
 
@@ -11,16 +20,12 @@ extension Color {
     /// Brand navy #2E317A
     static let navy = Color(red: 46/255, green: 49/255, blue: 122/255)
 
-    /// Linen (#F5F1EB) in light mode, system dark background in dark mode
+    /// Linen (#F5F1EB) in light mode, system background in dark.
+    /// Acts as the page canvas beneath .ultraThinMaterial cards.
     static let appBg = Color(UIColor { tc in
         tc.userInterfaceStyle == .dark
             ? UIColor.systemBackground
             : UIColor(red: 245/255, green: 241/255, blue: 235/255, alpha: 1)
-    })
-
-    /// White in light mode, secondary system bg in dark mode
-    static let cardBg = Color(UIColor { tc in
-        tc.userInterfaceStyle == .dark ? UIColor.secondarySystemBackground : .white
     })
 
     init(hex: String) {
@@ -36,8 +41,8 @@ extension Color {
 }
 
 // MARK: - NetworkStatusChip
-// Self-refreshing every 30 s via TimelineView. Used by the 4 secondary tabs.
-// Reads from NetworkCountryDetector (injected as @EnvironmentObject at App level).
+// Rendered as a Liquid Glass capsule — sits in the trailing toolbar of all
+// secondary tabs. Self-refreshes every 30 s via TimelineView.
 
 struct NetworkStatusChip: View {
     @EnvironmentObject var detector: NetworkCountryDetector
@@ -46,7 +51,6 @@ struct NetworkStatusChip: View {
     var body: some View {
         TimelineView(.periodic(from: .now, by: 30)) { _ in
             VStack(alignment: .trailing, spacing: 2) {
-                // .label already contains the emoji: "🟢 Online" etc.
                 Text(detector.networkStatus.label)
                     .font(.caption2).fontWeight(.semibold)
                 if showSync, let sync = detector.lastSyncDate {
@@ -54,33 +58,41 @@ struct NetworkStatusChip: View {
                         .font(.system(size: 9)).opacity(0.65)
                 }
             }
+            .padding(.horizontal, 8).padding(.vertical, 5)
+            // ▸ Liquid Glass pill — iOS 26 GlassEffect
+            .glassEffect(in: Capsule())
         }
     }
 }
 
 // MARK: - Root ContentView
+// Uses the iOS 18+ Tab API (available on our iOS 26 deployment target).
+// On iOS 26 the system renders the tab bar as a floating Liquid Glass bar
+// automatically — no .glassEffect() call required on TabView itself.
 
 struct ContentView: View {
     @State private var showEmergency = false
+    @State private var selectedTab: Int = 0
 
     var body: some View {
-        TabView {
-            HomeView(showEmergency: $showEmergency)
-                .tabItem { Label("Home",      systemImage: "house.fill") }
-
-            RecordsView()
-                .tabItem { Label("Records",   systemImage: "folder.fill") }
-
-            TelemedView()
-                .tabItem { Label("Telemed",   systemImage: "video.fill") }
-
-            TranslateView()
-                .tabItem { Label("Translate", systemImage: "bubble.left.and.bubble.right.fill") }
-
-            ProfileView()
-                .tabItem { Label("Profile",   systemImage: "person.fill") }
+        TabView(selection: $selectedTab) {
+            Tab("Home",      systemImage: "house.fill",                        value: 0) {
+                HomeView(showEmergency: $showEmergency)
+            }
+            Tab("Records",   systemImage: "folder.fill",                       value: 1) {
+                RecordsView()
+            }
+            Tab("Telemed",   systemImage: "video.fill",                        value: 2) {
+                TelemedView()
+            }
+            Tab("Translate", systemImage: "bubble.left.and.bubble.right.fill", value: 3) {
+                TranslateView()
+            }
+            Tab("Profile",   systemImage: "person.fill",                       value: 4) {
+                ProfileView()
+            }
         }
-        .tint(Color(red: 0.18, green: 0.19, blue: 0.48))
+        .tint(Color.navy)
         .fullScreenCover(isPresented: $showEmergency) {
             EmergencyView(isPresented: $showEmergency)
         }
@@ -91,8 +103,6 @@ struct ContentView: View {
 
 struct HomeView: View {
     @Binding var showEmergency: Bool
-    // NetworkCountryDetector is the single source for network status + country.
-    // @StateObject keeps the singleton alive for the lifetime of this tab.
     @StateObject private var detector = NetworkCountryDetector.shared
 
     var body: some View {
@@ -109,35 +119,37 @@ struct HomeView: View {
             .background(Color.appBg.ignoresSafeArea())
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                // ── Left: brand name + live network status from detector ──
+                // ── Left: brand name + live network status ─────────────────
                 ToolbarItem(placement: .navigationBarLeading) {
                     VStack(alignment: .leading, spacing: 1) {
                         Text("#nobordershealthcare")
                             .font(.subheadline).fontWeight(.bold)
+                            .foregroundStyle(Color.navy)
                         Text(detector.networkStatus.label)
-                            .font(.caption2)
+                            .font(.caption2).foregroundStyle(.secondary)
                         if let sync = detector.lastSyncDate {
                             Text("Synced \(sync, style: .relative) ago")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
+                                .font(.caption2).foregroundStyle(.secondary)
                         }
                     }
                 }
-                // ── Right: MK avatar ──────────────────────────────────────
+                // ── Right: MK avatar — Liquid Glass circle ─────────────────
                 ToolbarItem(placement: .navigationBarTrailing) {
                     ZStack {
-                        Circle().fill(Color.white.opacity(0.22)).frame(width: 34, height: 34)
                         Text("MK").font(.footnote).fontWeight(.bold)
                     }
+                    .frame(width: 34, height: 34)
+                    // ▸ Liquid Glass avatar — iOS 26 GlassEffect
+                    .glassEffect(in: Circle())
                 }
             }
-            .toolbarBackground(Color(red: 0.18, green: 0.19, blue: 0.48), for: .navigationBar)
-            .toolbarBackground(.visible,   for: .navigationBar)
-            .toolbarColorScheme(.dark,     for: .navigationBar)
+            // iOS 26: navigation bar renders as Liquid Glass by default.
+            // The solid .toolbarBackground is intentionally absent so the
+            // system glass blur appears behind the inline title + toolbar items.
         }
     }
 
-    // ── Emergency card ────────────────────────────────────────────────────
+    // ── Emergency card — dark solid gradient, NO glass (readability first) ──
 
     private var emergencyCard: some View {
         Button { showEmergency = true } label: {
@@ -186,12 +198,12 @@ struct HomeView: View {
             .clipShape(RoundedRectangle(cornerRadius: 6))
     }
 
-    // ── Quick actions 2×2 ─────────────────────────────────────────────────
+    // ── Quick actions 2×2 — .ultraThinMaterial cards ──────────────────────
 
     private var quickActions: some View {
         VStack(spacing: 10) {
             HStack(spacing: 10) {
-                actionBtn("doc.text.fill",   "Health Records", Color(red: 0.18, green: 0.19, blue: 0.48))
+                actionBtn("doc.text.fill",   "Health Records", Color.navy)
                 actionBtn("video.fill",       "See a Doctor",  .blue)
             }
             HStack(spacing: 10) {
@@ -202,7 +214,10 @@ struct HomeView: View {
         .padding(.horizontal, 16)
     }
 
-    private func actionBtn(_ icon: String, _ title: String, _ tint: Color, action: (() -> Void)? = nil) -> some View {
+    private func actionBtn(
+        _ icon: String, _ title: String, _ tint: Color,
+        action: (() -> Void)? = nil
+    ) -> some View {
         Button { action?() } label: {
             HStack(spacing: 10) {
                 Image(systemName: icon).font(.title3).foregroundStyle(tint).frame(width: 28)
@@ -211,13 +226,14 @@ struct HomeView: View {
                 Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.secondary)
             }
             .padding(14)
-            .background(Color.cardBg)
+            // ▸ .ultraThinMaterial card
+            .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain).frame(maxWidth: .infinity)
     }
 
-    // ── Recent vitals ─────────────────────────────────────────────────────
+    // ── Recent vitals — .ultraThinMaterial cards ──────────────────────────
 
     private var vitalsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -231,7 +247,10 @@ struct HomeView: View {
         }
     }
 
-    private func vitalCard(_ icon: String, _ value: String, _ unit: String, _ label: String, _ tint: Color) -> some View {
+    private func vitalCard(
+        _ icon: String, _ value: String, _ unit: String,
+        _ label: String, _ tint: Color
+    ) -> some View {
         VStack(spacing: 5) {
             Image(systemName: icon).foregroundStyle(tint).font(.title3)
             Text(value).font(.title3).fontWeight(.bold)
@@ -239,10 +258,12 @@ struct HomeView: View {
             Text(label).font(.system(size: 9)).foregroundStyle(.secondary).multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity).padding(12)
-        .background(Color.cardBg).clipShape(RoundedRectangle(cornerRadius: 12))
+        // ▸ .ultraThinMaterial card
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 
-    // ── Documents ─────────────────────────────────────────────────────────
+    // ── Documents — .ultraThinMaterial card ──────────────────────────────
 
     private var documentsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -250,11 +271,13 @@ struct HomeView: View {
             VStack(spacing: 0) {
                 docRow("doc.fill",        "Hospital da Luz Report", "Apr 2026", .blue)
                 Divider().padding(.leading, 52)
-                docRow("pills.fill",     "Metformin Prescription",  "Mar 2026", .green)
+                docRow("pills.fill",      "Metformin Prescription",  "Mar 2026", .green)
                 Divider().padding(.leading, 52)
                 docRow("creditcard.fill", "AOK Insurance Card",      "Jan 2026", .purple)
             }
-            .background(Color.cardBg).clipShape(RoundedRectangle(cornerRadius: 12))
+            // ▸ .ultraThinMaterial card
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
             .padding(.horizontal, 16)
         }
     }
@@ -315,16 +338,25 @@ struct TelemedView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack {
                 Spacer()
-                Image(systemName: "video.fill").font(.system(size: 60)).foregroundStyle(Color(red: 0.18, green: 0.19, blue: 0.48))
-                VStack(spacing: 8) {
-                    Text("Telemedicine").font(.title2).fontWeight(.bold)
-                    Text("Connect with a doctor\nanytime, anywhere.")
-                        .foregroundStyle(.secondary).multilineTextAlignment(.center)
+                // ▸ .ultraThinMaterial content card
+                VStack(spacing: 20) {
+                    Image(systemName: "video.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(Color.navy)
+                    VStack(spacing: 8) {
+                        Text("Telemedicine").font(.title2).fontWeight(.bold)
+                        Text("Connect with a doctor\nanytime, anywhere.")
+                            .foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    }
+                    Button("Start Consultation") {}
+                        .buttonStyle(.borderedProminent).tint(Color.navy)
                 }
-                Button("Start Consultation") {}
-                    .buttonStyle(.borderedProminent).tint(Color(red: 0.18, green: 0.19, blue: 0.48))
+                .padding(32)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+                .padding(.horizontal, 24)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -346,20 +378,26 @@ struct TranslateView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                // ▸ .ultraThinMaterial text editor card
                 ZStack(alignment: .topLeading) {
                     if inputText.isEmpty {
                         Text("Enter text to translate…")
                             .foregroundStyle(.secondary).padding(16)
                     }
                     TextEditor(text: $inputText)
-                        .frame(height: 140).opacity(inputText.isEmpty ? 0.25 : 1).padding(8)
+                        .frame(height: 140)
+                        .opacity(inputText.isEmpty ? 0.25 : 1)
+                        .padding(8)
+                        .scrollContentBackground(.hidden)   // makes TextEditor bg transparent
                 }
-                .background(Color.cardBg)
+                .background(.ultraThinMaterial)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.secondary.opacity(0.25)))
 
                 Button("Translate to English") {}
-                    .buttonStyle(.borderedProminent).tint(Color(red: 0.18, green: 0.19, blue: 0.48)).frame(maxWidth: .infinity)
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.navy)
+                    .frame(maxWidth: .infinity)
                 Spacer()
             }
             .padding()
@@ -393,7 +431,7 @@ struct ProfileView: View {
                 Section {
                     HStack(spacing: 16) {
                         ZStack {
-                            Circle().fill(Color(red: 0.18, green: 0.19, blue: 0.48)).frame(width: 56, height: 56)
+                            Circle().fill(Color.navy).frame(width: 56, height: 56)
                             Text("MK").font(.title2).fontWeight(.bold).foregroundStyle(.white)
                         }
                         VStack(alignment: .leading, spacing: 4) {
@@ -425,7 +463,6 @@ struct ProfileView: View {
                     HStack {
                         Text("Status")
                         Spacer()
-                        // .label includes the emoji: "🟢 Online" etc.
                         Text(detector.networkStatus.label)
                             .font(.caption).foregroundStyle(.secondary)
                     }
@@ -466,7 +503,7 @@ struct ProfileView: View {
         Button { schemePref = value } label: {
             Text(label)
                 .font(.subheadline).frame(maxWidth: .infinity).padding(.vertical, 8)
-                .background(schemePref == value ? Color(red: 0.18, green: 0.19, blue: 0.48) : Color.secondary.opacity(0.15))
+                .background(schemePref == value ? Color.navy : Color.secondary.opacity(0.15))
                 .foregroundStyle(schemePref == value ? Color.white : Color.primary)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
         }
@@ -474,7 +511,7 @@ struct ProfileView: View {
     }
 }
 
-// MARK: - EmergencyView (always dark navy)
+// MARK: - EmergencyView (always dark navy — readability first, no glass)
 
 struct EmergencyView: View {
     @Binding var isPresented: Bool
@@ -489,7 +526,7 @@ struct EmergencyView: View {
             ScrollView {
                 VStack(spacing: 24) {
 
-                    // ── Top bar: close (left) + language flag (right) ─────
+                    // ── Top bar: close (left) + language flag (right) ──────
                     HStack {
                         Button { isPresented = false } label: {
                             Image(systemName: "xmark.circle.fill")
@@ -500,8 +537,7 @@ struct EmergencyView: View {
                             HStack(spacing: 4) {
                                 Text(detector.current.flag)
                                 Text(detector.current.isoCode)
-                                    .font(.caption.bold())
-                                    .foregroundColor(.white)
+                                    .font(.caption.bold()).foregroundColor(.white)
                             }
                             .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(.white.opacity(0.2))
@@ -510,7 +546,7 @@ struct EmergencyView: View {
                     }
                     .padding(.horizontal, 20).padding(.top, 12)
 
-                    // ── Pulsing red dot ───────────────────────────────────
+                    // ── Pulsing red dot ────────────────────────────────────
                     VStack(spacing: 14) {
                         ZStack {
                             Circle().fill(Color.red.opacity(0.25))
@@ -524,7 +560,7 @@ struct EmergencyView: View {
                     }
                     .onAppear { pulse = true }
 
-                    // ── Patient card ──────────────────────────────────────
+                    // ── Patient card — dark solid, deliberately NOT glass ───
                     VStack(alignment: .leading, spacing: 16) {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
@@ -566,12 +602,11 @@ struct EmergencyView: View {
                     .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.12)))
                     .padding(.horizontal, 16)
 
-                    // ── Detection source label ────────────────────────────
+                    // ── Detection source label ─────────────────────────────
                     Text(detector.current.sourceLabel)
-                        .font(.caption2)
-                        .foregroundColor(.white.opacity(0.5))
+                        .font(.caption2).foregroundColor(.white.opacity(0.5))
 
-                    // ── QR placeholder (works offline — local JWT) ─────────
+                    // ── QR placeholder (offline — local JWT) ───────────────
                     VStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color.white.opacity(0.1))
@@ -600,7 +635,6 @@ struct EmergencyView: View {
                 }
             }
         }
-        // Language picker
         .confirmationDialog("Emergency Card Language", isPresented: $showLanguagePicker) {
             Button("🇺🇦 Ukrainian")  { detector.setManual(isoCode: "UA", language: "uk") }
             Button("🇩🇪 German")     { detector.setManual(isoCode: "DE", language: "de") }
@@ -608,12 +642,11 @@ struct EmergencyView: View {
             Button("🇬🇧 English")    { detector.setManual(isoCode: "GB", language: "en") }
             Button("Cancel", role: .cancel) {}
         }
-        // Detect serving-network country on first open
         .task { await detector.detect() }
         // Scope dark mode to this view tree ONLY.
         // .environment(\.colorScheme, .dark) changes the SwiftUI environment
-        // without touching UIWindow.overrideUserInterfaceStyle, so the rest
-        // of the app is unaffected when this fullScreenCover is dismissed.
+        // without touching UIWindow.overrideUserInterfaceStyle — the rest of
+        // the app is unaffected when this fullScreenCover is dismissed.
         .environment(\.colorScheme, .dark)
     }
 
