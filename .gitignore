@@ -12,6 +12,11 @@ bin/
 *.test
 vendor/
 go.work.sum
+# Compiled chaincode binaries (go build in each channel subdirectory)
+contracts/channel1-signatures/channel1-signatures
+contracts/channel2-consent/channel2-consent
+contracts/channel3-access/channel3-access
+contracts/contracts
 
 # Swift / Xcode
 build/

@@ -16,6 +16,8 @@ EU MDR Class IIa pathway. GDPR Art.9 by design. Pre-seed stage, Hospital da Luz 
 - ALL encryption must be AES-256 minimum; key exchange via Kyber-1024 (NIST ML-KEM)
 - ALL inter-service communication must use mTLS
 - ALL blockchain writes contain only hashes — never content, never paths, never URLs
+- AdES signature records NEVER stored in same silo as health data — always Fabric channel 1
+- Legal vault uses SEPARATE AES key from eHR vault (keychain tag com.noborders.legal.key vs com.noborders.vault.key)
 
 ## Tech stack decisions (final, do not suggest alternatives)
 - iOS: Swift 5.9+, SwiftUI, CryptoKit, CoreML, Secure Enclave APIs
@@ -58,6 +60,16 @@ EU MDR Class IIa pathway. GDPR Art.9 by design. Pre-seed stage, Hospital da Luz 
 - No RxNorm codes in any EU-facing output
 - No generative AI calls in the clinical coding pipeline
 
+## Storage silos (5 total — see docs/architecture.md for full schema)
+1. iOS Secure Enclave — eHR vault    (key: com.noborders.vault.key)
+2. iOS Secure Enclave — Legal vault  (key: com.noborders.legal.key — SEPARATE)
+3. ScyllaDB cluster                  (AES-256-GCM, hash keys only)
+4. IPFS + Shamir K=3/N=7             (P2P resilience, device recovery)
+5. Hyperledger Fabric (3 channels)   (hashes only — never content)
+   - channel 1: signatures  (AdES records)
+   - channel 2: consent-audit  (GDPR Art.7 lifecycle)
+   - channel 3: access-audit   (GDPR Art.15 access log)
+
 ## Project structure
 ```
 /ios          — Swift iOS wallet app
@@ -65,7 +77,10 @@ EU MDR Class IIa pathway. GDPR Art.9 by design. Pre-seed stage, Hospital da Luz 
   /anonymizer   — core token factory service (most critical)
   /gatekeeper   — auth + smart contract verification
   /normalization — openEHR + LOINC/SNOMED mapping engine
-/contracts    — Hyperledger Fabric chaincode
+/contracts              — Hyperledger Fabric chaincode (access control)
+/contracts/channel1-signatures  — Fabric channel 1: AdES signature records
+/contracts/channel2-consent     — Fabric channel 2: consent-audit
+/contracts/channel3-access      — Fabric channel 3: access-audit
 /infra        — Kubernetes manifests + Terraform
 /docs         — architecture docs (referenced by CLAUDE.md files)
 ```
