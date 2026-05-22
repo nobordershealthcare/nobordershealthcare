@@ -301,33 +301,15 @@ struct HomeView: View {
 }
 
 // MARK: - RecordsView
+// Delegates to DocumentView which owns the full DocumentVault UI.
+// The NavigationStack and toolbar (including NetworkStatusChip) live inside
+// DocumentView so the scan/import toolbar items share the same nav bar.
 
 struct RecordsView: View {
     @EnvironmentObject var detector: NetworkCountryDetector
 
     var body: some View {
-        NavigationStack {
-            List {
-                Section("Recent") {
-                    Label("Hospital da Luz Report", systemImage: "doc.fill")
-                    Label("Blood Test Results",     systemImage: "drop.fill")
-                    Label("ECG Report",             systemImage: "waveform.path.ecg")
-                }
-                Section("Prescriptions") {
-                    Label("Metformin 500mg",  systemImage: "pills.fill")
-                    Label("Lisinopril 10mg",  systemImage: "pills.fill")
-                }
-                Section("Insurance") {
-                    Label("AOK Insurance Card", systemImage: "creditcard.fill")
-                }
-            }
-            .scrollContentBackground(.hidden)
-            .background(Color.appBg.ignoresSafeArea())
-            .navigationTitle("Records")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) { NetworkStatusChip() }
-            }
-        }
+        DocumentView()
     }
 }
 
