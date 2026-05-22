@@ -398,6 +398,13 @@ struct ProfileView: View {
     @AppStorage("colorScheme") var schemePref: String = "auto"
     @EnvironmentObject var detector: NetworkCountryDetector
 
+    // ── Support & Contact state ───────────────────────────────────────────────
+    @State private var supportProfile: SupportProfile? = nil
+    @State private var editSalutation: String = ""
+    @State private var editNickname: String = ""
+    @State private var supportEdited: Bool = false
+    @State private var showChangeSQ: Bool = false
+
     var schemeLabel: String {
         switch schemePref {
         case "light": return "☀️ Day"
@@ -471,6 +478,9 @@ struct ProfileView: View {
                     Label("Sign Out",       systemImage: "arrow.right.circle")
                         .foregroundStyle(.red)
                 }
+
+                // ── Support & Contact ──────────────────────────────────────
+                supportContactSection
             }
             .scrollContentBackground(.hidden)
             .background(Color.appBg.ignoresSafeArea())
@@ -478,7 +488,87 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { NetworkStatusChip() }
             }
+            .onAppear { loadSupportProfile() }
+            .sheet(isPresented: $showChangeSQ) {
+                if let profile = supportProfile {
+                    ChangeSecurityQuestionSheet(
+                        profile: profile,
+                        isPresented: $showChangeSQ
+                    ) { updated in
+                        supportProfile = updated
+                        editSalutation = updated.salutation
+                        editNickname   = updated.nickname
+                    }
+                }
+            }
         }
+    }
+
+    // ── Support section ────────────────────────────────────────────────────────
+
+    @ViewBuilder
+    private var supportContactSection: some View {
+        Section {
+            // Salutation — editable inline
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("Salutation", text: $editSalutation)
+                    .onChange(of: editSalutation) { _, _ in supportEdited = true }
+                Text("How support addresses you in chat")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+
+            // Nickname — editable inline
+            VStack(alignment: .leading, spacing: 2) {
+                TextField("Support nickname", text: $editNickname)
+                    .onChange(of: editNickname) { _, _ in supportEdited = true }
+                Text("Not your medical name — just for support contact")
+                    .font(.caption2).foregroundStyle(.secondary)
+            }
+
+            if supportEdited {
+                Button("Save changes") { saveSupportContactInfo() }
+                    .foregroundStyle(Color.navy)
+            }
+
+            // "Change security question" — only shown when an answer hash is already set
+            if let profile = supportProfile, !profile.securityAnswerHash.isEmpty {
+                Button("Change security question") { showChangeSQ = true }
+            }
+
+            Text("Support will NEVER ask for your medical data.\nOnly nickname, DOB, and security answer.")
+                .font(.caption2).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+        } header: {
+            Text("Support & Contact")
+        }
+    }
+
+    // ── Helpers ────────────────────────────────────────────────────────────────
+
+    private func loadSupportProfile() {
+        guard let profile = SupportProfileStore.load() else { return }
+        supportProfile = profile
+        editSalutation = profile.salutation
+        editNickname   = profile.nickname
+        supportEdited  = false
+    }
+
+    private func saveSupportContactInfo() {
+        var profile = supportProfile ?? SupportProfile(
+            salutation:          "",
+            nickname:            "",
+            securityQuestion:    "",
+            securityQuestionKey: nil,
+            securityAnswerHash:  "",
+            updatedAt:           Date()
+        )
+        profile.salutation = editSalutation.trimmingCharacters(in: .whitespaces)
+        profile.nickname   = editNickname.trimmingCharacters(in: .whitespaces)
+        profile.updatedAt  = Date()
+        SupportProfileStore.save(profile)
+        supportProfile = profile
+        supportEdited  = false
     }
 
     private func schemeBtn(_ label: String, _ value: String) -> some View {
@@ -500,6 +590,37 @@ struct EmergencyView: View {
     @StateObject private var detector = NetworkCountryDetector.shared
     @State private var pulse = false
     @State private var showLanguagePicker = false
+    // Opus-MT translations for dynamic medical content (allergy/medication names).
+    // Populated async; t() falls back to the English key while loading.
+    @State private var translations: [String: String] = [:]
+
+    // Static table for known UI strings — no opus-mt needed for these.
+    // Keys are the canonical English strings used as translation lookup keys.
+    private static let staticUI: [String: [String: String]] = [
+        "ALLERGIES":   ["uk": "АЛЕРГІЇ",    "de": "ALLERGIEN",    "pt": "ALERGIAS",   "ru": "АЛЛЕРГИИ"],
+        "MEDICATIONS": ["uk": "ЛІКИ",       "de": "MEDIKAMENTE",  "pt": "MEDICAMENTOS","ru": "ЛЕКАРСТВА"],
+        "EMERGENCY ACCESS": [
+            "uk": "ЕКСТРЕНИЙ ДОСТУП", "de": "NOTFALLZUGANG",
+            "pt": "ACESSO DE EMERGÊNCIA", "ru": "ЭКСТРЕННЫЙ ДОСТУП",
+        ],
+        "Scan to access full medical record": [
+            "uk": "Скануйте для доступу до медичної карти",
+            "de": "Scannen für vollständige Patientenakte",
+            "pt": "Escaneie para aceder ao registo médico completo",
+            "ru": "Сканируйте для доступа к медкарте",
+        ],
+        "Works offline · Local JWT": [
+            "uk": "Працює офлайн · Локальний JWT",
+            "de": "Offline verfügbar · Lokales JWT",
+            "pt": "Funciona offline · JWT local",
+            "ru": "Работает офлайн · Локальный JWT",
+        ],
+        "Set manually": [
+            "uk": "Встановлено вручну",  "de": "Manuell eingestellt",
+            "pt": "Definido manualmente", "ru": "Установлено вручную",
+        ],
+        "Polish": ["uk": "Польська", "de": "Polnisch", "pt": "Polaco", "ru": "Польская"],
+    ]
 
     var body: some View {
         ZStack {
@@ -536,7 +657,7 @@ struct EmergencyView: View {
                                 .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: pulse)
                             Circle().fill(Color.red).frame(width: 20, height: 20)
                         }
-                        Text("EMERGENCY ACCESS")
+                        Text(t("EMERGENCY ACCESS"))
                             .font(.title2).fontWeight(.heavy)
                             .foregroundStyle(.white).tracking(2)
                     }
@@ -548,34 +669,35 @@ struct EmergencyView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("Maria Kowalczyk")
                                     .font(.title3).fontWeight(.bold).foregroundStyle(.white)
-                                Text("DOB: 12.08.1985 · Polish")
+                                Text("DOB: \(formattedDOB()) · \(t("Polish"))")
                                     .font(.subheadline).foregroundStyle(.white.opacity(0.65))
                             }
                             Spacer()
+                            // Blood type is universal — no translation
                             Text("A+").font(.title).fontWeight(.heavy).foregroundStyle(.red)
                         }
 
                         Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("ALLERGIES")
+                            Text(t("ALLERGIES"))
                                 .font(.caption2).fontWeight(.bold)
                                 .foregroundStyle(Color.red).tracking(1.5)
                             HStack(spacing: 8) {
-                                allergyBadge("Penicillin")
-                                allergyBadge("Ibuprofen")
-                                allergyBadge("Sulfa")
+                                allergyBadge(t("Penicillin"))
+                                allergyBadge(t("Ibuprofen"))
+                                allergyBadge(t("Sulfa"))
                             }
                         }
 
                         Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
 
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("MEDICATIONS")
+                            Text(t("MEDICATIONS"))
                                 .font(.caption2).fontWeight(.bold)
                                 .foregroundStyle(.white.opacity(0.5)).tracking(1.5)
-                            medRow("Metformin",  "500mg", "2×/day")
-                            medRow("Lisinopril", "10mg",  "1×/day")
+                            medRow(t("Metformin"),  "500mg", "2×/day")
+                            medRow(t("Lisinopril"), "10mg",  "1×/day")
                         }
                     }
                     .padding(20)
@@ -585,7 +707,7 @@ struct EmergencyView: View {
                     .padding(.horizontal, 16)
 
                     // ── Detection source label ─────────────────────────────
-                    Text(detector.current.sourceLabel)
+                    Text(translatedSourceLabel())
                         .font(.caption2).foregroundColor(.white.opacity(0.5))
 
                     // ── QR placeholder (offline — local JWT) ───────────────
@@ -597,9 +719,9 @@ struct EmergencyView: View {
                                 Image(systemName: "qrcode")
                                     .font(.system(size: 80)).foregroundStyle(.white.opacity(0.4))
                             )
-                        Text("Scan to access full medical record")
+                        Text(t("Scan to access full medical record"))
                             .font(.caption).foregroundStyle(.white.opacity(0.45))
-                        Text("Works offline · Local JWT")
+                        Text(t("Works offline · Local JWT"))
                             .font(.caption2).foregroundStyle(.white.opacity(0.3))
                     }
 
@@ -621,15 +743,63 @@ struct EmergencyView: View {
             Button("🇺🇦 Ukrainian")  { detector.setManual(isoCode: "UA", language: "uk") }
             Button("🇩🇪 German")     { detector.setManual(isoCode: "DE", language: "de") }
             Button("🇵🇹 Portuguese") { detector.setManual(isoCode: "PT", language: "pt") }
+            Button("🇷🇺 Russian")    { detector.setManual(isoCode: "RU", language: "ru") }
             Button("🇬🇧 English")    { detector.setManual(isoCode: "GB", language: "en") }
             Button("Cancel", role: .cancel) {}
         }
-        .task { await detector.detect() }
+        .task {
+            await detector.detect()
+            await translateAllStrings(to: detector.current.language)
+        }
+        .onChange(of: detector.current.language) { _, newLang in
+            Task { await translateAllStrings(to: newLang) }
+        }
         // Scope dark mode to this view tree ONLY.
         // .environment(\.colorScheme, .dark) changes the SwiftUI environment
         // without touching UIWindow.overrideUserInterfaceStyle — the rest of
         // the app is unaffected when this fullScreenCover is dismissed.
         .environment(\.colorScheme, .dark)
+    }
+
+    // ── Translation helpers ────────────────────────────────────────────────
+
+    // Static dict first, then opus-mt results, then English fallback while loading.
+    private func t(_ key: String) -> String {
+        let lang = detector.current.language
+        guard lang != "en" else { return key }
+        return Self.staticUI[key]?[lang] ?? translations[key] ?? key
+    }
+
+    // DOB display format adapted to locale (demo value: 12 Aug 1985).
+    // DE/UA/RU: dd.MM.yyyy  |  PT: dd/MM/yyyy  |  EN: MM/dd/yyyy
+    private func formattedDOB() -> String {
+        switch detector.current.language {
+        case "de", "uk", "ru": return "12.08.1985"
+        case "pt":             return "12/08/1985"
+        default:               return "08/12/1985"
+        }
+    }
+
+    // Translates just the "Set manually" text part of the detection source label,
+    // preserving the leading emoji from DetectedCountry.sourceLabel.
+    private func translatedSourceLabel() -> String {
+        let label = detector.current.sourceLabel
+        let lang  = detector.current.language
+        guard lang != "en", label.hasPrefix("✋ ") else { return label }
+        let translated = Self.staticUI["Set manually"]?[lang] ?? String(label.dropFirst(3))
+        return "✋ " + translated
+    }
+
+    // Opus-MT via xLMEngine for allergy and medication names (on-device CoreML).
+    // Static UI strings skip this path entirely (see staticUI table above).
+    // Shows English originals while translating — no blank fields.
+    @MainActor
+    private func translateAllStrings(to lang: String) async {
+        guard lang != "en" else { translations = [:]; return }
+        let xlm = xLMEngine.shared
+        for key in ["Penicillin", "Ibuprofen", "Sulfa", "Metformin", "Lisinopril"] {
+            translations[key] = await xlm.translateMedical(key, to: lang)
+        }
     }
 
     private func allergyBadge(_ text: String) -> some View {
@@ -649,6 +819,163 @@ struct EmergencyView: View {
             Spacer()
             Text(freq).font(.caption).foregroundStyle(.white.opacity(0.45))
         }
+    }
+}
+
+// MARK: - ChangeSecurityQuestionSheet
+//
+// Two-phase sheet:
+//   Phase 1 — verify current answer (hash-compared; plaintext never sent anywhere)
+//   Phase 2 — pick new question + enter new answer (hash on save, zero immediately)
+
+struct ChangeSecurityQuestionSheet: View {
+    let profile: SupportProfile
+    @Binding var isPresented: Bool
+    let onSaved: (SupportProfile) -> Void
+
+    @State private var phase: Int = 1
+
+    // Phase 1
+    @State private var currentAnswerInput: String = ""
+    @State private var verifyError: String? = nil
+
+    // Phase 2
+    @State private var newQuestion: SecurityQuestion = .firstPet
+    @State private var customNewQuestion: String = ""
+    @State private var newAnswer: String = ""
+    @State private var newAnswerConfirm: String = ""
+    @State private var saveError: String? = nil
+
+    var body: some View {
+        NavigationStack {
+            if phase == 1 { verifyPhase } else { setNewPhase }
+        }
+    }
+
+    // ── Phase 1: verify current answer ────────────────────────────────────────
+
+    private var verifyPhase: some View {
+        Form {
+            Section {
+                Text(profile.securityQuestion)
+                    .font(.subheadline).foregroundStyle(.secondary)
+                SecureField("Current answer", text: $currentAnswerInput)
+                if let err = verifyError {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            } header: {
+                Text("Verify current security question")
+            } footer: {
+                Text("Enter your current answer to proceed.")
+            }
+        }
+        .navigationTitle("Change Security Question")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { isPresented = false }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Verify") { verifyCurrentAnswer() }
+                    .disabled(currentAnswerInput.isEmpty)
+            }
+        }
+    }
+
+    // ── Phase 2: set new question + answer ────────────────────────────────────
+
+    private var setNewPhase: some View {
+        Form {
+            Section {
+                Picker("New question", selection: $newQuestion) {
+                    ForEach(SecurityQuestion.allCases, id: \.self) { q in
+                        Text(q.displayLabel).tag(q)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                if newQuestion == .customQuestion {
+                    TextField("Your custom question", text: $customNewQuestion)
+                        .autocorrectionDisabled()
+                }
+
+                SecureField("New answer",         text: $newAnswer)
+                SecureField("Confirm new answer", text: $newAnswerConfirm)
+
+                if !newAnswer.isEmpty, !newAnswerConfirm.isEmpty, newAnswer != newAnswerConfirm {
+                    Text("Answers do not match").font(.caption).foregroundStyle(.orange)
+                }
+                if let err = saveError {
+                    Text(err).font(.caption).foregroundStyle(.red)
+                }
+            } header: {
+                Text("New security question")
+            } footer: {
+                Text("Your answer is hashed immediately and never stored in plaintext.")
+            }
+        }
+        .navigationTitle("New Security Question")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .cancellationAction) {
+                Button("Cancel") { isPresented = false }
+            }
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { saveNewQuestion() }
+                    .disabled(!canSaveNew)
+            }
+        }
+    }
+
+    // ── Logic ──────────────────────────────────────────────────────────────────
+
+    private var canSaveNew: Bool {
+        !newAnswer.isEmpty
+        && newAnswer == newAnswerConfirm
+        && (newQuestion != .customQuestion || !customNewQuestion.isEmpty)
+    }
+
+    private func verifyCurrentAnswer() {
+        if profile.verifyAnswer(currentAnswerInput) {
+            verifyError       = nil
+            currentAnswerInput = ""   // zero plaintext from memory
+            phase = 2
+        } else {
+            verifyError = "Incorrect answer. Please try again."
+        }
+    }
+
+    private func saveNewQuestion() {
+        guard canSaveNew else { return }
+
+        let questionText: String
+        let questionKey: String
+        if newQuestion == .customQuestion {
+            questionText = customNewQuestion.trimmingCharacters(in: .whitespaces)
+            questionKey  = SecurityQuestion.customQuestion.rawValue
+        } else {
+            questionText = newQuestion.displayLabel
+            questionKey  = newQuestion.rawValue
+        }
+
+        var updated = profile
+        updated.securityQuestion    = questionText
+        updated.securityQuestionKey = questionKey
+
+        do {
+            try updated.setAnswer(newAnswer)
+        } catch {
+            saveError = error.localizedDescription
+            return
+        }
+
+        // Zero plaintext from @State
+        newAnswer        = ""
+        newAnswerConfirm = ""
+
+        SupportProfileStore.save(updated)
+        onSaved(updated)
+        isPresented = false
     }
 }
 

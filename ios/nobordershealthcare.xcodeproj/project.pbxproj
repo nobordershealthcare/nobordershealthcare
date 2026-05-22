@@ -39,6 +39,7 @@
 		E848025D0E1286C35C98CE7E /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = A232710A9A36C749E012D490 /* EmergencyCard.swift */; };
 		F61F4371D6ABE399F83B1CBD /* DocumentScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5917E6626F05C5E56C394EBA /* DocumentScanner.swift */; };
 		FB561C70D9662C04DD652598 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = FFD92F1217756D49BAA2B7D4 /* SecureEnclaveKey.swift */; };
+		AA11223344556677889900AA /* SupportProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB11223344556677889900BB /* SupportProfile.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +93,7 @@
 		FD858733241664E61B491F5E /* AttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestationService.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FFD92F1217756D49BAA2B7D4 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
+		BB11223344556677889900BB /* SupportProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportProfile.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,10 +158,19 @@
 				2FC623B7E153A1D5F400BDBE /* Identity */,
 				730D44C8ACA3F901C8DA659D /* Location */,
 				7C94740809D4768813E23270 /* QR */,
+				CC11223344556677889900CC /* Support */,
 				67BAA765C0537B20D23EFC73 /* Telemedicine */,
 				DC860FFACFF93B16A06A8153 /* Translation */,
 			);
 			path = nobordershealthcare;
+			sourceTree = "<group>";
+		};
+		CC11223344556677889900CC /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				BB11223344556677889900BB /* SupportProfile.swift */,
+			);
+			path = Support;
 			sourceTree = "<group>";
 		};
 		67BAA765C0537B20D23EFC73 /* Telemedicine */ = {
@@ -400,6 +411,7 @@
 				C4C13C8E2C5D9811AF3B4BFA /* ScopeManager.swift in Sources */,
 				FB561C70D9662C04DD652598 /* SecureEnclaveKey.swift in Sources */,
 				9DE8173CF6358211874AA812 /* ShamirShard.swift in Sources */,
+				AA11223344556677889900AA /* SupportProfile.swift in Sources */,
 				E5E482361605BA8ED1236A95 /* TerminologyMapper.swift in Sources */,
 				1AD0B114F65AB0F0BB37A16C /* VaultManager.swift in Sources */,
 				CAF573CD0A0AB5ACD409A6A8 /* nobordershealthcare_appApp.swift in Sources */,

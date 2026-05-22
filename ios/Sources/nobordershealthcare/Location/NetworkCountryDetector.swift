@@ -29,6 +29,7 @@ private let isoToLanguage: [String: String] = [
     "DE": "de", "AT": "de", "CH": "de", "LU": "de",
     "PT": "pt", "BR": "pt",
     "UA": "uk",
+    "RU": "ru",
     "FR": "fr", "BE": "fr", "MC": "fr",
     "IT": "it",
     "ES": "es",
