@@ -492,7 +492,7 @@ struct MedicationRowEditor: View {
 
 // MARK: - ATC Lookup stub (backed by normalization module table)
 
-final class ATCLookup {
+final class ATCLookup: @unchecked Sendable {
     static let shared = ATCLookup()
 
     // Partial table for common medications — full table from normalization/atc_lookup.json

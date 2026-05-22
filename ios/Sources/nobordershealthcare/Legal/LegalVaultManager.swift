@@ -11,83 +11,37 @@
 // separate Secure Enclave key pairs; the wrapped AES-256 blobs live in distinct
 // Keychain items. Never share, copy, or derive one key from the other.
 //
-// Contents of the legal vault:
-//   - ConsentRecord     — patient consent grants and revocations
-//   - HealthcareProxy   — delegated medical decision authority
-//   - DPA               — Data Processing Agreement (GDPR Art.28)
-//   - SignatureRecord   — AdES (Advanced Electronic Signature) local copy
+// Domain types are defined in Models.swift — DO NOT redeclare them here.
 //
-// BLOCKCHAIN RULE (from CLAUDE.md):
-//   AdES signature records NEVER stored in same silo as health data.
-//   SignatureRecord is stored HERE (legal vault) and ON channel 1.
-//   It is NEVER written to VaultManager (eHR vault).
+// Contents of the legal vault (schema v2):
+//   - ConsentRecord              — GDPR consent grants and per-item revocations
+//   - HealthcareProxy            — delegated medical decision authority
+//   - ProxyDocument              — official documents attached to proxies
+//   - DataProcessingAuthorization — GDPR Art.28 DPA
+//   - SignatureRecord            — AdES (Advanced Electronic Signature) local copies
+//
+// BLOCKCHAIN RULE:
+//   SignatureRecord: stored HERE (Silo 2) and anchored on Fabric Channel 1.
+//   NEVER written to VaultManager (eHR vault / Silo 1).
 
 import Foundation
 import CryptoKit
 import Security
 
-// MARK: - Domain types
-
-struct ConsentRecord: Codable, Sendable, Identifiable {
-    let id: String                // UUID
-    let consentType: String       // "ehr_access" | "research" | "insurance" | "emergency" | "telemedicine"
-    let grantedAt: Date
-    var revokedAt: Date?
-    var isActive: Bool { revokedAt == nil }
-    let expiresAt: Date?          // nil = indefinite
-    let signatureRecordId: String // foreign key → SignatureRecord.id
-    var blockchainTxHash: String? // channel-2 txID (nil until confirmed on-chain)
-}
-
-struct HealthcareProxy: Codable, Sendable, Identifiable {
-    let id: String
-    let proxyUserIdHash: String   // SHA3-256(salt+delegateeUserID) — no PII
-    let scope: [String]           // FHIR resource types the proxy may access
-    let grantedAt: Date
-    var revokedAt: Date?
-    var isActive: Bool { revokedAt == nil }
-    let signatureRecordId: String
-    var blockchainTxHash: String?
-}
-
-struct DPA: Codable, Sendable, Identifiable {
-    let id: String
-    let processorHash: String     // SHA3-256 of the data processor's legal entity identifier
-    let purposeDescription: String // plain-language description (NOT health data)
-    let legalBasis: [String]      // GDPR Art. references
-    let signedAt: Date
-    var terminatedAt: Date?
-    let signatureRecordId: String
-    var blockchainTxHash: String?
-}
-
-struct SignatureRecord: Codable, Sendable, Identifiable {
-    let id: String                // UUID — used as documentHash input
-    let documentHash: String      // SHA3-256 of signed document bytes
-    let signerPubKeyHash: String  // SHA3-256 of signer's Ed25519 public key DER
-    let signature: String         // base64url(Ed25519 raw 64-byte signature)
-    let identityProvider: String  // "bankid-se" | "eid-pt" | ...
-    let identityVerifiedAt: Date
-    let legalBasis: [String]
-    let documentType: String      // "consent" | "healthcare_proxy" | "dpa" | "ehr_access"
-    let jurisdictions: [String]   // ISO 3166-1 alpha-2
-    let createdAt: Date
-    var blockchainTxHash: String? // channel-1 txID (nil until confirmed on-chain)
-}
-
-// MARK: - Vault store (root Codable persisted as one sealed blob)
+// MARK: - Vault store (root Codable persisted as one sealed AES-GCM blob)
 
 private struct LegalVaultStore: Codable {
     var consentRecords: [ConsentRecord] = []
     var proxies: [HealthcareProxy] = []
-    var dpa: DPA? = nil
+    var proxyDocuments: [ProxyDocument] = []
+    var dataProcessingAuth: DataProcessingAuthorization? = nil
     var signatureRecords: [SignatureRecord] = []
-    var schemaVersion: Int = 1
+    var schemaVersion: Int = 2    // v2: Models.swift types replace inline definitions
 }
 
 // MARK: - LegalVaultManager
 
-// actor — all mutations are serialised; no concurrent writes to the AES key or Keychain.
+// actor — all mutations serialised; no concurrent writes to the AES key or Keychain.
 actor LegalVaultManager {
 
     static let shared = LegalVaultManager()
@@ -134,9 +88,9 @@ actor LegalVaultManager {
         try saveStore(store)
     }
 
-    func sealDPA(_ dpa: DPA) async throws {
+    func sealDataProcessingAuth(_ auth: DataProcessingAuthorization) async throws {
         var store = try loadStore()
-        store.dpa = dpa
+        store.dataProcessingAuth = auth
         try saveStore(store)
     }
 
@@ -144,6 +98,13 @@ actor LegalVaultManager {
         var store = try loadStore()
         store.signatureRecords.removeAll { $0.id == sig.id }
         store.signatureRecords.append(sig)
+        try saveStore(store)
+    }
+
+    func sealProxyDocument(_ doc: ProxyDocument) async throws {
+        var store = try loadStore()
+        store.proxyDocuments.removeAll { $0.id == doc.id }
+        store.proxyDocuments.append(doc)
         try saveStore(store)
     }
 
@@ -157,17 +118,46 @@ actor LegalVaultManager {
         return try loadStore().proxies
     }
 
-    func openDPA() async throws -> DPA? {
-        return try loadStore().dpa
+    func openDataProcessingAuth() async throws -> DataProcessingAuthorization? {
+        return try loadStore().dataProcessingAuth
     }
 
     func openSignatureRecords() async throws -> [SignatureRecord] {
         return try loadStore().signatureRecords
     }
 
-    // MARK: - Blockchain txHash update (called after on-chain confirmation)
+    func openProxyDocuments(for proxyId: UUID) async throws -> [ProxyDocument] {
+        return try loadStore().proxyDocuments.filter { $0.proxyId == proxyId }
+    }
 
-    func updateConsentTxHash(id: String, txHash: String) async throws {
+    // MARK: - Share grant
+
+    func sealShareGrant(_ grant: ProxyDocumentShareGrant, docId: UUID) async throws {
+        var store = try loadStore()
+        guard let idx = store.proxyDocuments.firstIndex(where: { $0.id == docId }) else {
+            throw LegalVaultError.notFound
+        }
+        store.proxyDocuments[idx].shareGrants.removeAll { $0.id == grant.id }
+        store.proxyDocuments[idx].shareGrants.append(grant)
+        try saveStore(store)
+    }
+
+    func markShareGrantAccessed(grantId: UUID, docId: UUID, txHash: String?) async throws {
+        var store = try loadStore()
+        guard let docIdx = store.proxyDocuments.firstIndex(where: { $0.id == docId }),
+              let grantIdx = store.proxyDocuments[docIdx].shareGrants.firstIndex(where: { $0.id == grantId }) else {
+            throw LegalVaultError.notFound
+        }
+        store.proxyDocuments[docIdx].shareGrants[grantIdx].accessedAt = Date()
+        if let tx = txHash {
+            store.proxyDocuments[docIdx].shareGrants[grantIdx].blockchainTxHash = tx
+        }
+        try saveStore(store)
+    }
+
+    // MARK: - Blockchain txHash updates (called after on-chain confirmation)
+
+    func updateConsentTxHash(id: UUID, txHash: String) async throws {
         var store = try loadStore()
         guard let idx = store.consentRecords.firstIndex(where: { $0.id == id }) else {
             throw LegalVaultError.notFound
@@ -176,7 +166,7 @@ actor LegalVaultManager {
         try saveStore(store)
     }
 
-    func updateSignatureTxHash(id: String, txHash: String) async throws {
+    func updateSignatureTxHash(id: UUID, txHash: String) async throws {
         var store = try loadStore()
         guard let idx = store.signatureRecords.firstIndex(where: { $0.id == id }) else {
             throw LegalVaultError.notFound
@@ -185,37 +175,53 @@ actor LegalVaultManager {
         try saveStore(store)
     }
 
+    func updateProxyTxHash(id: UUID, txHash: String) async throws {
+        var store = try loadStore()
+        guard let idx = store.proxies.firstIndex(where: { $0.id == id }) else {
+            throw LegalVaultError.notFound
+        }
+        store.proxies[idx].blockchainTxHash = txHash
+        try saveStore(store)
+    }
+
+    func updateProxyDocumentTxHash(id: UUID, txHash: String) async throws {
+        var store = try loadStore()
+        guard let idx = store.proxyDocuments.firstIndex(where: { $0.id == id }) else {
+            throw LegalVaultError.notFound
+        }
+        store.proxyDocuments[idx].blockchainTxHash = txHash
+        try saveStore(store)
+    }
+
+    // MARK: - Consent revocation (GDPR Art.7(3) — immediate, per-item)
+
+    /// Revokes a specific ConsentType within the most recent matching ConsentRecord.
+    /// Sets granted = false and records the revocation timestamp.
+    func revokeConsentType(_ type: ConsentType, revokedAt: Date = Date()) async throws {
+        var store = try loadStore()
+        // Most-recent record that has a granted item of this type
+        guard let recordIdx = store.consentRecords.indices.reversed().first(where: { idx in
+            store.consentRecords[idx].items.contains { $0.type == type && $0.granted }
+        }) else {
+            throw LegalVaultError.notFound
+        }
+        guard let itemIdx = store.consentRecords[recordIdx].items.firstIndex(where: { $0.type == type }) else {
+            throw LegalVaultError.notFound
+        }
+        store.consentRecords[recordIdx].items[itemIdx].granted = false
+        store.consentRecords[recordIdx].items[itemIdx].revokedAt = revokedAt
+        try saveStore(store)
+    }
+
     // MARK: - GDPR Art.15 export
 
-    /// Returns a ZIP archive (as Data) containing:
-    ///   - legal_package.json  — all records as JSON
-    ///   - README.txt          — explains the structure
-    ///
-    /// This is a compact in-memory export. A full PDF rendering layer should be
-    /// added before presenting to the patient (out of scope for this actor).
+    /// Returns a JSON blob containing all legal records for patient data portability.
     func exportLegalPackage() async throws -> Data {
         let store = try loadStore()
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-
-        // Produce a minimal JSON envelope — PDF generation is a UI concern.
-        let payload = try encoder.encode(store)
-
-        // In production: create a proper ZIP with DocumentInteractionController.
-        // For now, return the JSON directly so callers can write it to a file or share sheet.
-        return payload
-    }
-
-    // MARK: - Consent revocation
-
-    func revokeConsent(id: String, revokedAt: Date = Date()) async throws {
-        var store = try loadStore()
-        guard let idx = store.consentRecords.firstIndex(where: { $0.id == id }) else {
-            throw LegalVaultError.notFound
-        }
-        store.consentRecords[idx].revokedAt = revokedAt
-        try saveStore(store)
+        return try encoder.encode(store)
     }
 
     // MARK: - AES-256-GCM store encryption
@@ -236,20 +242,24 @@ actor LegalVaultManager {
             throw LegalVaultError.keychainRead(status)
         }
         let plain = try decrypt(sealed)
-        guard let store = try? JSONDecoder().decode(LegalVaultStore.self, from: plain) else {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let store = try? decoder.decode(LegalVaultStore.self, from: plain) else {
             throw LegalVaultError.invalidData
         }
         return store
     }
 
     private func saveStore(_ store: LegalVaultStore) throws {
-        let plain = try JSONEncoder().encode(store)
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let plain = try encoder.encode(store)
         let sealed = try encrypt(plain)
 
         let attrs: [String: Any] = [
-            kSecClass as String:       kSecClassGenericPassword,
-            kSecAttrAccount as String: storeAccount,
-            kSecValueData as String:   sealed,
+            kSecClass as String:          kSecClassGenericPassword,
+            kSecAttrAccount as String:    storeAccount,
+            kSecValueData as String:      sealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemDelete(attrs as CFDictionary)
@@ -262,7 +272,6 @@ actor LegalVaultManager {
     // MARK: - Key management (legal vault key — SEPARATE from eHR key)
 
     private func legalKey() throws -> SymmetricKey {
-        // Fetch the wrapped AES-256 key from the legal vault Keychain item.
         let query: [String: Any] = [
             kSecClass as String:       kSecClassGenericPassword,
             kSecAttrAccount as String: wrappedKeyAccount,
@@ -272,17 +281,24 @@ actor LegalVaultManager {
         let status = SecItemCopyMatching(query as CFDictionary, &result)
 
         if status == errSecItemNotFound {
-            // First use: generate and persist the legal vault AES-256 key.
             return try createLegalKey()
         }
         guard status == errSecSuccess, let wrapped = result as? Data else {
             throw LegalVaultError.keychainRead(status)
         }
-        // Unwrap: the SE private key for the LEGAL vault (not the eHR vault).
-        // SecureEnclaveKey must be extended to support a named key tag.
+        // Unwrap using the LEGAL vault SE key — never the eHR SE key.
         let seKey = try SecureEnclaveKey.loadNamed(tag: "com.noborders.legal.sekey")
-        let rawKey = try seKey.decrypt(wrapped)
-        defer { // zero after use
+        var decryptError: Unmanaged<CFError>?
+        guard let decrypted = SecKeyCreateDecryptedData(
+            seKey,
+            .eciesEncryptionCofactorVariableIVX963SHA256AESGCM,
+            wrapped as CFData,
+            &decryptError
+        ) else {
+            throw LegalVaultError.cryptoFailed
+        }
+        let rawKey = decrypted as Data
+        defer {
             var mutableKey = rawKey
             mutableKey.withUnsafeMutableBytes { memset($0.baseAddress, 0, $0.count) }
         }
@@ -298,7 +314,17 @@ actor LegalVaultManager {
         keyBytes = [UInt8](repeating: 0, count: 32) // zero immediately
 
         let seKey = try SecureEnclaveKey.loadNamed(tag: "com.noborders.legal.sekey")
-        let wrapped = try seKey.encrypt(rawKey)
+        let pubKey = try SecureEnclaveKey.publicKey(from: seKey)
+        var encryptError: Unmanaged<CFError>?
+        guard let encrypted = SecKeyCreateEncryptedData(
+            pubKey,
+            .eciesEncryptionCofactorVariableIVX963SHA256AESGCM,
+            rawKey as CFData,
+            &encryptError
+        ) else {
+            throw LegalVaultError.cryptoFailed
+        }
+        let wrapped = encrypted as Data
 
         let attrs: [String: Any] = [
             kSecClass as String:          kSecClassGenericPassword,
@@ -324,7 +350,7 @@ actor LegalVaultManager {
             throw LegalVaultError.randomFailed
         }
         let aesNonce = try AES.GCM.Nonce(data: nonce)
-        let sealed = try AES.GCM.seal(plaintext, using: key, nonce: aesNonce)
+        let sealed   = try AES.GCM.seal(plaintext, using: key, nonce: aesNonce)
         // Layout: nonce(12) || ciphertext || tag(16)
         return nonce + sealed.ciphertext + sealed.tag
     }

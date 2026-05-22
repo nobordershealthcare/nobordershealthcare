@@ -1,10 +1,19 @@
 #!/bin/bash
-# sync-to-xcode.sh — Copy repo source files into the separate Xcode project.
+# sync-to-xcode.sh — Kept for reference; the stale nobordershealthcare-app project.
 #
-# The canonical source of truth is noborders-repo.
-# Run this after every change to propagate edits into nobordershealthcare-app.
+# NOTE: The canonical Xcode project is now ios/nobordershealthcare.xcodeproj,
+# generated from ios/project.yml via `xcodegen generate` (run from ios/).
+# The separate nobordershealthcare-app project is no longer the primary target.
 #
-# Usage: ./scripts/sync-to-xcode.sh
+# To regenerate the project after editing project.yml:
+#   cd ios && xcodegen generate
+#
+# To build for simulator:
+#   cd ios && xcodebuild -scheme nobordershealthcare \
+#     -destination 'platform=iOS Simulator,name=iPhone 17' \
+#     CODE_SIGNING_ALLOWED=NO build
+#
+# Legacy sync (nobordershealthcare-app) kept below for reference:
 
 set -euo pipefail
 
@@ -16,4 +25,4 @@ cp "$REPO/ios/App/nobordershealthcare_appApp.swift"                             
 cp "$REPO/ios/Sources/nobordershealthcare/Location/NetworkCountryDetector.swift"  "$XCODE/"
 cp "$REPO/ios/Sources/nobordershealthcare/Support/SupportProfile.swift"           "$XCODE/"
 
-echo "✅ Synced to Xcode project"
+echo "✅ Synced to legacy Xcode project (consider switching to ios/nobordershealthcare.xcodeproj)"

@@ -44,9 +44,19 @@ enum SecureEnclaveKey {
     }
 
     static func load() throws -> SecKey {
+        try loadNamed(tag: String(data: tag, encoding: .utf8)!)
+    }
+
+    /// Load a Secure Enclave key by an arbitrary tag string.
+    /// Used by LegalVaultManager (legal key) and VaultManager (eHR key)
+    /// to retrieve their respective SE-bound private keys.
+    static func loadNamed(tag tagString: String) throws -> SecKey {
+        guard let tagData = tagString.data(using: .utf8) else {
+            throw SEKeyError.notFound(errSecParam)
+        }
         let query: [String: Any] = [
             kSecClass as String:              kSecClassKey,
-            kSecAttrApplicationTag as String: tag,
+            kSecAttrApplicationTag as String: tagData,
             kSecAttrKeyType as String:        kSecAttrKeyTypeECSECPrimeRandom,
             kSecAttrTokenID as String:        kSecAttrTokenIDSecureEnclave,
             kSecReturnRef as String:          true,
