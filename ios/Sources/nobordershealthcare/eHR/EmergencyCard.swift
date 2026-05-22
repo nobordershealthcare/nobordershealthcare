@@ -58,8 +58,8 @@ actor EmergencyCard {
         let iat = Date()
         let exp = iat.addingTimeInterval(900)  // 15 minutes
 
-        let header  = base64url(json: ["alg": "EdDSA", "typ": "JWT"])
-        let payload = base64url(json: [
+        let header  = try base64url(json: ["alg": "EdDSA", "typ": "JWT"])
+        let payload = try base64url(json: [
             "sub":   userIDHash,
             "pk":    pubKeyB64,
             "scope": scopeArray(from: scope),
@@ -159,8 +159,12 @@ actor EmergencyCard {
 
     // MARK: - JWT helpers
 
-    private func base64url(json: [String: Any]) -> String {
-        let data = try! JSONSerialization.data(withJSONObject: json)
+    // Throws rather than force-try: non-JSON-serializable values in `json`
+    // (e.g. a non-primitive type accidentally passed as a claim value) would
+    // crash the app at the moment the emergency QR is being minted.
+    // Callers propagate the error up to issueToken(), which already throws.
+    private func base64url(json: [String: Any]) throws -> String {
+        let data = try JSONSerialization.data(withJSONObject: json)
         return data.base64URLEncodedString()
     }
 
