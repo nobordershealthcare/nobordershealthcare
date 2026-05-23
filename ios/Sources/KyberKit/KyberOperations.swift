@@ -1,6 +1,25 @@
 // Kyber-1024 (NIST ML-KEM-1024) interface.
-// Bodies are stubs — integrate swift-oqs (liboqs Swift bindings) to make them operational.
-// Key sizes: public=1568 B, private=3168 B, ciphertext=1568 B, shared secret=32 B.
+// ─────────────────────────────────────────────────────────────────────────────
+// SECURITY BLOCKER — DO NOT SHIP WITHOUT COMPLETING THIS
+// All three KyberOperations functions throw KyberError.notImplemented.
+// Required action: integrate swift-oqs (liboqs Swift bindings).
+//   1. Build liboqs as an XCFramework via scripts/build-liboqs-ios.sh
+//   2. Replace each function body with the OQS_KEM_* call documented inline.
+//   3. Remove the #warning and #error directives below.
+// Blocked by: no swift-oqs XCFramework in ios/Frameworks/
+// ─────────────────────────────────────────────────────────────────────────────
+// Without Kyber:
+//   • IPFS shard backup throws KyberError.notImplemented → patients cannot
+//     recover their vault key if their device is lost or damaged.
+//   • No post-quantum protection against Harvest Now / Decrypt Later attacks.
+//   • CLAUDE.md invariant "key exchange via Kyber-1024 (NIST ML-KEM)" is violated.
+// ─────────────────────────────────────────────────────────────────────────────
+#warning("SECURITY BLOCKER: KyberOperations is not implemented — IPFS recovery is non-functional and PQC is absent. See inline TODO. Must be resolved before Hospital da Luz pilot.")
+
+// Prevent shipping unimplemented Kyber in non-debug (production) builds.
+#if !DEBUG
+#error("KyberOperations is not implemented. Integrate swift-oqs before building a release. See ios/Sources/KyberKit/KyberOperations.swift for instructions.")
+#endif
 
 import Foundation
 

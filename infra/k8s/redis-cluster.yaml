@@ -74,7 +74,11 @@ spec:
         fsGroup: 999
       containers:
         - name: redis
-          image: redis:7-alpine
+          # SECURITY: Pin to digest before deploying — mutable tags enable supply-chain poisoning.
+          # Run: docker pull redis:7-alpine && docker inspect --format='{{index .RepoDigests 0}}' redis:7-alpine
+          # Then replace tag with the @sha256:<digest> form, e.g.:
+          #   image: redis@sha256:<digest>
+          image: redis:7-alpine  # TODO: replace with digest-pinned reference
           command: [redis-server, /etc/redis/redis.conf]
           env:
             - name: HOSTNAME

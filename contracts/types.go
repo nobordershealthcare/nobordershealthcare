@@ -25,3 +25,36 @@ type AuditEntry struct {
 	OldRole    string `json:"oldRole,omitempty"`
 	NewRole    string `json:"newRole,omitempty"`
 }
+
+// AdminProposal is stored under composite key ADMIN_PROPOSAL~proposalID.
+//
+// Two-step admin co-signature flow:
+//   Step 1 — Admin1 calls ProposeAdminAction:
+//     * Chaincode verifies caller has role="admin" in their enrollment cert.
+//     * Proposal is written to world state; proposalID = Fabric txID.
+//     * Proposal expires after 24 hours (ProposalTTLSeconds).
+//   Step 2 — Admin2 calls ApproveAdminAction(proposalID):
+//     * Chaincode verifies caller has role="admin" in their enrollment cert.
+//     * Chaincode verifies ApproverHash != ProposerHash (on-chain, not caller-supplied).
+//     * If valid, the action is executed and Executed is set to true.
+//
+// Security invariant: both admin identities are computed from their X.509 certificate
+// DER bytes via callerCertHash(ctx) — neither hash is accepted as a parameter.
+type AdminProposal struct {
+	ProposalID   string `json:"proposalID"`            // Fabric txID of the proposal tx
+	ActionType   string `json:"actionType"`            // "ForceAssemble" or "ReassignRole"
+	UserHash     string `json:"userHash"`
+	DocHash      string `json:"docHash"`
+	Role         string `json:"role"`
+	NewRole      string `json:"newRole,omitempty"`     // only for ReassignRole
+	Expiry       int64  `json:"expiry"`                // forwarded to the resulting AccessRecord
+	ProposerHash string `json:"proposerHash"`          // computed on-chain, never supplied by caller
+	ProposedAt   int64  `json:"proposedAt"`            // Fabric tx timestamp
+	ExpiresAt    int64  `json:"expiresAt"`             // proposal auto-invalidates after 24h
+	Executed     bool   `json:"executed"`
+	ApproverHash string `json:"approverHash,omitempty"`
+}
+
+// ProposalTTLSeconds is the lifetime of an unexecuted AdminProposal.
+// Proposals not approved within this window are rejected.
+const ProposalTTLSeconds = int64(86400) // 24 hours

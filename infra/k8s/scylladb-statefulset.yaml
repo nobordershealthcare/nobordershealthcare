@@ -66,7 +66,10 @@ spec:
         fsGroup: 999
       containers:
         - name: scylladb
-          image: scylladb/scylla:5.4
+          # SECURITY: Pin to digest before deploying.
+          # Run: docker pull scylladb/scylla:5.4 && docker inspect --format='{{index .RepoDigests 0}}' scylladb/scylla:5.4
+          #   image: scylladb/scylla@sha256:<digest>
+          image: scylladb/scylla:5.4  # TODO: replace with digest-pinned reference
           args:
             - --seeds=scylladb-0.scylladb.noborders.svc.cluster.local
             - --cluster-name=noborders

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="{{.Lang}}">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <title>{{index .T "title"}}</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:  #003f6b;
+      --green: #1a7a3e;
+      --red:   #c0392b;
+      --bg:    #f4f6f8;
+      --card:  #ffffff;
+      --border:#dde3ea;
+      --text:  #1a2030;
+      --muted: #6b7280;
+    }
+
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1rem;
+    }
+
+    .wrapper {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ─────────────────────────────────────────────── */
+    .header {
+      background: var(--navy);
+      color: #fff;
+      border-radius: .75rem .75rem 0 0;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .header-icon { font-size: 2rem; }
+    .header h1 { font-size: 1.25rem; font-weight: 700; }
+    .header p  { font-size: .8rem; opacity: .8; margin-top: .15rem; }
+
+    /* ── Verification badge ──────────────────────────────────── */
+    .verified-badge {
+      background: #e8f5ec;
+      border: 1px solid #a7d7b4;
+      color: var(--green);
+      padding: .5rem 1rem;
+      font-size: .8rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+    .expiry-note { margin-left: auto; color: var(--muted); font-weight: 400; }
+
+    /* ── Card body ───────────────────────────────────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-top: none;
+    }
+
+    .section {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .section:last-child { border-bottom: none; }
+
+    .section-label {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      color: var(--muted);
+      margin-bottom: .6rem;
+    }
+
+    /* ── Identity row ────────────────────────────────────────── */
+    .identity-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: .75rem 1.5rem;
+    }
+    .identity-item dt { font-size: .75rem; color: var(--muted); margin-bottom: .15rem; }
+    .identity-item dd { font-size: 1rem; font-weight: 600; }
+
+    .blood-badge {
+      display: inline-block;
+      background: #fff0f0;
+      border: 2px solid var(--red);
+      color: var(--red);
+      font-size: 1.4rem;
+      font-weight: 800;
+      padding: .25rem .75rem;
+      border-radius: .4rem;
+      letter-spacing: .04em;
+    }
+
+    /* ── Allergy chips ───────────────────────────────────────── */
+    .chip-list { display: flex; flex-wrap: wrap; gap: .4rem; }
+    .chip {
+      background: #fff3f0;
+      border: 1px solid #f5c6bb;
+      color: #7a2d22;
+      padding: .25rem .65rem;
+      border-radius: 2rem;
+      font-size: .82rem;
+      font-weight: 500;
+    }
+    .none-text { color: var(--muted); font-size: .9rem; font-style: italic; }
+
+    /* ── Medication table ────────────────────────────────────── */
+    .med-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: .88rem;
+    }
+    .med-table th {
+      text-align: left;
+      font-weight: 600;
+      font-size: .72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--muted);
+      padding: .4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .med-table td { padding: .55rem 0; border-bottom: 1px solid #f0f2f5; vertical-align: top; }
+    .med-table tr:last-child td { border-bottom: none; }
+    .atc-code { font-family: monospace; font-size: .78rem; color: var(--navy); }
+
+    /* ── Reference + disclaimer ──────────────────────────────── */
+    .ref-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: .8rem;
+      color: var(--muted);
+    }
+    .ref-code {
+      font-family: monospace;
+      background: #f0f2f5;
+      padding: .2rem .5rem;
+      border-radius: .3rem;
+    }
+
+    .disclaimer {
+      background: #fffbe6;
+      border: 1px solid #f0d045;
+      padding: .75rem 1rem;
+      font-size: .78rem;
+      color: #7a6000;
+      border-radius: 0 0 .75rem .75rem;
+      margin-top: -1px;
+    }
+
+    /* ── Clinician form ──────────────────────────────────────── */
+    .clinician-form {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: .6rem;
+      padding: 1.25rem 1.5rem;
+      margin-top: 1.25rem;
+    }
+    .clinician-form h2 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
+
+    label { display: block; font-size: .85rem; font-weight: 600; margin-bottom: .35rem; }
+    input[type=text] {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: .4rem;
+      padding: .6rem .8rem;
+      font-size: .95rem;
+      outline: none;
+      transition: border-color .15s;
+    }
+    input[type=text]:focus { border-color: var(--navy); }
+
+    .btn-primary {
+      display: inline-block;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: .4rem;
+      padding: .65rem 1.4rem;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: .75rem;
+      transition: opacity .15s;
+    }
+    .btn-primary:hover { opacity: .9; }
+    .btn-secondary {
+      display: inline-block;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: .4rem;
+      padding: .6rem 1.2rem;
+      font-size: .88rem;
+      cursor: pointer;
+      margin-top: .75rem;
+      margin-left: .5rem;
+      color: var(--text);
+    }
+
+    /* ── Print styles ────────────────────────────────────────── */
+    @media print {
+      body { background: white; padding: 0; }
+      .clinician-form, .no-print { display: none; }
+      .verified-badge { border: 1px solid #aaa; }
+      .header { background: #003f6b !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    @media (max-width: 500px) {
+      .identity-grid { grid-template-columns: 1fr; }
+      .med-table th:nth-child(3), .med-table td:nth-child(3) { display: none; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="header-icon">🏥</div>
+    <div>
+      <h1>{{index .T "title"}}</h1>
+      <p>{{index .T "subtitle"}}</p>
+    </div>
+  </div>
+
+  <!-- Verification badge -->
+  <div class="verified-badge">
+    <span>{{index .T "verified"}}</span>
+    <span class="expiry-note no-print">{{index .T "expires"}}: {{.ExpiresAt}}</span>
+  </div>
+
+  <!-- Card body -->
+  <div class="card">
+
+    <!-- Identity section -->
+    <div class="section">
+      <div class="section-label">{{index .T "name"}}</div>
+      <dl class="identity-grid">
+        <div class="identity-item">
+          <dt>{{index .T "name"}}</dt>
+          <dd>{{.Name}}</dd>
+        </div>
+        <div class="identity-item">
+          <dt>{{index .T "dob"}}</dt>
+          <dd>{{.DOB}}</dd>
+        </div>
+        <div class="identity-item">
+          <dt>{{index .T "blood"}}</dt>
+          <dd><span class="blood-badge">{{.Blood}}</span></dd>
+        </div>
+        <div class="identity-item">
+          <dt>{{index .T "ref"}}</dt>
+          <dd><span class="ref-code">{{.PatientRef}}…</span></dd>
+        </div>
+      </dl>
+    </div>
+
+    <!-- Allergies section -->
+    <div class="section">
+      <div class="section-label">{{index .T "allergies"}}</div>
+      {{if .Allergies}}
+        <div class="chip-list">
+          {{range .Allergies}}
+            <span class="chip">{{.}}</span>
+          {{end}}
+        </div>
+      {{else}}
+        <span class="none-text">{{index .T "no_allergies"}}</span>
+      {{end}}
+    </div>
+
+    <!-- Medications section -->
+    <div class="section">
+      <div class="section-label">{{index .T "medications"}}</div>
+      {{if .Medications}}
+        <table class="med-table">
+          <thead>
+            <tr>
+              <th>{{index .T "medications"}}</th>
+              <th>{{index .T "dose"}}</th>
+              <th>{{index .T "freq"}}</th>
+              <th>{{index .T "atc"}}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .Medications}}
+            <tr>
+              <td>{{index . "name"}}</td>
+              <td>{{index . "dose"}}</td>
+              <td>{{index . "freq"}}</td>
+              <td class="atc-code">{{index . "atc"}}</td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      {{else}}
+        <span class="none-text">{{index .T "no_medications"}}</span>
+      {{end}}
+    </div>
+
+    <!-- Reference row -->
+    <div class="section">
+      <div class="ref-row">
+        <span>{{index .T "ref"}}: <span class="ref-code">{{.PatientRef}}</span></span>
+        <span>JTI: <span class="ref-code">{{.JTI}}</span></span>
+      </div>
+    </div>
+
+  </div><!-- /card -->
+
+  <!-- Disclaimer -->
+  <div class="disclaimer">
+    ⚠ {{index .T "warning"}}
+  </div>
+
+  <!-- Clinician access form -->
+  <div class="clinician-form no-print">
+    <h2>{{index .T "clinician_form"}}</h2>
+    <form id="clinician-form" method="POST" action="/clinician">
+      <input type="hidden" name="jti" value="{{.JTI}}">
+      <input type="hidden" name="patient_sub" value="{{.PatientRef}}">
+
+      <label for="license">{{index .T "license_label"}}</label>
+      <input type="text"
+             id="license"
+             name="license"
+             placeholder="{{index .T "license_ph"}}"
+             autocomplete="off"
+             spellcheck="false"
+             required>
+
+      <button type="submit" class="btn-primary">{{index .T "submit_log"}}</button>
+      <button type="button" class="btn-secondary no-print" onclick="window.print()">
+        {{index .T "print"}}
+      </button>
+    </form>
+  </div>
+
+</div><!-- /wrapper -->
+
+<script>
+// Submit via fetch for a seamless UX. Falls back to standard POST on error.
+document.getElementById('clinician-form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const fd = new FormData(this);
+  fetch('/clinician', { method: 'POST', body: fd })
+    .then(function(r) {
+      if (r.ok) {
+        const btn = document.querySelector('.btn-primary');
+        if (btn) { btn.textContent = '✓ Logged'; btn.disabled = true; }
+      } else {
+        r.text().then(function(t) { alert('Error: ' + t); });
+      }
+    })
+    .catch(function() { document.getElementById('clinician-form').submit(); });
+});
+</script>
+</body>
+</html>
