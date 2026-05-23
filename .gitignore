@@ -20,6 +20,7 @@ contracts/contracts
 
 # Swift / Xcode
 build/
+xcuserdata/
 *.xcworkspace/xcuserdata/
 DerivedData/
 *.ipa
@@ -27,6 +28,8 @@ DerivedData/
 *.dSYM
 Pods/
 .build/
+# SentencePiece xcframework (built from scripts/build-sentencepiece-ios.sh)
+ios/Frameworks/
 
 # Secrets — never commit
 *.pem

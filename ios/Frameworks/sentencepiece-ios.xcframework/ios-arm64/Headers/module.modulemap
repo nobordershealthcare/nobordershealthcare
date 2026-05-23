@@ -1,4 +1,0 @@
-module SentencePieceC {
-    header "sentencepiece_c_wrapper.h"
-    export *
-}
