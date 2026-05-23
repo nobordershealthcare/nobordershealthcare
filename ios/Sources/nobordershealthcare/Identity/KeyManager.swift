@@ -14,6 +14,11 @@ actor KeyManager {
     private let kyberPubAccount   = "com.noborders.identity.kyber1024.pub"
     private let kyberPrivAccount  = "com.noborders.identity.kyber1024.priv"
 
+    // Migration marker: set after the ACL upgrade from .userPresence → .biometryCurrentSet.
+    // When absent, the existing key (if any) is deleted and regenerated with the correct ACL.
+    // This is a one-time migration; the marker itself is not security-sensitive.
+    private let aclMigrationV2Account = "com.noborders.identity.ed25519.acl-v2"
+
     enum KeyError: Error {
         case keychainFailed(OSStatus)
         case kyberFailed(KyberError)
@@ -22,6 +27,7 @@ actor KeyManager {
     // MARK: - Ed25519
 
     func ed25519SigningKey() throws -> Curve25519.Signing.PrivateKey {
+        try migrateEd25519ACLIfNeeded()
         if let k = try? loadEd25519() { return k }
         return try generateEd25519()
     }
@@ -34,13 +40,47 @@ actor KeyManager {
         try ed25519SigningKey().signature(for: data)
     }
 
+    // Deletes any key created with the old .userPresence ACL and sets the migration marker.
+    // After deletion, ed25519SigningKey() regenerates the key with .biometryCurrentSet.
+    // Previously issued JWTs embedding the old public key will fail verification — acceptable
+    // because they expire within 15 minutes and cannot be renewed without re-authenticating.
+    private func migrateEd25519ACLIfNeeded() throws {
+        let check: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: aclMigrationV2Account,
+        ]
+        guard SecItemCopyMatching(check as CFDictionary, nil) != errSecSuccess else {
+            return // already migrated
+        }
+        // Delete the old key (may have been generated with .userPresence).
+        let del: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: ed25519Account,
+        ]
+        SecItemDelete(del as CFDictionary) // ignore errSecItemNotFound — key may not exist yet
+
+        // Record that migration is complete so this runs only once.
+        let mark: [String: Any] = [
+            kSecClass as String:          kSecClassGenericPassword,
+            kSecAttrAccount as String:    aclMigrationV2Account,
+            kSecValueData as String:      Data([0x01]),
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        ]
+        SecItemDelete(mark as CFDictionary) // clear any stale marker before writing
+        SecItemAdd(mark as CFDictionary, nil)
+    }
+
     private func generateEd25519() throws -> Curve25519.Signing.PrivateKey {
         let key = Curve25519.Signing.PrivateKey()
         var cfErr: Unmanaged<CFError>?
+        // .biometryCurrentSet — invalidates the key if biometrics change (new fingerprint
+        // enrolled). This prevents an attacker who adds their own fingerprint on a stolen
+        // device from using the patient's signing key. Passcode fallback is intentionally
+        // disabled: use SecureEnclaveKey (biometryCurrentSet) for the eHR vault instead.
         guard let acl = SecAccessControlCreateWithFlags(
             kCFAllocatorDefault,
             kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            [.userPresence],
+            [.biometryCurrentSet],
             &cfErr
         ) else { throw cfErr!.takeRetainedValue() as Error }
 

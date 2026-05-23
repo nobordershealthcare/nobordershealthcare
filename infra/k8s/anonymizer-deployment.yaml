@@ -71,7 +71,10 @@ spec:
       automountServiceAccountToken: true
       initContainers:
         - name: vault-agent
-          image: hashicorp/vault:1.17
+          # SECURITY: Pin to digest before deploying (vault agent runs as init container
+          # and writes the AES key to tmpfs — compromising it compromises all patient data).
+          #   image: hashicorp/vault@sha256:<digest>
+          image: hashicorp/vault:1.17  # TODO: replace with digest-pinned reference
           args: [agent, -config=/vault/config/vault-agent.hcl]
           env:
             - name: VAULT_ADDR
@@ -100,7 +103,11 @@ spec:
               mountPath: /secrets
       containers:
         - name: anonymizer
-          image: ghcr.io/nobordershealthcare/anonymizer:latest
+          # SECURITY: :latest is a mutable tag — a compromised registry push replaces it silently.
+          # Pin to the exact SHA256 digest of the cosign-verified image produced by CI:
+          #   image: ghcr.io/nobordershealthcare/anonymizer@sha256:<ci-output-digest>
+          # The anonymizer holds the token→docID map; poisoning it leaks all active sessions.
+          image: ghcr.io/nobordershealthcare/anonymizer:latest  # TODO: replace with digest from CI
           ports:
             - containerPort: 8081
               name: internal    # pod-local only — see NetworkPolicy in namespace.yaml

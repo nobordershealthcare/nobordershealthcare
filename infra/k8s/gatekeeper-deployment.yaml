@@ -42,7 +42,9 @@ spec:
                 topologyKey: kubernetes.io/hostname
       containers:
         - name: gatekeeper
-          image: ghcr.io/nobordershealthcare/gatekeeper:latest
+          # SECURITY: :latest is mutable. Pin to the digest produced and cosign-signed by CI.
+          #   image: ghcr.io/nobordershealthcare/gatekeeper@sha256:<ci-output-digest>
+          image: ghcr.io/nobordershealthcare/gatekeeper:latest  # TODO: replace with digest from CI
           ports:
             - containerPort: 8080
               name: api

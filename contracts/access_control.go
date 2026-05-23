@@ -302,52 +302,237 @@ func (c *AccessControlContract) VerifyAccess(ctx contractapi.TransactionContextI
 	return allowed, nil
 }
 
-// ForceAssemble creates or overwrites an access grant using 2-of-2 admin co-signature.
-// The submitting admin's certificate hash is computed on-chain; cosignerAdminHash is the
-// SHA3-256 of a second distinct admin's certificate DER, recorded in the audit log.
-func (c *AccessControlContract) ForceAssemble(ctx contractapi.TransactionContextInterface, userHash, docHash, role string, expiry int64, cosignerAdminHash string) error {
+// ForceAssemble is DISABLED.
+//
+// It accepted cosignerAdminHash as a caller-supplied parameter, which allowed a
+// single compromised admin to satisfy the 2-of-2 requirement by providing any
+// valid-format hex string that differed from their own cert hash. The second admin
+// never submitted a transaction and was never cryptographically verified.
+//
+// Use ProposeAdminAction + ApproveAdminAction instead.
+func (c *AccessControlContract) ForceAssemble(_ contractapi.TransactionContextInterface, _, _, _ string, _ int64, _ string) error {
+	return ErrDeprecated
+}
+
+// ProposeAdminAction is step 1 of the verified 2-of-2 admin co-signature flow.
+//
+// Admin1 submits this transaction. The chaincode:
+//   1. Verifies that the caller has role="admin" in their enrollment certificate.
+//   2. Computes Admin1's cert hash on-chain (cannot be forged by the caller).
+//   3. Stores the proposal in world state under ADMIN_PROPOSAL~txID.
+//   4. Returns the proposalID (Fabric txID) that Admin2 must reference.
+//
+// The proposal expires after ProposalTTLSeconds (24h). Admin2 must call
+// ApproveAdminAction(proposalID) in a separate transaction before expiry.
+//
+// actionType must be "ForceAssemble" or "ReassignRole".
+// newRole is only required for ReassignRole — ignored for ForceAssemble.
+func (c *AccessControlContract) ProposeAdminAction(ctx contractapi.TransactionContextInterface, actionType, userHash, docHash, role, newRole string, expiry int64) (string, error) {
+	if actionType != "ForceAssemble" && actionType != "ReassignRole" {
+		return "", ErrInvalidAction
+	}
 	if err := validateHash(userHash); err != nil {
-		return err
+		return "", err
 	}
 	if err := validateHash(docHash); err != nil {
-		return err
+		return "", err
 	}
 	if err := validateRole(role); err != nil {
-		return err
+		return "", err
 	}
-	if err := validateHash(cosignerAdminHash); err != nil {
-		return err
+	if actionType == "ReassignRole" {
+		if err := validateRole(newRole); err != nil {
+			return "", fmt.Errorf("newRole: %w", err)
+		}
 	}
+	if err := assertAdmin(ctx); err != nil {
+		return "", err
+	}
+
+	proposerHash, err := callerCertHash(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	ts, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return "", fmt.Errorf("cannot get tx timestamp: %w", err)
+	}
+	proposalID := ctx.GetStub().GetTxID()
+
+	proposal := &AdminProposal{
+		ProposalID:   proposalID,
+		ActionType:   actionType,
+		UserHash:     userHash,
+		DocHash:      docHash,
+		Role:         role,
+		NewRole:      newRole,
+		Expiry:       expiry,
+		ProposerHash: proposerHash,
+		ProposedAt:   ts.Seconds,
+		ExpiresAt:    ts.Seconds + ProposalTTLSeconds,
+		Executed:     false,
+	}
+
+	key, err := ctx.GetStub().CreateCompositeKey("ADMIN_PROPOSAL", []string{proposalID})
+	if err != nil {
+		return "", fmt.Errorf("create proposal key: %w", err)
+	}
+	data, err := json.Marshal(proposal)
+	if err != nil {
+		return "", fmt.Errorf("marshal proposal: %w", err)
+	}
+	if err := ctx.GetStub().PutState(key, data); err != nil {
+		return "", err
+	}
+
+	if err := emitAccessEvent(ctx, &AuditEntry{
+		DocHash:    docHash,
+		ActorHash:  proposerHash,
+		Role:       role,
+		Operation:  "ProposeAdminAction:" + actionType,
+		Admin1Hash: proposerHash,
+	}); err != nil {
+		return "", err
+	}
+	return proposalID, nil
+}
+
+// ApproveAdminAction is step 2 of the verified 2-of-2 admin co-signature flow.
+//
+// Admin2 submits this transaction referencing the proposalID returned by
+// ProposeAdminAction. The chaincode:
+//   1. Verifies the caller has role="admin" in their enrollment certificate.
+//   2. Computes Admin2's cert hash on-chain.
+//   3. Rejects the transaction if Admin2Hash == ProposerHash (self-approval blocked).
+//   4. Rejects if the proposal has expired or was already executed.
+//   5. Executes the proposed action and marks the proposal as executed.
+//
+// The approver's identity is cryptographically bound to this transaction by the
+// Fabric MSP — it cannot be forged or replayed.
+func (c *AccessControlContract) ApproveAdminAction(ctx contractapi.TransactionContextInterface, proposalID string) error {
+	if proposalID == "" {
+		return fmt.Errorf("proposalID must not be empty")
+	}
+
 	if err := assertAdmin(ctx); err != nil {
 		return err
 	}
 
-	submitterHash, err := callerCertHash(ctx)
+	approverHash, err := callerCertHash(ctx)
 	if err != nil {
 		return err
 	}
-	if submitterHash == cosignerAdminHash {
+
+	key, err := ctx.GetStub().CreateCompositeKey("ADMIN_PROPOSAL", []string{proposalID})
+	if err != nil {
+		return fmt.Errorf("create proposal key: %w", err)
+	}
+	data, err := ctx.GetStub().GetState(key)
+	if err != nil {
+		return fmt.Errorf("world state read failed: %w", err)
+	}
+	if data == nil {
+		return ErrProposalNotFound
+	}
+	var proposal AdminProposal
+	if err := json.Unmarshal(data, &proposal); err != nil {
+		return fmt.Errorf("unmarshal proposal: %w", err)
+	}
+
+	if proposal.Executed {
+		return ErrProposalExecuted
+	}
+
+	ts, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return fmt.Errorf("cannot get tx timestamp: %w", err)
+	}
+	if ts.Seconds > proposal.ExpiresAt {
+		return ErrProposalExpired
+	}
+
+	// On-chain identity check: approver must differ from proposer.
+	// Both hashes are computed from X.509 cert DER by callerCertHash — not caller-supplied.
+	if approverHash == proposal.ProposerHash {
 		return ErrSameAdmin
 	}
 
+	// Execute the proposed action.
+	switch proposal.ActionType {
+	case "ForceAssemble":
+		if err := executeForceAssemble(ctx, &proposal, approverHash); err != nil {
+			return err
+		}
+	case "ReassignRole":
+		if err := executeReassignRole(ctx, &proposal, approverHash); err != nil {
+			return err
+		}
+	default:
+		return ErrInvalidAction
+	}
+
+	// Mark proposal executed — prevents replay.
+	proposal.Executed = true
+	proposal.ApproverHash = approverHash
+	updated, err := json.Marshal(&proposal)
+	if err != nil {
+		return fmt.Errorf("marshal updated proposal: %w", err)
+	}
+	return ctx.GetStub().PutState(key, updated)
+}
+
+func executeForceAssemble(ctx contractapi.TransactionContextInterface, p *AdminProposal, approverHash string) error {
 	rec := &AccessRecord{
-		UserHash:  userHash,
-		DocHash:   docHash,
-		Role:      role,
-		GrantedBy: submitterHash,
-		Expiry:    expiry,
+		UserHash:  p.UserHash,
+		DocHash:   p.DocHash,
+		Role:      p.Role,
+		GrantedBy: p.ProposerHash,
+		Expiry:    p.Expiry,
 		Revoked:   false,
 	}
 	if err := putAccessRecord(ctx, rec); err != nil {
 		return err
 	}
 	return emitAccessEvent(ctx, &AuditEntry{
-		DocHash:    docHash,
-		ActorHash:  userHash,
-		Role:       role,
-		Operation:  "ForceAssemble",
-		Admin1Hash: submitterHash,
-		Admin2Hash: cosignerAdminHash,
+		DocHash:    p.DocHash,
+		ActorHash:  p.UserHash,
+		Role:       p.Role,
+		Operation:  "ForceAssemble:executed",
+		Admin1Hash: p.ProposerHash,
+		Admin2Hash: approverHash,
+	})
+}
+
+func executeReassignRole(ctx contractapi.TransactionContextInterface, p *AdminProposal, approverHash string) error {
+	oldRec, err := getAccessRecord(ctx, p.UserHash, p.DocHash, p.Role)
+	if err != nil {
+		return err
+	}
+	oldRec.Revoked = true
+	if err := putAccessRecord(ctx, oldRec); err != nil {
+		return err
+	}
+	newRec := &AccessRecord{
+		UserHash:  p.UserHash,
+		DocHash:   p.DocHash,
+		Role:      p.NewRole,
+		GrantedBy: p.ProposerHash,
+		Expiry:    oldRec.Expiry,
+		Revoked:   false,
+	}
+	if err := putAccessRecord(ctx, newRec); err != nil {
+		return err
+	}
+	return emitAccessEvent(ctx, &AuditEntry{
+		DocHash:    p.DocHash,
+		ActorHash:  p.UserHash,
+		Role:       p.NewRole,
+		Operation:  "ReassignRole:executed",
+		Admin1Hash: p.ProposerHash,
+		Admin2Hash: approverHash,
+		OldRole:    p.Role,
+		NewRole:    p.NewRole,
 	})
 }
 
@@ -379,68 +564,11 @@ func (c *AccessControlContract) QueryAuditTrail(ctx contractapi.TransactionConte
 	return entries, nil
 }
 
-// ReassignRole admin-force-reassigns a user from oldRole to newRole in a single atomic transaction.
-// Requires the same 2-of-2 admin co-signature as ForceAssemble. The old grant is revoked and the
-// new grant is created in the same read-write set; both roll back together if anything fails.
-func (c *AccessControlContract) ReassignRole(ctx contractapi.TransactionContextInterface, userHash, docHash, oldRole, newRole, cosignerAdminHash string) error {
-	if err := validateHash(userHash); err != nil {
-		return err
-	}
-	if err := validateHash(docHash); err != nil {
-		return err
-	}
-	if err := validateRole(oldRole); err != nil {
-		return err
-	}
-	if err := validateRole(newRole); err != nil {
-		return err
-	}
-	if err := validateHash(cosignerAdminHash); err != nil {
-		return err
-	}
-	if err := assertAdmin(ctx); err != nil {
-		return err
-	}
-
-	submitterHash, err := callerCertHash(ctx)
-	if err != nil {
-		return err
-	}
-	if submitterHash == cosignerAdminHash {
-		return ErrSameAdmin
-	}
-
-	oldRec, err := getAccessRecord(ctx, userHash, docHash, oldRole)
-	if err != nil {
-		return err
-	}
-
-	// Revoke the old grant (tombstone — world state key is preserved for audit continuity).
-	oldRec.Revoked = true
-	if err := putAccessRecord(ctx, oldRec); err != nil {
-		return err
-	}
-
-	newRec := &AccessRecord{
-		UserHash:  userHash,
-		DocHash:   docHash,
-		Role:      newRole,
-		GrantedBy: submitterHash,
-		Expiry:    oldRec.Expiry, // preserve original expiry
-		Revoked:   false,
-	}
-	if err := putAccessRecord(ctx, newRec); err != nil {
-		return err
-	}
-
-	return emitAccessEvent(ctx, &AuditEntry{
-		DocHash:    docHash,
-		ActorHash:  userHash,
-		Role:       newRole,
-		Operation:  "ReassignRole",
-		Admin1Hash: submitterHash,
-		Admin2Hash: cosignerAdminHash,
-		OldRole:    oldRole,
-		NewRole:    newRole,
-	})
+// ReassignRole is DISABLED.
+//
+// Same vulnerability as the old ForceAssemble: cosignerAdminHash was caller-supplied,
+// allowing a single admin to self-approve. Use ProposeAdminAction("ReassignRole", ...)
+// + ApproveAdminAction(proposalID) instead.
+func (c *AccessControlContract) ReassignRole(_ contractapi.TransactionContextInterface, _, _, _, _, _ string) error {
+	return ErrDeprecated
 }
