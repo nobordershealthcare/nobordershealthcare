@@ -1,12 +1,12 @@
 //
-//  nobordershealthcare_appApp.swift
-//  nobordershealthcare-app
+//  NoBordersHealthcareApp.swift
+//  nobordershealthcare
 //
 
 import SwiftUI
 
 @main
-struct nobordershealthcare_appApp: App {
+struct NoBordersHealthcareApp: App {
 
     // Shared singleton — @MainActor + ObservableObject, owns the NWPathMonitor.
     // Injected as @EnvironmentObject so all tabs can read network + country state.
@@ -24,11 +24,20 @@ struct nobordershealthcare_appApp: App {
         }
     }
 
+    // Onboarding gate — complete = true only after all 7 steps signed.
+    @AppStorage("onboardingComplete") private var onboardingComplete = false
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .environmentObject(detector)
-                .preferredColorScheme(resolvedScheme)
+            if onboardingComplete {
+                ContentView()
+                    .environmentObject(detector)
+                    .preferredColorScheme(resolvedScheme)
+            } else {
+                OnboardingFlowView()
+                    .environmentObject(detector)
+                    .preferredColorScheme(resolvedScheme)
+            }
         }
     }
 }

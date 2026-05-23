@@ -11,6 +11,7 @@
 		068BF8009EB37F7CA78A7BDF /* LocalOCR.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC87B71F0505A1931D9A8413 /* LocalOCR.swift */; };
 		0855F5C4F059D04DBB090ACF /* DocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04BF4200C2337B15544CBDC /* DocumentStore.swift */; };
 		0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */; };
+		1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */; };
 		11450AFA62CF73FA482F3998 /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D343F73610356376EFA4EC1B /* VaultManager.swift */; };
 		1629F9F5071A91E802799FF6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D72112E9BDE6DDF792806A3 /* Models.swift */; };
 		1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EDABFB131AEE01B59471B5 /* BankIDClient.swift */; };
@@ -44,7 +45,6 @@
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
 		C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */; };
-		CAF573CD0A0AB5ACD409A6A8 /* nobordershealthcare_appApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */; };
 		D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15B0D42A99D7F83F5FCC12E /* QRGeneratorView.swift */; };
 		E1E651ABBD800234624285A8 /* IPS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155E0940A4102DEE59FDF511 /* IPS.swift */; };
 		E94E30F03EBACE766A13938B /* EmergencyCardSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */; };
@@ -84,6 +84,7 @@
 		ACDC1623F564ECBC26952904 /* SignatureButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureButton.swift; sourceTree = "<group>"; };
 		AFBD308E0C72E134F31C8FF7 /* ShamirShard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShamirShard.swift; sourceTree = "<group>"; };
 		B15B0D42A99D7F83F5FCC12E /* QRGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGeneratorView.swift; sourceTree = "<group>"; };
+		B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoBordersHealthcareApp.swift; sourceTree = "<group>"; };
 		B7D55527378C1D8F0F7697F1 /* SentencePieceShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentencePieceShim.swift; sourceTree = "<group>"; };
 		BC87B71F0505A1931D9A8413 /* LocalOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalOCR.swift; sourceTree = "<group>"; };
 		C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPClient.swift; sourceTree = "<group>"; };
@@ -93,7 +94,6 @@
 		D343F73610356376EFA4EC1B /* VaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultManager.swift; sourceTree = "<group>"; };
 		D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminologyMapper.swift; sourceTree = "<group>"; };
 		DBEEA8EC8166D9607512E78D /* SupportProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportProfile.swift; sourceTree = "<group>"; };
-		DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = nobordershealthcare_appApp.swift; sourceTree = "<group>"; };
 		DFED60BDDE94483E29635A6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E6A46B21098DBE228CFA150F /* AttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestationService.swift; sourceTree = "<group>"; };
 		EC86BB66FE5565C9184E8490 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
@@ -237,8 +237,8 @@
 				DFED60BDDE94483E29635A6B /* Assets.xcassets */,
 				FEDC1416C64BDAF416257DAA /* ContentView.swift */,
 				1E5DE46C3D34CF36D4FEAA05 /* Info.plist */,
-				DF82F0D6423261CDBE3EA472 /* nobordershealthcare_appApp.swift */,
 				4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */,
+				B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -417,6 +417,7 @@
 				068BF8009EB37F7CA78A7BDF /* LocalOCR.swift in Sources */,
 				1629F9F5071A91E802799FF6 /* Models.swift in Sources */,
 				352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */,
+				1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */,
 				496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */,
 				B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */,
 				80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */,
@@ -432,7 +433,6 @@
 				BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */,
 				11450AFA62CF73FA482F3998 /* VaultManager.swift in Sources */,
 				7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */,
-				CAF573CD0A0AB5ACD409A6A8 /* nobordershealthcare_appApp.swift in Sources */,
 				EA9257C5986D3EB4CA43A7E1 /* xLMEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

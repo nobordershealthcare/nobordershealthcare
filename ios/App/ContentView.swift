@@ -1,6 +1,6 @@
 //
 //  ContentView.swift
-//  nobordershealthcare-app
+//  nobordershealthcare
 //
 //  iOS 26 Liquid Glass design language:
 //  • Tab bar    — Liquid Glass applied automatically when targeting iOS 26
