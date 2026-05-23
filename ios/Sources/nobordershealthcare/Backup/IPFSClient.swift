@@ -4,7 +4,6 @@
 // CIDs (content addresses) are stored locally in Keychain; never on-chain.
 
 import Foundation
-import KyberKit
 
 struct ShardUploadResult: Sendable {
     let shardID: Int

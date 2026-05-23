@@ -16,7 +16,6 @@
 
 import SwiftUI
 import AuthenticationServices
-import SHA3Kit
 
 // MARK: - Identity provider
 

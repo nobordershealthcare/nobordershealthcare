@@ -1,21 +1,22 @@
 // ConsentAuditService.swift — Dual-source consent validation and blockchain sync.
 //
 // Checks BOTH sources of truth for any consent query:
-//   Source 1: LegalVaultManager (local, offline-capable, authoritative)
-//   Source 2: Hyperledger Fabric channel 2 (on-chain confirmation)
+//   Source 1: LegalVaultManager (local, offline-capable, authoritative for granting)
+//   Source 2: Hyperledger Fabric channel 2 (on-chain, authoritative for revocation)
 //
 // Decision rule:
-//   - Local record exists AND active            → consent is VALID
-//   - Local record exists, no blockchain txHash → consent is VALID but show warning
-//   - Local record is revoked                   → consent is INVALID (immediate)
-//   - No local record                           → consent is INVALID
-//   - Blockchain says revoked, local says active → trust blockchain (edge case: admin revoke)
+//   - Local item granted AND blockchainTxHash set   → .valid
+//   - Local item granted, no blockchainTxHash       → .validPendingBlockchain (show warning)
+//   - Local item has revokedAt set                  → .revoked(at:) immediately
+//   - No matching record or item                    → .notFound
+//   - Blockchain says revoked, local says active    → trust blockchain (admin-level revoke)
 //
 // LOCAL IS AUTHORITATIVE for granting. BLOCKCHAIN IS AUTHORITATIVE for revocation.
-// This ensures offline signing works while admin-level revocations propagate globally.
 //
 // Pending queue: signatures and consents that failed to broadcast (offline) are
 // re-queued here. A background task retries them when network connectivity returns.
+//
+// Domain types (ConsentType, ConsentRecord, SignatureRecord, etc.) are in Models.swift.
 
 import Foundation
 import Combine
@@ -23,12 +24,11 @@ import Combine
 // MARK: - Consent status
 
 enum ConsentStatus: Equatable {
-    case valid                              // local + on-chain confirmed
-    case validPendingBlockchain             // local only, not yet on-chain
+    case valid                              // local granted + on-chain confirmed
+    case validPendingBlockchain             // local granted only, not yet on-chain
     case revoked(at: Date)
-    case expired(at: Date)
     case notFound
-    case unknown(String)                    // indeterminate — show error, do not grant access
+    case unknown(String)                    // indeterminate — show error, do NOT grant access
 
     var isGranted: Bool {
         switch self {
@@ -40,7 +40,7 @@ enum ConsentStatus: Equatable {
     var warningMessage: String? {
         switch self {
         case .validPendingBlockchain:
-            return "⚠️ Pending blockchain confirmation"
+            return "Pending blockchain confirmation"
         default:
             return nil
         }
@@ -56,58 +56,49 @@ final class ConsentAuditService: ObservableObject {
 
     static let shared = ConsentAuditService()
 
-    @Published private(set) var pendingSignatureIds: Set<String> = []
-    @Published private(set) var pendingConsentIds: Set<String> = []
+    @Published private(set) var pendingSignatureIds: Set<UUID> = []
+    @Published private(set) var pendingConsentIds: Set<UUID> = []
     @Published private(set) var isSyncing = false
 
     private var retryTask: Task<Void, Never>?
-    private var networkMonitor: Task<Void, Never>?
 
     // MARK: - Consent status query
 
-    /// Returns the effective consent status for the given type, checking both
-    /// local vault and blockchain. This is the single call site for all access
-    /// decisions — never check VaultManager or FabricClient directly for consent.
-    func status(for consentType: String) async -> ConsentStatus {
+    /// Returns the effective consent status for the given ConsentType, checking both
+    /// local vault and blockchain. This is the SINGLE call site for all access decisions.
+    /// Never check LegalVaultManager or FabricClient directly for consent gating.
+    func status(for consentType: ConsentType) async -> ConsentStatus {
         do {
             let records = try await LegalVaultManager.shared.openAllConsents()
-            let matching = records
-                .filter { $0.consentType == consentType }
-                .sorted { $0.grantedAt > $1.grantedAt } // most recent first
+            let sorted  = records.sorted { $0.signedAt > $1.signedAt }  // most recent first
 
-            guard let latest = matching.first else {
-                return .notFound
+            for record in sorted {
+                guard let item = record.items.first(where: { $0.type == consentType }) else { continue }
+
+                // Revoked locally → immediately invalid (GDPR Art.7(3))
+                if let revokedAt = item.revokedAt {
+                    return .revoked(at: revokedAt)
+                }
+
+                // Item exists but was never granted
+                guard item.granted else { continue }
+
+                // Granted but no blockchain confirmation yet
+                guard let txHash = record.blockchainTxHash else {
+                    return .validPendingBlockchain
+                }
+
+                // Optional: verify on-chain status (catches admin-side revocations)
+                let chainStatus = await checkChainRevocation(consentType: consentType, txHash: txHash)
+                if case .revoked(let at) = chainStatus {
+                    try? await LegalVaultManager.shared.revokeConsentType(consentType, revokedAt: at)
+                    return chainStatus
+                }
+
+                return .valid
             }
 
-            // Revoked locally → immediately invalid (GDPR Art.7(3)).
-            if let revokedAt = latest.revokedAt {
-                return .revoked(at: revokedAt)
-            }
-
-            // Expired locally.
-            if let expiresAt = latest.expiresAt, expiresAt < Date() {
-                return .expired(at: expiresAt)
-            }
-
-            // Not yet on-chain.
-            guard latest.blockchainTxHash != nil else {
-                return .validPendingBlockchain
-            }
-
-            // Optional: verify on-chain status is still active.
-            // If the blockchain reports a revocation we don't have locally (admin action),
-            // trust the blockchain and update local state.
-            let chainStatus = await checkChainRevocation(
-                consentType: consentType,
-                txHash: latest.blockchainTxHash!
-            )
-            if case .revoked(let at) = chainStatus {
-                // Persist the chain-side revocation locally.
-                try? await LegalVaultManager.shared.revokeConsent(id: latest.id, revokedAt: at)
-                return chainStatus
-            }
-
-            return .valid
+            return .notFound
 
         } catch {
             return .unknown(error.localizedDescription)
@@ -117,7 +108,7 @@ final class ConsentAuditService: ObservableObject {
     // MARK: - Pending queue management
 
     /// Called by SignatureButton when a channel-1 broadcast fails (offline).
-    nonisolated func enqueuePendingSignature(_ id: String) {
+    nonisolated func enqueuePendingSignature(_ id: UUID) {
         Task { @MainActor in
             pendingSignatureIds.insert(id)
             schedulePendingRetry()
@@ -125,7 +116,7 @@ final class ConsentAuditService: ObservableObject {
     }
 
     /// Called by SignatureButton when a channel-2 broadcast fails (offline).
-    nonisolated func enqueuePendingConsent(_ id: String) {
+    nonisolated func enqueuePendingConsent(_ id: UUID) {
         Task { @MainActor in
             pendingConsentIds.insert(id)
             schedulePendingRetry()
@@ -135,7 +126,7 @@ final class ConsentAuditService: ObservableObject {
     // MARK: - Retry loop
 
     private func schedulePendingRetry() {
-        guard retryTask == nil || retryTask!.isCancelled else { return }
+        guard retryTask.map({ $0.isCancelled }) ?? true else { return }
         retryTask = Task { [weak self] in
             await self?.retryPending()
         }
@@ -153,38 +144,38 @@ final class ConsentAuditService: ObservableObject {
         isSyncing = true
         defer { isSyncing = false }
 
-        // Retry pending signatures (channel 1).
+        // Retry pending signatures (channel 1)
         var remainingSigs = pendingSignatureIds
         for sigId in pendingSignatureIds {
             do {
                 let sigs = try await LegalVaultManager.shared.openSignatureRecords()
                 guard let sig = sigs.first(where: { $0.id == sigId }) else {
-                    remainingSigs.remove(sigId) // record disappeared — remove from queue
+                    remainingSigs.remove(sigId)  // record gone — remove from queue
                     continue
                 }
                 guard sig.blockchainTxHash == nil else {
-                    remainingSigs.remove(sigId) // already confirmed
+                    remainingSigs.remove(sigId)  // already confirmed elsewhere
                     continue
                 }
                 let txHash = try await FabricClient.channel1.recordAdESSignature(
                     documentHash:       sig.documentHash,
-                    signerPubKeyHash:   sig.signerPubKeyHash,
-                    signature:          sig.signature,
+                    signerPubKeyHash:   sig.publicKeyHash,
+                    signatureBase64:    sig.signature.base64URLEncodedString(),
                     identityProvider:   sig.identityProvider,
                     identityVerifiedAt: Int64(sig.identityVerifiedAt.timeIntervalSince1970),
-                    legalBasis:         sig.legalBasis,
-                    documentType:       sig.documentType,
+                    legalBasis:         sig.legalBasis.map { $0.rawValue },
+                    documentType:       sig.documentType.rawValue,
                     jurisdictions:      sig.jurisdictions
                 )
                 try await LegalVaultManager.shared.updateSignatureTxHash(id: sigId, txHash: txHash)
                 remainingSigs.remove(sigId)
             } catch {
-                // Still offline or transient — leave in queue.
+                // Still offline or transient — leave in queue
             }
         }
         pendingSignatureIds = remainingSigs
 
-        // Retry pending consent grants (channel 2).
+        // Retry pending consent grants (channel 2)
         var remainingConsents = pendingConsentIds
         for consentId in pendingConsentIds {
             do {
@@ -193,30 +184,38 @@ final class ConsentAuditService: ObservableObject {
                     remainingConsents.remove(consentId)
                     continue
                 }
-                guard consent.blockchainTxHash == nil,
-                      let sigRecord = try? await LegalVaultManager.shared
-                          .openSignatureRecords()
-                          .first(where: { $0.id == consent.signatureRecordId }),
-                      let sigTxHash = sigRecord.blockchainTxHash else {
-                    continue // wait for signature to confirm first
+                guard consent.blockchainTxHash == nil else {
+                    remainingConsents.remove(consentId)
+                    continue
                 }
+                // Find an associated SignatureRecord with a confirmed txHash
+                let sigs = try await LegalVaultManager.shared.openSignatureRecords()
+                guard let sigRecord = sigs.first(where: {
+                    $0.publicKeyHash == consent.publicKeyHash && $0.blockchainTxHash != nil
+                }),
+                let sigTxHash = sigRecord.blockchainTxHash else {
+                    continue  // wait for the signature to confirm first
+                }
+
+                let userIdHash = try await DIDWallet.shared.currentUserIdHash()
+                let crIdData   = consent.id.uuidString.data(using: .utf8) ?? Data()
                 let consentTxHash = try await FabricClient.channel2.recordConsentGrant(
-                    userIdHash:      try await DIDWallet.shared.currentUserIdHash(),
-                    consentType:     consent.consentType,
-                    expiresAt:       Int64(consent.expiresAt?.timeIntervalSince1970 ?? 0),
-                    signatureTxHash: sigTxHash
+                    userIdHash:        userIdHash,
+                    consentRecordHash: SHA3_256.hash(data: crIdData).description,
+                    grantedTypes:      consent.items.filter { $0.granted }.map { $0.type.rawValue },
+                    signatureTxHash:   sigTxHash
                 )
                 try await LegalVaultManager.shared.updateConsentTxHash(id: consentId, txHash: consentTxHash)
                 remainingConsents.remove(consentId)
             } catch {
-                // Still offline or transient.
+                // Still offline or transient
             }
         }
         pendingConsentIds = remainingConsents
 
         retryTask = nil
 
-        // Schedule another pass if items remain.
+        // Schedule another pass if items remain
         if !pendingSignatureIds.isEmpty || !pendingConsentIds.isEmpty {
             schedulePendingRetry()
         }
@@ -225,13 +224,27 @@ final class ConsentAuditService: ObservableObject {
     // MARK: - Chain revocation check
 
     private func checkChainRevocation(
-        consentType: String,
-        txHash _: String
+        consentType: ConsentType,
+        txHash: String
     ) async -> ConsentStatus {
-        // TODO: query channel-2 GetConsentHistory via gRPC and check for
-        // a "revoked" event more recent than the grant referenced by txHash.
-        // Return .revoked(at:) if found, otherwise return .valid.
+        // Query channel-2 GetConsentHistory via gRPC and check for a "revoked" event
+        // more recent than the grant referenced by txHash.
+        // Return .revoked(at:) if found, otherwise .valid.
         // Stub: always reports .valid (no admin-side revocations in pilot).
+        _ = consentType
+        _ = txHash
         return .valid
+    }
+
+}
+
+// MARK: - Data extension (base64url)
+
+private extension Data {
+    func base64URLEncodedString() -> String {
+        base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
     }
 }

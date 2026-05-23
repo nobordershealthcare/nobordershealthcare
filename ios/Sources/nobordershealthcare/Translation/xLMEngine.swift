@@ -30,7 +30,6 @@ import CoreML
 // Build the framework first: ./scripts/build-sentencepiece-ios.sh
 // Then add it to Package.swift as a .binaryTarget and list it in the target
 // dependencies so this import resolves.
-import SentencePieceC
 
 // ═══════════════════════════════════════════════════════════════════════════
 // MARK: - SentencePiece tokenizer protocol

@@ -1,17 +1,21 @@
-// Offline emergency QR scope token.
+// EmergencyCard.swift — Offline emergency QR scope token actor.
+//
+// ScopedTokenActor manages JWT issuance from EmergencyCard (the data model in Models.swift).
 // JWT: EdDSA (Ed25519), 15-min TTL, self-verifying (public key embedded in `pk` claim).
 // Signed only in foreground — background signing is intentionally disabled.
-// Token is stored in the App Group Keychain so EmergencyWidget can display it without unlock.
-// Expiry countdown and red warning at <2 min are state emitted via TokenState.
+// Token stored in App Group Keychain so EmergencyWidget can display without unlock.
+// Expiry countdown and red warning at <2 min are emitted via TokenState.
+//
+// NOTE: The domain struct `EmergencyCard` lives in Legal/Models.swift (stored in Silo 1).
+//       This actor handles JWT token lifecycle on top of that model.
 
 import Foundation
 import CryptoKit
 import Security
-import SHA3Kit
 
 // MARK: - Token state
 
-enum TokenState: Sendable {
+enum ScopedTokenState: Sendable {
     case valid(secondsRemaining: Int)
     case expiringSoon(secondsRemaining: Int)  // < 120 seconds
     case expired
@@ -26,11 +30,11 @@ struct ScopedJWT: Sendable, Codable {
     let publicKeyBase64: String // Ed25519 public key, base64url-encoded (ER doc can verify offline)
 }
 
-// MARK: - EmergencyCard actor
+// MARK: - ScopedTokenActor
 
-actor EmergencyCard {
+actor ScopedTokenActor {
 
-    static let shared = EmergencyCard()
+    static let shared = ScopedTokenActor()
 
     private let appGroupID       = "group.com.noborders.emergency"
     private let tokenKeychainKey = "com.noborders.token.scoped-jwt"
@@ -92,7 +96,7 @@ actor EmergencyCard {
         return try loadStoredToken()
     }
 
-    func tokenState() throws -> TokenState {
+    func tokenState() throws -> ScopedTokenState {
         let token = try loadCurrentToken()
         let remaining = Int(token.expiresAt.timeIntervalSinceNow)
         if remaining <= 0   { return .expired }
@@ -101,7 +105,7 @@ actor EmergencyCard {
     }
 
     func isExpired() throws -> Bool {
-        if case .expired = try tokenState() { return true }
+        if case .expired = (try tokenState()) { return true }
         return false
     }
 
@@ -159,10 +163,8 @@ actor EmergencyCard {
 
     // MARK: - JWT helpers
 
-    // Throws rather than force-try: non-JSON-serializable values in `json`
-    // (e.g. a non-primitive type accidentally passed as a claim value) would
-    // crash the app at the moment the emergency QR is being minted.
-    // Callers propagate the error up to issueToken(), which already throws.
+    // Throws rather than force-unwrap: non-JSON-serializable values would crash JWT
+    // minting at the worst possible moment (patient presenting for emergency care).
     private func base64url(json: [String: Any]) throws -> String {
         let data = try JSONSerialization.data(withJSONObject: json)
         return data.base64URLEncodedString()
@@ -204,8 +206,6 @@ actor EmergencyCard {
     }
 
     private func encodeSubset(_ subset: IPSEmergencySubset) -> [String: Any] {
-        // Encode a compact representation; the full payload is in the IPS bundle
-        // fetched from the backend. QR carries just the critical emergency fields.
         [
             "ph": subset.patientHash,
             "al": subset.allergies.map { ["s": $0.snomedCode, "n": $0.substanceName, "sv": $0.severity.rawValue] },

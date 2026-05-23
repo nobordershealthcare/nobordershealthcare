@@ -6,7 +6,6 @@
 import Foundation
 import AuthenticationServices
 import CryptoKit
-import SHA3Kit
 
 // MARK: - Shared types
 

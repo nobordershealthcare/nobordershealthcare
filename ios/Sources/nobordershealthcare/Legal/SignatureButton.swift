@@ -2,15 +2,16 @@
 //
 // Signing pipeline (must execute in this order):
 //   Step 1: Ed25519 sign via Secure Enclave → SignatureRecord
-//   Step 2: LegalVaultManager.sealSignatureRecord()   ← local, synchronous gate
-//   Step 3: blockchain.RecordAdESSignature()           ← channel 1, async, offline-tolerant
-//   Step 4: if consentType set → blockchain.RecordConsentGrant() ← channel 2
-//   Step 5: update blockchainTxHash in vault once on-chain confirmation arrives
+//   Step 2: LegalVaultManager.sealSignatureRecord()     ← Silo 2, local gate (authoritative)
+//   Step 3: FabricClient.channel1.recordAdESSignature() ← async, offline-tolerant
+//   Step 4: if consentItems set → LegalVaultManager.sealConsent() + Ch2 broadcast
+//   Step 5: blockchainTxHash updated in vault once confirmed on-chain
 //
-// LOCAL IS AUTHORITATIVE: the signed record is valid the moment it is sealed in
-// the Legal vault (Step 2). The blockchain confirmation (Step 3) is non-blocking.
-// If the device is offline, the pending tx is queued and retried when connectivity
-// returns. The patient's signature is never held hostage to network availability.
+// LOCAL IS AUTHORITATIVE: the signed record is valid from Step 2 onwards.
+// Blockchain confirmation (Step 3) is non-blocking. Offline → queued in ConsentAuditService.
+// The patient's signature is NEVER held hostage to network availability.
+//
+// Domain types (SignatureRecord, ConsentRecord, LegalBasis, etc.) are in Models.swift.
 
 import SwiftUI
 import CryptoKit
@@ -19,17 +20,17 @@ import CryptoKit
 
 struct SigningResult: Sendable {
     let signatureRecord: SignatureRecord
-    let consentRecord: ConsentRecord?  // non-nil if consentType was supplied
+    let consentRecord: ConsentRecord?  // non-nil if consentItems was supplied
 }
 
 // MARK: - Signing state
 
 enum SigningState: Equatable {
     case idle
-    case authenticating          // BankID/biometric step-up in progress
-    case signing                 // Ed25519 in SE
-    case sealingLocally          // writing to LegalVaultManager
-    case broadcastingToChain     // submitting to Fabric channels (non-blocking)
+    case authenticating           // biometric step-up in progress
+    case signing                  // Ed25519 in Secure Enclave
+    case sealingLocally           // writing to LegalVaultManager (Silo 2)
+    case broadcastingToChain      // submitting to Fabric channels (non-blocking)
     case complete(blockchainPending: Bool)
     case failed(String)
 
@@ -43,68 +44,79 @@ enum SigningState: Equatable {
 
 // MARK: - SignatureButton
 
-/// A SwiftUI button that drives the full AdES signing + Legal vault + blockchain pipeline.
+/// SwiftUI button driving the full AdES signing + Legal Vault + blockchain pipeline.
 ///
-/// Usage:
+/// Usage (from ConsentView):
 /// ```swift
 /// SignatureButton(
-///     document: myConsentDocument,
-///     documentType: "consent",
-///     consentType: "ehr_access",
-///     legalBasis: ["Art.6(1)(a)", "Art.9(2)(a)"],
-///     jurisdictions: ["PT"]
+///     document: canonicalConsentJSON,
+///     documentType: .gdprConsent,
+///     consentItems: scopeItems,
+///     legalBasis: [.gdprArt9, .gdprArt7],
+///     jurisdictions: ["PT", "UA"],
+///     adESText: "By signing I provide explicit GDPR Art.9 consent..."
 /// ) { result in
-///     print("Signed: \(result.signatureRecord.id)")
+///     // result.consentRecord is sealed in Silo 2
 /// }
 /// ```
 struct SignatureButton: View {
 
-    let document: Data            // raw bytes of the document to sign
-    let documentType: String      // "consent" | "healthcare_proxy" | "dpa" | "ehr_access"
-    let consentType: String?      // if set, also records a ConsentGrant on channel 2
-    let legalBasis: [String]      // GDPR Art. references
-    let jurisdictions: [String]   // ISO 3166-1 alpha-2
+    let document: Data               // canonical bytes of the document being signed
+    let documentType: LegalDocumentType
+    let consentItems: [ConsentScopeItem]? // if set, also creates a ConsentRecord
+    let legalBasis: [LegalBasis]
+    let jurisdictions: [String]      // ISO 3166-1 alpha-2
+    let adESText: String             // human-readable AdES statement shown above button
 
     var label: String = "Sign"
-    var onComplete: ((SigningResult) -> Void)? = nil
+    var onComplete: ((SigningResult) -> Void)?
 
     @State private var state: SigningState = .idle
     @State private var showError = false
     @State private var errorMessage = ""
 
     var body: some View {
-        Button(action: startSigning) {
-            HStack(spacing: 8) {
-                if state.isWorking {
-                    ProgressView()
-                        .progressViewStyle(.circular)
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: "signature")
+        VStack(alignment: .leading, spacing: 12) {
+            Text(adESText)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(action: startSigning) {
+                HStack(spacing: 8) {
+                    if state.isWorking {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+                            .controlSize(.small)
+                    } else {
+                        Image(systemName: "signature")
+                    }
+                    Text(buttonLabel)
+                        .fontWeight(.semibold)
                 }
-                Text(buttonLabel)
-                    .fontWeight(.semibold)
+                .frame(maxWidth: .infinity, minHeight: 50)
             }
-            .frame(maxWidth: .infinity, minHeight: 50)
-        }
-        .buttonStyle(.borderedProminent)
-        .disabled(state.isWorking || state == .complete(blockchainPending: false) || state == .complete(blockchainPending: true))
-        .alert("Signing failed", isPresented: $showError) {
-            Button("OK", role: .cancel) { state = .idle }
-        } message: {
-            Text(errorMessage)
+            .buttonStyle(.borderedProminent)
+            .disabled(state.isWorking
+                      || state == .complete(blockchainPending: false)
+                      || state == .complete(blockchainPending: true))
+            .alert("Signing failed", isPresented: $showError) {
+                Button("OK", role: .cancel) { state = .idle }
+            } message: {
+                Text(errorMessage)
+            }
         }
     }
 
     private var buttonLabel: String {
         switch state {
-        case .idle:                              return label
-        case .authenticating:                    return "Authenticating…"
-        case .signing:                           return "Signing…"
-        case .sealingLocally:                    return "Saving locally…"
-        case .broadcastingToChain:               return "Recording on blockchain…"
-        case .complete(let pending):             return pending ? "Signed ⚠️" : "Signed ✓"
-        case .failed:                            return label
+        case .idle:                        return label
+        case .authenticating:              return "Authenticating…"
+        case .signing:                     return "Signing…"
+        case .sealingLocally:              return "Saving locally…"
+        case .broadcastingToChain:         return "Recording on blockchain…"
+        case .complete(let pending):       return pending ? "Signed ⚠️" : "Signed ✓"
+        case .failed:                      return label
         }
     }
 
@@ -117,58 +129,66 @@ struct SignatureButton: View {
     @MainActor
     private func runSigningPipeline() async {
         do {
-            // ── Step 1: BankID / biometric step-up + Ed25519 sign ─────────────
+            // ── Step 1: Biometric step-up + Ed25519 sign ──────────────────────
             state = .authenticating
             let identityVerifiedAt = Date()
-            // In production: trigger BankID step-up here and await completion.
-            // For now, biometric gate is enforced by SecureEnclaveKey.sign() calling
-            // LAContext evaluation internally.
+            // In production: trigger BankID / CMD / Diia step-up here and await.
+            // Biometric gate is enforced by SecureEnclaveKey.sign() via LAContext internally.
 
             state = .signing
-            let docHash   = sha3_256(document)
-            let pubKeyDER = try await KeyManager.shared.ed25519PublicKeyDERData()
-            let pubKeyHash = sha3_256(pubKeyDER)
+            let docHash        = SHA3_256.hash(data: document).description
+            let pubKeyRaw      = try await KeyManager.shared.ed25519PublicKeyData()
+            let pubKeyHash     = SHA3_256.hash(data: pubKeyRaw).description
             let signatureBytes = try await KeyManager.shared.sign(document)
-            let signatureB64   = signatureBytes.base64URLEncodedString()
+
+            // Device attestation: SHA3-256 of the DCAppAttestService assertion for this doc.
+            // Falls back to empty string if DeviceCheck unavailable (simulator, first launch).
+            let attestData     = (try? await AttestationService.shared.generateAssertion(for: document)) ?? Data()
+            let deviceAttestHash = SHA3_256.hash(data: attestData).description
 
             let sigRecord = SignatureRecord(
-                id:                 UUID().uuidString,
-                documentHash:       docHash,
-                signerPubKeyHash:   pubKeyHash,
-                signature:          signatureB64,
-                identityProvider:   "bankid-se", // TODO: derive from active BankID session
-                identityVerifiedAt: identityVerifiedAt,
-                legalBasis:         legalBasis,
-                documentType:       documentType,
-                jurisdictions:      jurisdictions,
-                createdAt:          Date(),
-                blockchainTxHash:   nil
+                id:                   UUID(),
+                documentHash:         docHash,
+                documentType:         documentType,
+                signature:            signatureBytes,
+                publicKeyHash:        pubKeyHash,
+                signedAt:             Date(),
+                identityProvider:     "bankid-se",   // derived from active identity session
+                identityVerifiedAt:   identityVerifiedAt,
+                deviceAttestationHash: deviceAttestHash,
+                legalBasis:           legalBasis,
+                jurisdictions:        jurisdictions,
+                blockchainTxHash:     nil
             )
 
-            // ── Step 2: Seal locally in Legal vault ───────────────────────────
-            // This is the authoritative record. Must succeed before Step 3.
+            // ── Step 2: Seal locally in Legal vault (Silo 2) ─────────────────
             state = .sealingLocally
             try await LegalVaultManager.shared.sealSignatureRecord(sigRecord)
 
-            // Build consent record if a consentType was provided.
+            // Build consent record if consent items were provided.
             var consentRecord: ConsentRecord? = nil
-            if let ct = consentType {
+            if let items = consentItems {
+                let canonicalItems  = try JSONEncoder().encode(items)
+                let consentSig      = try await KeyManager.shared.sign(canonicalItems)
+
                 let cr = ConsentRecord(
-                    id:               UUID().uuidString,
-                    consentType:      ct,
-                    grantedAt:        Date(),
-                    revokedAt:        nil,
-                    expiresAt:        nil,
-                    signatureRecordId: sigRecord.id,
-                    blockchainTxHash: nil
+                    id:                   UUID(),
+                    items:                items,
+                    signedAt:             Date(),
+                    signature:            consentSig,
+                    publicKeyHash:        pubKeyHash,
+                    identityProvider:     sigRecord.identityProvider,
+                    identityVerifiedAt:   identityVerifiedAt,
+                    deviceAttestationHash: deviceAttestHash,
+                    blockchainTxHash:     nil,
+                    legalBasis:           legalBasis,
+                    jurisdictions:        jurisdictions
                 )
                 try await LegalVaultManager.shared.sealConsent(cr)
                 consentRecord = cr
             }
 
             // ── Steps 3 & 4: Broadcast to blockchain (non-blocking) ───────────
-            // Fire-and-forget. The local record is already the source of truth.
-            // ConsentAuditService monitors pending txs and updates the vault when confirmed.
             state = .broadcastingToChain
             let result = SigningResult(signatureRecord: sigRecord, consentRecord: consentRecord)
 
@@ -194,32 +214,33 @@ struct SignatureButton: View {
         consentRecord: ConsentRecord?
     ) async {
         do {
-            // Step 3: channel 1 — RecordAdESSignature
+            // Step 3: Channel 1 — RecordAdESSignature
             let sigTxHash = try await FabricClient.channel1.recordAdESSignature(
                 documentHash:       sigRecord.documentHash,
-                signerPubKeyHash:   sigRecord.signerPubKeyHash,
-                signature:          sigRecord.signature,
+                signerPubKeyHash:   sigRecord.publicKeyHash,
+                signatureBase64:    sigRecord.signature.base64URLEncodedString(),
                 identityProvider:   sigRecord.identityProvider,
                 identityVerifiedAt: Int64(sigRecord.identityVerifiedAt.timeIntervalSince1970),
-                legalBasis:         sigRecord.legalBasis,
-                documentType:       sigRecord.documentType,
+                legalBasis:         sigRecord.legalBasis.map { $0.rawValue },
+                documentType:       sigRecord.documentType.rawValue,
                 jurisdictions:      sigRecord.jurisdictions
             )
             try await LegalVaultManager.shared.updateSignatureTxHash(id: sigRecord.id, txHash: sigTxHash)
 
-            // Step 4: channel 2 — RecordConsentGrant (only if consent type is set)
+            // Step 4: Channel 2 — RecordConsentGrant
             if let cr = consentRecord {
+                let userIdHash = try await DIDWallet.shared.currentUserIdHash()
+                let crIdData   = cr.id.uuidString.data(using: .utf8) ?? Data()
                 let consentTxHash = try await FabricClient.channel2.recordConsentGrant(
-                    userIdHash:      try await currentUserIdHash(),
-                    consentType:     cr.consentType,
-                    expiresAt:       Int64(cr.expiresAt?.timeIntervalSince1970 ?? 0),
-                    signatureTxHash: sigTxHash
+                    userIdHash:        userIdHash,
+                    consentRecordHash: SHA3_256.hash(data: crIdData).description,
+                    grantedTypes:      cr.items.filter { $0.granted }.map { $0.type.rawValue },
+                    signatureTxHash:   sigTxHash
                 )
                 try await LegalVaultManager.shared.updateConsentTxHash(id: cr.id, txHash: consentTxHash)
             }
         } catch {
-            // Offline or transient failure — ConsentAuditService will retry.
-            // The local vault record is already sealed; the signature is valid without the tx hash.
+            // Offline or transient — ConsentAuditService will retry.
             ConsentAuditService.shared.enqueuePendingSignature(sigRecord.id)
             if let cr = consentRecord {
                 ConsentAuditService.shared.enqueuePendingConsent(cr.id)
@@ -227,22 +248,6 @@ struct SignatureButton: View {
         }
     }
 
-    // MARK: - Helpers
-
-    private func sha3_256(_ data: Data) -> String {
-        // SHA3-256 via SHA3Kit (the local package target).
-        // Import SHA3Kit or use the CryptoKit SHA256 bridge — see SHA3Kit/SHA3.swift.
-        // Placeholder: real implementation delegates to SHA3Kit.sha3_256(data).
-        var hash = [UInt8](repeating: 0, count: 32)
-        // sha3_256_bytes(data.bytes, data.count, &hash)  ← real call site
-        return hash.map { String(format: "%02x", $0) }.joined()
-    }
-
-    private func currentUserIdHash() async throws -> String {
-        // Fetched from KeyManager / DIDWallet — the on-device identity hash.
-        // Placeholder: real implementation reads from DIDWallet.shared.currentUserIdHash().
-        return try await DIDWallet.shared.currentUserIdHash()
-    }
 }
 
 // MARK: - Data extension (base64url)
@@ -257,12 +262,13 @@ private extension Data {
 }
 
 // MARK: - FabricClient stub
-// Replace with the real gRPC client that talks to the Fabric Gateway service.
-// Separated here so the stub can be swapped for a mock in unit tests.
+// Replace with real gRPC client calling the Fabric Gateway service.
+// Stub is separated so it can be swapped for a mock in unit tests.
 
 struct FabricClient {
     static let channel1 = FabricChannel(name: "signatures")
     static let channel2 = FabricChannel(name: "consent-audit")
+    static let channel3 = FabricChannel(name: "access-audit")
 }
 
 struct FabricChannel {
@@ -271,25 +277,34 @@ struct FabricChannel {
     func recordAdESSignature(
         documentHash: String,
         signerPubKeyHash: String,
-        signature: String,
+        signatureBase64: String,      // base64url-encoded Ed25519 raw 64 bytes
         identityProvider: String,
         identityVerifiedAt: Int64,
         legalBasis: [String],
         documentType: String,
         jurisdictions: [String]
     ) async throws -> String {
-        // TODO: call Fabric Gateway gRPC endpoint.
-        // Returns the Fabric txID on success.
-        throw URLError(.notConnectedToInternet) // stub — always fails offline
+        // Fabric Gateway gRPC: channel "signatures" → RecordAdESSignature
+        throw URLError(.notConnectedToInternet) // stub — replace with gRPC call
     }
 
     func recordConsentGrant(
         userIdHash: String,
-        consentType: String,
-        expiresAt: Int64,
-        signatureTxHash: String
+        consentRecordHash: String,    // SHA3-256 of ConsentRecord.id
+        grantedTypes: [String],       // ConsentType.rawValue per granted item
+        signatureTxHash: String       // Channel 1 txID of accompanying AdES signature
     ) async throws -> String {
-        // TODO: call Fabric Gateway gRPC endpoint.
+        // Fabric Gateway gRPC: channel "consent-audit" → RecordConsentGrant
+        throw URLError(.notConnectedToInternet) // stub
+    }
+
+    func recordEHRAccess(
+        accessorHash: String,         // SHA3-256(clinician license number)
+        patientHash: String,          // SHA3-256(userID)
+        purpose: String,
+        tokenJTI: String
+    ) async throws -> String {
+        // Fabric Gateway gRPC: channel "access-audit" → RecordEHRAccess
         throw URLError(.notConnectedToInternet) // stub
     }
 }

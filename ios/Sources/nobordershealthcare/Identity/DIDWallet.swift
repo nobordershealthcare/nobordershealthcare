@@ -5,7 +5,6 @@
 
 import Foundation
 import CryptoKit
-import SHA3Kit
 
 // MARK: - DID types
 
@@ -70,6 +69,7 @@ enum DIDError: Error {
     case invalidIdentifier
     case signingFailed(Error)
     case noActiveDID
+    case keychainFailed(OSStatus)
 }
 
 // MARK: - DIDWallet actor
@@ -124,6 +124,12 @@ actor DIDWallet {
 
     func credentials(ofType type: String) -> [VerifiableCredential] {
         credentials.filter { $0.type.contains(type) }
+    }
+
+    /// Returns the SHA3-256 hex user ID hash (the DID identifier).
+    /// Used throughout the app as the stable pseudonymous identity.
+    func currentUserIdHash() throws -> String {
+        try currentDID().identifier
     }
 
     // MARK: - Persistence

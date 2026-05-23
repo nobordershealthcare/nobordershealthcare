@@ -16,7 +16,6 @@
 // screen still requires explicit "Continue" to confirm the choice.
 
 import SwiftUI
-import SHA3Kit
 
 // MARK: - HealthcareProxyView
 

@@ -5,7 +5,9 @@
 //   Factor 2: dateOfBirth — read from live EmergencyCard (Silo 1), never duplicated here
 //   Factor 3: security question + hashed answer
 //
-// securityAnswerHash: SHA3-256(answer.lowercased().trimmingCharacters(in: .whitespaces))
+// securityAnswerHash: SHA256(answer.lowercased().trimmingCharacters(in: .whitespaces))
+//   CryptoKit SHA256 — support identification data only.
+//   Medical/legal data uses SHA3-256 (backend Go services).
 // The plaintext answer is NEVER stored anywhere.
 //
 // Storage: Keychain item "com.noborders.support.profile"
@@ -14,11 +16,11 @@
 //
 // SECURITY NOTE: callers of verify() MUST show users a generic "verification
 // failed" message — never which factor failed.  The typed VerificationError
-// values are for internal logs (log SHA3-256(supportAgentID) only, never PII).
+// values are for internal logs (log SHA256(supportAgentID) only, never PII).
 
 import Foundation
 import Security
-import SHA3Kit
+import CryptoKit
 
 // MARK: - SecurityQuestion
 
@@ -88,7 +90,8 @@ struct SupportProfile: Codable, Sendable {
     mutating func setAnswer(_ plaintext: String) throws {
         let normalized = plaintext.lowercased().trimmingCharacters(in: .whitespaces)
         guard !normalized.isEmpty else { throw SetupError.emptyAnswer }
-        securityAnswerHash = SHA3_256.hash(data: Data(normalized.utf8)).description
+        securityAnswerHash = SHA256.hash(data: Data(normalized.utf8))
+                .map { String(format: "%02x", $0) }.joined()
         updatedAt = Date()
     }
 
@@ -99,7 +102,8 @@ struct SupportProfile: Codable, Sendable {
     func verifyAnswer(_ plaintext: String) -> Bool {
         guard !securityAnswerHash.isEmpty else { return false }
         let normalized = plaintext.lowercased().trimmingCharacters(in: .whitespaces)
-        let candidate  = SHA3_256.hash(data: Data(normalized.utf8)).description
+        let candidate  = SHA256.hash(data: Data(normalized.utf8))
+                .map { String(format: "%02x", $0) }.joined()
         return candidate == securityAnswerHash
     }
 
@@ -142,7 +146,8 @@ struct SupportProfile: Codable, Sendable {
 
         // Factor 3: security answer — compare SHA3-256 digests
         let normalized = candidateAnswer.lowercased().trimmingCharacters(in: .whitespaces)
-        let hash = SHA3_256.hash(data: Data(normalized.utf8)).description
+        let hash = SHA256.hash(data: Data(normalized.utf8))
+                .map { String(format: "%02x", $0) }.joined()
         guard hash == securityAnswerHash
         else { throw VerificationError.answerMismatch }
     }
