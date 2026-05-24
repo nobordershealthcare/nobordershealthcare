@@ -23,29 +23,53 @@ struct WelcomeView: View {
         ("ru", "Русский",    "🇷🇺"),
     ]
 
+    private var continueButtonTitle: String {
+        switch appLanguage {
+        case "uk": return "Розпочати"
+        case "de": return "Loslegen"
+        case "pt": return "Começar"
+        case "ru": return "Начать"
+        default:   return "Get Started"
+        }
+    }
+
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 20)
+            VStack(spacing: 0) {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        Spacer(minLength: 20)
 
-                    // ── Logo + Brand ───────────────────────────────────────────
-                    logoSection
+                        // ── Logo + Brand ───────────────────────────────────────
+                        logoSection
 
-                    // ── Purpose statement ──────────────────────────────────────
-                    purposeStatement
-                        .padding(.top, 8)
+                        // ── Purpose statement ─────────────────────────────────
+                        purposeStatement
+                            .padding(.top, 8)
 
-                    // ── Language picker ────────────────────────────────────────
-                    languagePicker
-                        .padding(.top, 16)
+                        // ── Language picker ───────────────────────────────────
+                        languagePicker
+                            .padding(.top, 16)
 
-                    Spacer(minLength: 32)
-
-                    // ── CTA ────────────────────────────────────────────────────
-                    beginButton
+                        Spacer(minLength: 16)
+                    }
+                    .padding(.horizontal, 24)
                 }
-                .padding(.horizontal, 24)
+
+                // ── CTA — pinned to bottom, always visible ─────────────────
+                Button {
+                    coordinator.advance(from: .welcome)
+                } label: {
+                    Text(continueButtonTitle)
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color(red: 0.18, green: 0.19, blue: 0.48))
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 32)
             }
             .navigationBarHidden(true)
         }
@@ -133,19 +157,6 @@ struct WelcomeView: View {
             .background(.ultraThinMaterial)
             .clipShape(RoundedRectangle(cornerRadius: 14))
         }
-    }
-
-    private var beginButton: some View {
-        Button {
-            coordinator.advance(from: .welcome)
-        } label: {
-            Text("Begin Emergency eHR Setup")
-                .font(.headline)
-                .frame(maxWidth: .infinity, minHeight: 52)
-        }
-        .buttonStyle(.borderedProminent)
-        .tint(Color.navy)
-        .padding(.bottom, 24)
     }
 
     // MARK: - Locale application
