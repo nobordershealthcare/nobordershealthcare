@@ -562,6 +562,11 @@ struct EmergencyView: View {
     // isTranslating is reserved for future async translation paths.
     // All pilot-language strings use the static lookup table below — instant, no async.
     @State private var isTranslating = false
+    // Screenshot / screen-recording protection — iOS 17+ EnvironmentValue.
+    // When the system reports the scene is being captured (screen record, AirPlay,
+    // mirror, or screenshot via assistive tech), we overlay an opaque blur so
+    // the patient's emergency card and QR code are not captured.
+    @Environment(\.isSceneCaptured) private var isSceneCaptured
 
     // Complete static translation table: UI labels + known medical display terms.
     // Keys are canonical English strings. No opus-mt round-trip needed for these.
@@ -729,6 +734,30 @@ struct EmergencyView: View {
         // without touching UIWindow.overrideUserInterfaceStyle — the rest of
         // the app is unaffected when this fullScreenCover is dismissed.
         .environment(\.colorScheme, .dark)
+        // ── Screenshot / screen-recording protection ────────────────────────
+        // isSceneCaptured (iOS 17+) is true during screen recording, AirPlay
+        // mirroring, and captured screenshots via assistive technology.
+        // We overlay an opaque blur so the QR code and medical data are not
+        // captured.  The overlay is removed the instant capture stops so the
+        // emergency card is visible in-person at all other times.
+        .overlay {
+            if isSceneCaptured {
+                ZStack {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .ignoresSafeArea()
+                    VStack(spacing: 12) {
+                        Image(systemName: "eye.slash.fill")
+                            .font(.largeTitle)
+                            .foregroundStyle(.secondary)
+                        Text("Screen capture is disabled\non this screen")
+                            .multilineTextAlignment(.center)
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
     }
 
     // ── Translation helpers ────────────────────────────────────────────────

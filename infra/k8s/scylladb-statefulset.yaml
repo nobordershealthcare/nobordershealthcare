@@ -101,6 +101,15 @@ spec:
               memory: 8Gi
           securityContext:
             allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true is NOT set here.
+            # ScyllaDB writes log files, lock files, and temp files to multiple
+            # paths under / that cannot be remounted as tmpfs without patching
+            # the upstream container entrypoint.  The data PVC at /var/lib/scylla
+            # already provides the writable data path.
+            # Mitigation: allowPrivilegeEscalation: false + runAsNonRoot (pod
+            # spec) + network-policy isolation enforced by Istio sidecar.
+            # TODO: re-evaluate with scylladb/scylla-operator which supports
+            # a hardened pod template with explicit tmpfs mounts.
           livenessProbe:
             exec:
               command: [/bin/bash, -c, "nodetool status | grep -E '^UN'"]

@@ -52,6 +52,19 @@ EU MDR Class IIa pathway. GDPR Art.9 by design. Pre-seed stage, Hospital da Luz 
 - Pattern: `SHA3_256(per-user-salt + userID)`
 - Salt: stored in HSM, never on-chain
 
+### Protocol-mandated SHA-256 exceptions (do NOT change these)
+The following uses of SHA-256 are REQUIRED by external standards and have NO
+SHA3 alternative — they are explicitly accepted and must not be flagged:
+1. **Apple ECIES (iOS)** — `SecKeyCreateEncryptedData` / `SecKeyCreateDecryptedData`
+   with `.eciesEncryptionCofactorX963SHA256AESGCM` or
+   `.eciesEncryptionCofactorVariableIVX963SHA256AESGCM`.
+   The Security.framework does not provide a SHA3 variant.
+   Files: `VaultManager.swift`, `LegalVaultManager.swift`
+2. **PKCE / RFC 7636** — `S256` code_challenge = `BASE64URL(SHA256(code_verifier))`.
+   The BankID / OAuth 2.0 spec mandates SHA-256; no alternative is defined.
+   File: `BankIDClient.swift`
+CI gate (`security-gate-ios-sha2`) excludes `eciesEncryption` and `BankIDClient`.
+
 ## What NOT to generate
 - No SQL databases for health data
 - No cleartext health data in any log, metric, or trace
