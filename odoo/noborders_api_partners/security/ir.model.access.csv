@@ -1,0 +1,3 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nbhc_api_partner_admin,nbhc.api.partner admin,model_nbhc_api_partner,base.group_system,1,1,1,1
+access_nbhc_api_partner_user,nbhc.api.partner user,model_nbhc_api_partner,base.group_user,1,0,0,0

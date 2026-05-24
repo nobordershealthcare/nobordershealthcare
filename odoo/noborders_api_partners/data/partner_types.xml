@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- partner_types.xml — Reference data and scheduled actions
+     Provides:
+       1. Scheduled action: daily DSA expiry check
+       2. Scheduled action: weekly API key rotation reminder
+       3. Scheduled action: monthly draft invoice generation
+       4. Email template: API key rotation reminder
+-->
+<odoo>
+
+    <!-- ── Scheduled action: DSA expiry check (daily at 07:00 UTC) ────────── -->
+
+    <record id="ir_cron_check_dsa_expiry" model="ir.cron">
+        <field name="name">NoBorders: Check DSA Expiry (daily)</field>
+        <field name="model_id" ref="model_nbhc_api_partner"/>
+        <field name="state">code</field>
+        <field name="code">model.action_check_dsa_expiry()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall">2026-01-01 07:00:00</field>
+    </record>
+
+    <!-- ── Scheduled action: API key rotation reminder (weekly) ──────────── -->
+
+    <record id="ir_cron_check_key_rotation" model="ir.cron">
+        <field name="name">NoBorders: API Key Rotation Reminder (weekly)</field>
+        <field name="model_id" ref="model_nbhc_api_partner"/>
+        <field name="state">code</field>
+        <field name="code">model.action_check_key_rotation_due()</field>
+        <field name="interval_number">7</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall">2026-01-05 06:00:00</field>
+    </record>
+
+    <!-- ── Scheduled action: monthly draft invoices (1st of each month) ───── -->
+
+    <record id="ir_cron_generate_monthly_invoices" model="ir.cron">
+        <field name="name">NoBorders: Generate Monthly API Invoices</field>
+        <field name="model_id" ref="model_nbhc_api_partner"/>
+        <field name="state">code</field>
+        <field name="code">model.action_generate_monthly_invoices()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+        <field name="nextcall">2026-02-01 02:00:00</field>
+    </record>
+
+    <!-- ── Email template: API key rotation reminder ─────────────────────── -->
+
+    <record id="email_template_key_rotation" model="mail.template">
+        <field name="name">NoBorders: API Key Rotation Reminder</field>
+        <field name="model_id" ref="model_nbhc_api_partner"/>
+        <field name="subject">Action Required: Rotate Your NoBorders Healthcare API Key</field>
+        <field name="email_to">{{ object.email or (object.odoo_partner_id.email or '') }}</field>
+        <field name="body_html"><![CDATA[
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    <h2 style="color: #2e317a;">NoBorders Healthcare — API Key Rotation Notice</h2>
+
+    <p>Dear {{ object.name }},</p>
+
+    <p>Your NoBorders Healthcare API key was issued more than <strong>90 days ago</strong>.
+    To maintain security hygiene, we recommend rotating your key every 90 days.</p>
+
+    <table style="border-collapse: collapse; width: 100%; margin: 20px 0;">
+        <tr>
+            <td style="padding: 8px; background: #f5f5f5; font-weight: bold; width: 40%;">Partner</td>
+            <td style="padding: 8px;">{{ object.name }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; background: #f5f5f5; font-weight: bold;">Organisation</td>
+            <td style="padding: 8px;">{{ object.organization or '—' }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; background: #f5f5f5; font-weight: bold;">Key Issued</td>
+            <td style="padding: 8px;">{{ object.key_issued_at }}</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; background: #f5f5f5; font-weight: bold;">Key Hash (SHA3-256)</td>
+            <td style="padding: 8px; font-family: monospace; font-size: 12px;">{{ object.api_key_hash }}</td>
+        </tr>
+    </table>
+
+    <h3>How to rotate your key</h3>
+    <ol>
+        <li>Call <code>POST /v1/partners/{{ object.x_nbhc_partner_id }}/rotate-key</code>
+            using your current API key in the <code>X-API-Key</code> header.</li>
+        <li>The response contains your new raw key — store it securely immediately.
+            <strong>It will not be shown again.</strong></li>
+        <li>Update all systems that use the old key. The old key remains valid for
+            <strong>24 hours</strong> after rotation to allow a smooth rollover.</li>
+        <li>After 24 hours the old key is automatically revoked.</li>
+    </ol>
+
+    <p style="color: #888; font-size: 12px; margin-top: 30px; border-top: 1px solid #eee; padding-top: 10px;">
+        This is an automated message from NoBorders Healthcare API Management.<br/>
+        The SHA3-256 key hash above is safe for audit use. Your raw API key is
+        never stored by or transmitted through Odoo.
+    </p>
+</div>
+        ]]></field>
+        <field name="auto_delete">True</field>
+    </record>
+
+</odoo>
