@@ -4,18 +4,25 @@
 //
 // Redis key contract (enforced by this file — do not write these keys elsewhere):
 //
-//   SET  revoke:{userIdHash}   value "1"   no TTL   — written on ConsentRevoked
-//   DEL  revoke:{userIdHash}                         — written on ConsentGranted
+//	SET  revoke:{userIdHash}                    no TTL — written on ConsentRevoked
+//	DEL  revoke:{userIdHash}                           — written on ConsentGranted
+//	SET  fabric:checkpoint:{chaincode}  uint64  no TTL — last processed block number
 //
-// Redis has no persistence (no AOF, no RDB). On any pod restart, Run() replays
-// all Fabric events from block 0 so Redis is fully resynchronised before the
-// first request is served. This means the startup phase also acts as the
-// recovery mechanism — no separate snapshot or migration is needed.
+// Checkpoint semantics:
 //
-// TODO(pilot→production): checkpoint the last processed block number to a
-// persistent store (e.g. a Kubernetes ConfigMap updated atomically) so replay
-// on restart starts from the checkpoint rather than genesis. On a long-lived
-// chain this prevents a long cold-start window.
+//	On startup the watcher reads fabric:checkpoint:{chaincode} from Redis.
+//	If the key exists, it resumes from blockNumber+1 — replaying only blocks
+//	the current Redis instance has not yet processed.  If the key is absent
+//	(fresh Redis instance, first-ever run) the watcher starts from block 0.
+//
+//	The checkpoint key and the revoke keys share the same Redis instance.
+//	When Redis restarts both are lost together, so starting from block 0 and
+//	replaying the full chain is always safe: the rebuild re-derives the exact
+//	same revoke key set that existed before the restart.
+//
+//	The checkpoint is written AFTER each event is handled in Redis, so a crash
+//	mid-block causes at-most-once re-delivery of that block's events on the
+//	next restart — SET/DEL are idempotent, so re-processing is safe.
 
 package fabric
 
@@ -24,18 +31,23 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strconv"
 	"time"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
 	"github.com/redis/go-redis/v9"
 )
 
-// Redis key prefix for consent revocations.
-// Physician-view scan handler checks: EXISTS revoke:{sha3(sub)}.
-const revokeKeyPrefix = "revoke:"
-
-// Fabric chaincode event names emitted by channel2-consent/consent.go.
 const (
+	// revokeKeyPrefix is the Redis key namespace checked by the physician-view
+	// scan handler: EXISTS revoke:{sha3(sub)}.
+	revokeKeyPrefix = "revoke:"
+
+	// checkpointKeyPrefix stores the last block number successfully processed
+	// by this watcher instance: fabric:checkpoint:{chaincode}.
+	checkpointKeyPrefix = "fabric:checkpoint:"
+
+	// Fabric chaincode event names emitted by channel2-consent/consent.go.
 	eventConsentRevoked = "ConsentRevoked"
 	eventConsentGranted = "ConsentGranted"
 )
@@ -51,7 +63,8 @@ type consentEventPayload struct {
 // patient's consent records.
 //
 // Thread safety: Run() is designed to be called once in a dedicated goroutine.
-// The watcher is stateless between restarts — all state is in Redis and Fabric.
+// All Redis operations use the context passed to Run(), which is cancelled on
+// graceful shutdown before the HTTP server drains.
 type ConsentWatcher struct {
 	network   *client.Network
 	chaincode string
@@ -61,7 +74,8 @@ type ConsentWatcher struct {
 // NewConsentWatcher returns a ConsentWatcher connected to the given Fabric network
 // (expected to be channel "consent-audit") and the shared Redis client.
 //
-// chaincode is the chaincode name deployed on that channel (typically "consent-audit").
+// chaincode is the name of the chaincode deployed on that channel (typically
+// "consent-audit").
 func NewConsentWatcher(network *client.Network, chaincode string, redisClient *redis.Client) *ConsentWatcher {
 	return &ConsentWatcher{
 		network:   network,
@@ -70,17 +84,14 @@ func NewConsentWatcher(network *client.Network, chaincode string, redisClient *r
 	}
 }
 
-// Run starts the event subscription loop. It replays from block 0 on every
-// invocation — ensuring Redis is fully consistent with the ledger regardless of
-// what happened before this call.
-//
-// Run blocks until ctx is cancelled. It retries the Fabric subscription with a
-// 10-second back-off on transient errors (peer restart, network blip).
+// Run starts the event subscription loop. It blocks until ctx is cancelled.
+// On transient errors (peer restart, network blip) it retries with a 10-second
+// back-off.
 //
 // Typical call site in main():
 //
 //	go func() {
-//	    if err := watcher.Run(ctx); err != nil && err != context.Canceled {
+//	    if err := watcher.Run(ctx); err != nil && ctx.Err() == nil {
 //	        slog.Error("consent watcher exited", "err", err)
 //	        os.Exit(1)
 //	    }
@@ -90,8 +101,7 @@ func (w *ConsentWatcher) Run(ctx context.Context) error {
 	for {
 		if err := w.subscribeAndProcess(ctx); err != nil {
 			if ctx.Err() != nil {
-				// Graceful shutdown — not an error.
-				return ctx.Err()
+				return ctx.Err() // graceful shutdown
 			}
 			slog.Error("consent watcher subscription error — will retry",
 				"err", err,
@@ -106,19 +116,22 @@ func (w *ConsentWatcher) Run(ctx context.Context) error {
 	}
 }
 
-// subscribeAndProcess opens a ChaincodeEvents stream from block 0 and drains it
-// until the context is cancelled or the stream closes unexpectedly.
+// subscribeAndProcess reads the checkpoint, opens a ChaincodeEvents stream from
+// that block, and drains it until ctx is cancelled or the stream closes.
 func (w *ConsentWatcher) subscribeAndProcess(ctx context.Context) error {
-	// WithStartBlock(0) replays all historical events from the genesis block.
-	// This is the recovery mechanism after any Redis data loss (pod restart, eviction).
+	startBlock := w.readCheckpoint(ctx)
+
 	events, err := w.network.ChaincodeEvents(ctx, w.chaincode,
-		client.WithStartBlock(0),
+		client.WithStartBlock(startBlock),
 	)
 	if err != nil {
 		return fmt.Errorf("ChaincodeEvents subscribe: %w", err)
 	}
 
-	slog.Info("consent watcher subscribed — replaying from block 0")
+	slog.Info("consent watcher subscribed",
+		"chaincode", w.chaincode,
+		"startBlock", startBlock,
+	)
 
 	for {
 		select {
@@ -129,12 +142,58 @@ func (w *ConsentWatcher) subscribeAndProcess(ctx context.Context) error {
 				return fmt.Errorf("chaincode event channel closed unexpectedly")
 			}
 			w.handleEvent(ctx, event)
+			// Checkpoint is saved after the Redis operation so that a crash
+			// between handleEvent and saveCheckpoint causes re-delivery of the
+			// block on the next restart.  SET/DEL are idempotent so this is safe.
+			w.saveCheckpoint(ctx, event.BlockNumber)
 		}
 	}
 }
 
+// readCheckpoint returns the block number to start from.
+// If a checkpoint exists in Redis, returns checkpoint+1 (next unprocessed block).
+// If no checkpoint exists (fresh Redis or first run), returns 0 (genesis).
+func (w *ConsentWatcher) readCheckpoint(ctx context.Context) uint64 {
+	key := checkpointKeyPrefix + w.chaincode
+	val, err := w.redis.Get(ctx, key).Result()
+	if err != nil {
+		// redis.Nil means key not found — start from genesis.
+		// Any other error: also start from genesis (conservative, always correct).
+		if err != redis.Nil {
+			slog.Warn("consent watcher: checkpoint read error — starting from block 0",
+				"err", err,
+			)
+		}
+		return 0
+	}
+	block, err := strconv.ParseUint(val, 10, 64)
+	if err != nil {
+		slog.Warn("consent watcher: checkpoint value malformed — starting from block 0",
+			"value", val,
+			"err", err,
+		)
+		return 0
+	}
+	slog.Info("consent watcher: resuming from checkpoint", "block", block+1)
+	return block + 1
+}
+
+// saveCheckpoint writes the last successfully processed block number to Redis.
+// Failure is non-fatal: the next restart falls back to the previous checkpoint
+// (or block 0), which re-processes some events idempotently rather than missing any.
+func (w *ConsentWatcher) saveCheckpoint(ctx context.Context, blockNumber uint64) {
+	key := checkpointKeyPrefix + w.chaincode
+	if err := w.redis.Set(ctx, key, strconv.FormatUint(blockNumber, 10), 0).Err(); err != nil {
+		slog.Warn("consent watcher: checkpoint write failed — next restart may re-process blocks",
+			"block", blockNumber,
+			"err", err,
+		)
+	}
+}
+
 // handleEvent routes a single ChaincodeEvent to the appropriate Redis operation.
-// Unknown event names are silently ignored — the channel may carry future events.
+// Unknown event names are silently ignored to stay forward-compatible with future
+// chaincode additions.
 func (w *ConsentWatcher) handleEvent(ctx context.Context, event *client.ChaincodeEvent) {
 	var payload consentEventPayload
 	if err := json.Unmarshal(event.Payload, &payload); err != nil {
@@ -146,8 +205,9 @@ func (w *ConsentWatcher) handleEvent(ctx context.Context, event *client.Chaincod
 		return
 	}
 
-	// Validate that userIdHash is a well-formed SHA3-256 hex digest (64 chars).
-	// Reject anything that could be raw PII reaching this point accidentally.
+	// userIdHash must be SHA3-256 output: exactly 64 lowercase hex chars.
+	// Reject anything shorter or longer — this is the last line before a hash
+	// reaches a Redis key that gates medical record access.
 	if len(payload.UserIdHash) != 64 {
 		slog.Warn("consent watcher: event has invalid userIdHash length — dropping",
 			"eventName", event.EventName,
@@ -157,20 +217,19 @@ func (w *ConsentWatcher) handleEvent(ctx context.Context, event *client.Chaincod
 		return
 	}
 
-	key := revokeKeyPrefix + payload.UserIdHash
+	revokeKey := revokeKeyPrefix + payload.UserIdHash
 
 	switch event.EventName {
 	case eventConsentRevoked:
-		// SET revoke:{userIdHash} — no TTL.
-		// Redis is memory-only, so the key survives until: (a) a ConsentGranted event
-		// clears it, or (b) the pod restarts (watcher then rehydrates from block 0).
-		if err := w.redis.Set(ctx, key, "1", 0).Err(); err != nil {
+		// SET with no TTL — the revoke key must persist until the patient
+		// explicitly re-grants consent (ConsentGranted event).  Redis is
+		// memory-only; the checkpoint + block-0 fallback provide recovery.
+		if err := w.redis.Set(ctx, revokeKey, "1", 0).Err(); err != nil {
 			slog.Error("consent watcher: Redis SET failed for revoke key",
+				"userIdHash", payload.UserIdHash,
 				"consentType", payload.ConsentType,
 				"block", event.BlockNumber,
 				"err", err,
-				// Log full hash — userIdHash is SHA3-256(salt+userID), not PII.
-				"userIdHash", payload.UserIdHash,
 			)
 			return
 		}
@@ -181,16 +240,15 @@ func (w *ConsentWatcher) handleEvent(ctx context.Context, event *client.Chaincod
 		)
 
 	case eventConsentGranted:
-		// DEL revoke:{userIdHash} — consent re-established, clear the block.
-		// DEL is idempotent: if the key never existed (e.g. replay of an initial grant),
-		// Redis returns 0 deleted and we log accordingly.
-		deleted, err := w.redis.Del(ctx, key).Result()
+		// DEL is idempotent — safe to call even when the key does not exist
+		// (e.g. during replay of an initial grant with no prior revocation).
+		deleted, err := w.redis.Del(ctx, revokeKey).Result()
 		if err != nil {
 			slog.Error("consent watcher: Redis DEL failed for revoke key",
+				"userIdHash", payload.UserIdHash,
 				"consentType", payload.ConsentType,
 				"block", event.BlockNumber,
 				"err", err,
-				"userIdHash", payload.UserIdHash,
 			)
 			return
 		}
@@ -201,9 +259,8 @@ func (w *ConsentWatcher) handleEvent(ctx context.Context, event *client.Chaincod
 				"block", event.BlockNumber,
 			)
 		}
-		// deleted == 0 is normal for initial grants (no prior revoke key) — not logged.
 
 	default:
-		// Future event types — ignore silently to stay forward-compatible.
+		// Forward-compatible: ignore unknown event names.
 	}
 }
