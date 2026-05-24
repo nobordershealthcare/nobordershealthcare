@@ -42,6 +42,10 @@ struct RegistrationView: View {
     @State private var emailError: String?             = nil
     @State private var phoneError: String?             = nil
 
+    // ── Password visibility (NIST SP 800-63B — allow users to see what they type) ──
+    @State private var showPassword = false
+    @State private var showConfirm  = false
+
     // ── Async tasks (debounce) ────────────────────────────────────────
     @State private var nickTask: Task<Void, Never>?    = nil
     @State private var hibpTask: Task<Void, Never>?    = nil
@@ -56,53 +60,54 @@ struct RegistrationView: View {
             && password.count >= 12
             && password == passwordConfirm
             && hibp != .compromised
+            && hibp != .checking       // NIST: must complete breach check before accepting
+            && !strength.isSimple      // reject sequential / repetitive patterns
             && !secAnswer.trimmingCharacters(in: .whitespaces).isEmpty
             && emailError == nil && !email.isEmpty
             && phoneError == nil && !phone.isEmpty
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
+        // No NavigationStack — OnboardingFlowView owns the navigation hierarchy.
+        // Removing it fixes the scroll-under-button layout conflict.
+        VStack(spacing: 0) {
 
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        headerSection
-                        nicknameSection
-                        salutationSection
-                        passwordSection
-                        securityQuestionSection
-                        emailSection
-                        phoneSection
-                        if let err = submitError { errorBanner(err) }
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    headerSection
+                    nicknameSection
+                    salutationSection
+                    passwordSection
+                    securityQuestionSection
+                    emailSection
+                    phoneSection
+                    if let err = submitError { errorBanner(err) }
                 }
-
-                // ── Pinned CTA ─────────────────────────────────────────
-                Button { submit() } label: {
-                    Group {
-                        if submitting {
-                            ProgressView().tint(.white).controlSize(.regular)
-                        } else {
-                            Text(s("Next", uk: "Далі", de: "Weiter", pt: "Seguinte", ru: "Далее"))
-                                .font(.headline)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(canAdvance ? Color.navy : Color.navy.opacity(0.4))
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .disabled(!canAdvance || submitting)
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
             }
-            .navigationTitle(s("Create Account", uk: "Створити профіль", de: "Konto erstellen", pt: "Criar conta", ru: "Создать профиль"))
-            .navigationBarTitleDisplayMode(.inline)
+            .scrollDismissesKeyboard(.interactively)
+
+            // ── Pinned CTA ─────────────────────────────────────────────
+            Button { submit() } label: {
+                Group {
+                    if submitting {
+                        ProgressView().tint(.white).controlSize(.regular)
+                    } else {
+                        Text(s("Next", uk: "Далі", de: "Weiter", pt: "Seguinte", ru: "Далее"))
+                            .font(.headline)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(canAdvance ? Color.navy : Color.navy.opacity(0.4))
+                .foregroundColor(.white)
+                .cornerRadius(12)
+            }
+            .disabled(!canAdvance || submitting)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 32)
         }
     }
 
@@ -199,29 +204,101 @@ struct RegistrationView: View {
                          pt: "Senha de recuperação",
                          ru: "Пароль восстановления"))
 
-            SecureField(
-                s("Min. 12 characters", uk: "Мін. 12 символів", de: "Mind. 12 Zeichen", pt: "Mín. 12 caracteres", ru: "Мин. 12 символов"),
-                text: $password)
+            // ── Primary field + show/hide toggle (NIST SP 800-63B: let users see what they type) ──
+            HStack {
+                Group {
+                    if showPassword {
+                        TextField(
+                            s("Min. 12 characters", uk: "Мін. 12 символів", de: "Mind. 12 Zeichen", pt: "Mín. 12 caracteres", ru: "Мин. 12 символов"),
+                            text: $password)
+                            .textFieldStyle(.plain)
+                    } else {
+                        SecureField(
+                            s("Min. 12 characters", uk: "Мін. 12 символів", de: "Mind. 12 Zeichen", pt: "Mín. 12 caracteres", ru: "Мин. 12 символов"),
+                            text: $password)
+                    }
+                }
                 .textContentType(.newPassword)
-                .styledField(border: hibp == .compromised ? .red.opacity(0.5) : .clear)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
                 .onChange(of: password) { _, v in
                     strength = PwdStrength.evaluate(v)
                     scheduleHIBP(v)
                 }
 
+                Button { showPassword.toggle() } label: {
+                    Image(systemName: showPassword ? "eye.slash" : "eye")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                .stroke(hibp == .compromised ? Color.red.opacity(0.5) : Color.clear, lineWidth: 1))
+
             if !password.isEmpty { strengthBar }
 
-            SecureField(
-                s("Confirm password", uk: "Підтвердити пароль", de: "Passwort bestätigen", pt: "Confirmar senha", ru: "Подтвердить пароль"),
-                text: $passwordConfirm)
+            // ── Confirm field + show/hide toggle ──────────────────────────────────────
+            HStack {
+                Group {
+                    if showConfirm {
+                        TextField(
+                            s("Confirm password", uk: "Підтвердити пароль", de: "Passwort bestätigen", pt: "Confirmar senha", ru: "Подтвердить пароль"),
+                            text: $passwordConfirm)
+                            .textFieldStyle(.plain)
+                    } else {
+                        SecureField(
+                            s("Confirm password", uk: "Підтвердити пароль", de: "Passwort bestätigen", pt: "Confirmar senha", ru: "Подтвердить пароль"),
+                            text: $passwordConfirm)
+                    }
+                }
                 .textContentType(.newPassword)
-                .styledField(border: confirmBorderColor)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
 
+                Button { showConfirm.toggle() } label: {
+                    Image(systemName: showConfirm ? "eye.slash" : "eye")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(12)
+            .background(.ultraThinMaterial)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 10)
+                .stroke(confirmBorderColor, lineWidth: 1))
+
+            // ── NIST SP 800-63B validation feedback ───────────────────────────────────
             VStack(alignment: .leading, spacing: 3) {
-                ruleRow(s("At least 12 characters", uk: "Мінімум 12 символів", de: "Mind. 12 Zeichen", pt: "Mín. 12 caracteres", ru: "Минимум 12 символов"),
+                ruleRow(s("At least 12 characters",
+                          uk: "Мінімум 12 символів",
+                          de: "Mind. 12 Zeichen",
+                          pt: "Mín. 12 caracteres",
+                          ru: "Минимум 12 символов"),
                         ok: password.count >= 12)
-                ruleRow(s("Passwords match", uk: "Паролі збігаються", de: "Passwörter stimmen überein", pt: "Senhas coincidem", ru: "Пароли совпадают"),
+                ruleRow(s("Passwords match",
+                          uk: "Паролі збігаються",
+                          de: "Passwörter stimmen überein",
+                          pt: "Senhas coincidem",
+                          ru: "Пароли совпадают"),
                         ok: !passwordConfirm.isEmpty && password == passwordConfirm)
+
+                if !password.isEmpty && strength.isSimple {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange).font(.caption)
+                        Text(s("Avoid sequential or repeated characters (e.g. abc123, aaaa).",
+                               uk: "Уникайте послідовних або повторюваних символів (напр. abc123, аааа).",
+                               de: "Keine sequenziellen oder wiederholten Zeichen (z.B. abc123, aaaa).",
+                               pt: "Evite caracteres sequenciais ou repetidos (ex. abc123, aaaa).",
+                               ru: "Избегайте последовательных или повторяющихся символов (напр. abc123)."))
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
                 if hibp == .compromised {
                     HStack(spacing: 6) {
                         Image(systemName: "exclamationmark.triangle.fill")
@@ -237,11 +314,22 @@ struct RegistrationView: View {
                 if hibp == .checking {
                     HStack(spacing: 6) {
                         ProgressView().controlSize(.mini)
-                        Text(s("Checking password safety…", uk: "Перевірка пароля…", de: "Passwort wird geprüft…", pt: "A verificar senha…", ru: "Проверка пароля…"))
+                        Text(s("Checking password safety…",
+                               uk: "Перевірка пароля…",
+                               de: "Passwort wird geprüft…",
+                               pt: "A verificar senha…",
+                               ru: "Проверка пароля…"))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
             }
+
+            Text(s("Strength is based on length and breach checks — not character-type rules (NIST SP 800-63B).",
+                   uk: "Надійність — довжина та перевірка зломів, не вимоги до типів символів (NIST SP 800-63B).",
+                   de: "Stärke durch Länge und Kompromittierungsprüfung — keine Zeichentyp-Regeln (NIST SP 800-63B).",
+                   pt: "Força baseada no comprimento e verificação de violações — não em tipos de caracteres (NIST SP 800-63B).",
+                   ru: "Надёжность — длина и проверка компрометации, не требования к символам (NIST SP 800-63B)."))
+                .font(.caption2).foregroundStyle(.tertiary)
         }
     }
 
@@ -509,24 +597,61 @@ struct RegistrationView: View {
         }
     }
 
-    // MARK: – Password strength
+    // MARK: – Password strength (NIST SP 800-63B compliant)
 
     struct PwdStrength {
-        let score: Int
+        let score: Int      // 0 (empty) … 4 (very strong)
         let label: String
         let color: Color
-        static let empty = PwdStrength(score: 0, label: "", color: .clear)
+        let isSimple: Bool  // true = sequential or repetitive pattern → block submission
 
+        static let empty = PwdStrength(score: 0, label: "", color: .clear, isSimple: false)
+
+        // NIST SP 800-63B §5.1.1.1 requirements implemented here:
+        //  • Strength is based on length ONLY — no char-type composition rules.
+        //  • Uppercase / special-char bonuses are explicitly anti-NIST and removed.
+        //  • Sequential and repetitive patterns (≥4 chars) are flagged as simple.
+        //  • Breach check is handled separately via HIBP k-anonymity (SHA-1 protocol).
         static func evaluate(_ pwd: String) -> PwdStrength {
-            var sc = 0
-            if pwd.count >= 12 { sc += 1 }
-            if pwd.count >= 16 { sc += 1 }
-            if pwd.range(of: #"[A-Z]"#, options: .regularExpression) != nil { sc += 1 }
-            if pwd.range(of: #"[^A-Za-z0-9]"#, options: .regularExpression) != nil { sc += 1 }
-            let c = min(max(sc, pwd.isEmpty ? 0 : 1), 4)
-            let labels = ["", "Weak", "Fair", "Strong", "Very Strong"]
-            let colors: [Color] = [.clear, .red, .orange, .yellow, .green]
-            return PwdStrength(score: c, label: labels[c], color: colors[c])
+            guard !pwd.isEmpty else { return .empty }
+            if isSequential(pwd) || isRepetitive(pwd) {
+                return PwdStrength(score: 1,
+                                   label: "Too simple",
+                                   color: .red,
+                                   isSimple: true)
+            }
+            switch pwd.count {
+            case ..<12:  return PwdStrength(score: 1, label: "Too short",    color: .red,    isSimple: false)
+            case 12..<16: return PwdStrength(score: 2, label: "Fair",        color: .orange, isSimple: false)
+            case 16..<20: return PwdStrength(score: 3, label: "Strong",      color: .yellow, isSimple: false)
+            default:      return PwdStrength(score: 4, label: "Very Strong", color: .green,  isSimple: false)
+            }
+        }
+
+        // 4+ consecutive characters in ascending or descending Unicode order
+        // e.g. "abcd", "1234", "dcba"
+        private static func isSequential(_ pwd: String) -> Bool {
+            let vals = pwd.unicodeScalars.map { $0.value }
+            guard vals.count >= 4 else { return false }
+            var asc = 1, desc = 1
+            for i in 1..<vals.count {
+                asc  = vals[i] == vals[i - 1] + 1 ? asc + 1  : 1
+                desc = vals[i] == vals[i - 1] - 1 ? desc + 1 : 1
+                if asc >= 4 || desc >= 4 { return true }
+            }
+            return false
+        }
+
+        // 4+ identical consecutive characters e.g. "aaaa", "1111"
+        private static func isRepetitive(_ pwd: String) -> Bool {
+            let chars = Array(pwd)
+            guard chars.count >= 4 else { return false }
+            var run = 1
+            for i in 1..<chars.count {
+                run = chars[i] == chars[i - 1] ? run + 1 : 1
+                if run >= 4 { return true }
+            }
+            return false
         }
     }
 

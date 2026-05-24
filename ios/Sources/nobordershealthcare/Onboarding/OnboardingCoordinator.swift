@@ -108,6 +108,14 @@ final class OnboardingCoordinator: ObservableObject {
         advance(from: .emergencyContact)
     }
 
+    // MARK: - Back navigation
+
+    func goBack() {
+        guard currentStep.rawValue > OnboardingStep.welcome.rawValue else { return }
+        currentStep = OnboardingStep(rawValue: currentStep.rawValue - 1) ?? .welcome
+        storedStep  = currentStep.rawValue
+    }
+
     // MARK: - Legacy stubs (EmergencyCardSetupView / HealthcareProxyView / ConsentView / DataAuthorizationView)
     // These views are no longer part of the main onboarding flow but remain in the
     // codebase for use from Settings.  The stubs prevent compile errors.
@@ -179,26 +187,40 @@ struct OnboardingFlowView: View {
 
     private var progressBar: some View {
         VStack(spacing: 4) {
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule()
-                        .fill(Color.secondary.opacity(0.2))
-                        .frame(height: 4)
-                    Capsule()
-                        .fill(Color.navy)
-                        .frame(width: geo.size.width * coordinator.progressFraction, height: 4)
-                        .animation(.spring, value: coordinator.progressFraction)
+            // ── Back chevron + progress track ─────────────────────────
+            HStack(spacing: 12) {
+                Button { coordinator.goBack() } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Color.navy)
+                        .frame(width: 28, height: 28)
+                        .contentShape(Rectangle())
                 }
-            }
-            .frame(height: 4)
+                .buttonStyle(.plain)
 
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        Capsule()
+                            .fill(Color.secondary.opacity(0.2))
+                            .frame(height: 4)
+                        Capsule()
+                            .fill(Color.navy)
+                            .frame(width: geo.size.width * coordinator.progressFraction, height: 4)
+                            .animation(.spring, value: coordinator.progressFraction)
+                    }
+                }
+                .frame(height: 4)
+            }
+
+            // Step counter: +1 because WelcomeView (step 0) is screen 1 for the user
             HStack {
-                Text("Step \(coordinator.stepsCompleted) of \(coordinator.totalSteps)")
+                Text("Step \(coordinator.stepsCompleted + 1) of \(coordinator.totalSteps)")
                     .font(.caption2).foregroundStyle(.secondary)
                 Spacer()
                 Text(coordinator.currentStep.title)
                     .font(.caption2).fontWeight(.semibold).foregroundStyle(Color.navy)
             }
+            .padding(.leading, 40)   // align under the progress track, not the chevron
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 12)
