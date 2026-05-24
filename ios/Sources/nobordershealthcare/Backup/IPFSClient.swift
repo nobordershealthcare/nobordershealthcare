@@ -1,8 +1,11 @@
 // IPFS / libp2p shard distribution interface.
 // Uploads Shamir shards to N=7 nodes; retrieves by CID for recovery.
-// Each shard is Kyber-1024 encrypted before upload — IPFS nodes see only ciphertext.
+// Each shard is Kyber-1024 encapsulated + AES-256-GCM authenticated before upload.
 // CIDs (content addresses) are stored locally in Keychain; never on-chain.
+//
+// Payload layout on IPFS: aesGCMBlob(nonce||ciphertext||tag) || kyberCiphertext
 
+import CryptoKit
 import Foundation
 
 struct ShardUploadResult: Sendable {
@@ -19,7 +22,9 @@ struct ShardDownloadResult: Sendable {
 enum IPFSError: Error {
     case uploadFailed(shardID: Int, underlying: Error)
     case downloadFailed(cid: String, underlying: Error)
+    case encryptionFailed(Error)
     case decryptionFailed(KyberError)
+    case aesDecryptionFailed(Error)
     case insufficientShards(recovered: Int, required: Int)
     case cidStorageFailed(OSStatus)
 }
@@ -38,18 +43,25 @@ actor IPFSClient {
 
     // MARK: - Backup
 
-    // Splits the vault key, encrypts each shard with the recipient's Kyber public key,
+    // Splits the vault key, encrypts each shard with AES-256-GCM using the Kyber shared secret,
     // uploads to IPFS, and persists the CIDs locally.
+    // Payload layout: aesGCMBlob(nonce||ciphertext||tag) || kyberCiphertext
     func backup(vaultKey: Data, recipientPublicKey: KyberPublicKey) async throws {
         let shardSet = try ShamirShard.split(secret: vaultKey)
         var results: [ShardUploadResult] = []
 
         for shard in shardSet.shards {
             let encapsulated = try KyberOperations.encapsulate(using: recipientPublicKey)
-            // XOR shard bytes with shared secret (stream cipher using Kyber shared secret)
-            let encryptedShard = xorEncrypt(shard.bytes, key: encapsulated.sharedSecret)
-            // Upload ciphertext + Kyber ciphertext (needed for decapsulation)
-            let payload = encryptedShard + encapsulated.ciphertext
+            let symmetricKey = SymmetricKey(data: encapsulated.sharedSecret)
+            let sealedBox: AES.GCM.SealedBox
+            do {
+                sealedBox = try AES.GCM.seal(shard.bytes, using: symmetricKey)
+            } catch {
+                throw IPFSError.encryptionFailed(error)
+            }
+            // combined = nonce(12) || ciphertext || tag(16); always non-nil from AES.GCM.seal
+            let aesBlob = sealedBox.combined!  // swiftlint:disable:this force_unwrapping
+            let payload = aesBlob + encapsulated.ciphertext
             let result = try await uploadToIPFS(shardID: shard.id, payload: payload)
             results.append(result)
         }
@@ -59,7 +71,7 @@ actor IPFSClient {
 
     // MARK: - Recovery
 
-    // Downloads threshold shards, decrypts, and reconstructs the vault key.
+    // Downloads threshold shards, decrypts with AES-256-GCM, and reconstructs the vault key.
     func recover(privateKey: KyberPrivateKey) async throws -> Data {
         let cids = try loadCIDs()
         var shards: [ShardSet.Shard] = []
@@ -67,7 +79,8 @@ actor IPFSClient {
         for (shardID, cid) in cids.prefix(ShamirShard.threshold) {
             let downloaded = try await downloadFromIPFS(shardID: shardID, cid: cid)
             let kyberCTSize = Kyber1024.ciphertextBytes
-            let encryptedShard = downloaded.encryptedBytes.prefix(downloaded.encryptedBytes.count - kyberCTSize)
+            // Payload layout: aesGCMBlob(nonce||ct||tag) || kyberCiphertext
+            let aesGCMBlob = downloaded.encryptedBytes.prefix(downloaded.encryptedBytes.count - kyberCTSize)
             let kyberCT = downloaded.encryptedBytes.suffix(kyberCTSize)
 
             let sharedSecret: Data
@@ -77,7 +90,14 @@ actor IPFSClient {
                 throw IPFSError.decryptionFailed(e)
             }
 
-            let decryptedBytes = xorEncrypt(Data(encryptedShard), key: sharedSecret)
+            let symmetricKey = SymmetricKey(data: sharedSecret)
+            let decryptedBytes: Data
+            do {
+                let sealedBox = try AES.GCM.SealedBox(combined: Data(aesGCMBlob))
+                decryptedBytes = try AES.GCM.open(sealedBox, using: symmetricKey)
+            } catch {
+                throw IPFSError.aesDecryptionFailed(error)
+            }
             shards.append(ShardSet.Shard(id: shardID, bytes: decryptedBytes))
         }
 
@@ -142,15 +162,4 @@ actor IPFSClient {
         else { throw IPFSError.cidStorageFailed(status) }
         return dict.compactMap { k, v in Int(k).map { ($0, v) } }.sorted { $0.0 < $1.0 }
     }
-}
-
-// MARK: - XOR stream cipher
-
-@inline(__always)
-private func xorEncrypt(_ data: Data, key: Data) -> Data {
-    var result = Data(count: data.count)
-    for i in 0..<data.count {
-        result[i] = data[i] ^ key[i % key.count]
-    }
-    return result
 }

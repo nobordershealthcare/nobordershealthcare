@@ -1,0 +1,214 @@
+name: CI
+
+# Runs on every push and pull request.
+# PRs to main must pass all jobs before merge (enforce via branch protection).
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+env:
+  GO_VERSION: "1.22"
+
+jobs:
+  # ── Go: build + vet + staticcheck ─────────────────────────────────────────
+  go-build:
+    name: Go build & vet
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - backend/gatekeeper
+          - backend/anonymizer
+          - backend/normalization
+          - backend/physician-view
+          - contracts/channel1-signatures
+          - contracts/channel2-consent
+          - contracts/channel3-access
+    defaults:
+      run:
+        working-directory: ${{ matrix.module }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ matrix.module }}/go.sum
+
+      - name: go build
+        run: go build ./...
+
+      - name: go vet
+        run: go vet ./...
+
+  # ── Go: security scan (gosec) ──────────────────────────────────────────────
+  go-security:
+    name: Go security scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        module:
+          - backend/gatekeeper
+          - backend/anonymizer
+          - backend/normalization
+          - backend/physician-view
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Install gosec
+        run: go install github.com/securego/gosec/v2/cmd/gosec@latest
+
+      - name: Run gosec
+        working-directory: ${{ matrix.module }}
+        run: gosec -severity high -confidence high ./...
+
+  # ── Go: SHA2 on medical data must be absent ────────────────────────────────
+  security-gate-sha2:
+    name: "Gate: no SHA-256 in medical path"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if crypto/sha256 found in backend or contracts
+        run: |
+          hits=$(grep -rn '"crypto/sha256"\|sha256\.Sum256\|sha256\.New\b' \
+            backend/ contracts/ --include="*.go" | grep -v "_test\|//" | wc -l)
+          if [ "$hits" -gt 0 ]; then
+            echo "❌ SHA-256 found in backend/contracts — must use SHA3-256"
+            grep -rn '"crypto/sha256"\|sha256\.Sum256\|sha256\.New\b' \
+              backend/ contracts/ --include="*.go" | grep -v "_test\|//"
+            exit 1
+          fi
+          echo "✅ No SHA-256 in backend/contracts"
+
+  # ── Go: no InsecureSkipVerify ─────────────────────────────────────────────
+  security-gate-tls:
+    name: "Gate: no InsecureSkipVerify"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if InsecureSkipVerify found
+        run: |
+          hits=$(grep -rn "InsecureSkipVerify\s*:\s*true" backend/ --include="*.go" \
+            | grep -v "_test\|//" | wc -l)
+          if [ "$hits" -gt 0 ]; then
+            echo "❌ InsecureSkipVerify: true found"
+            grep -rn "InsecureSkipVerify\s*:\s*true" backend/ --include="*.go" | grep -v "_test\|//"
+            exit 1
+          fi
+          echo "✅ No InsecureSkipVerify"
+
+  # ── Go: no fmt.Sprintf CQL injection ─────────────────────────────────────
+  security-gate-cql:
+    name: "Gate: no CQL injection"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if fmt.Sprintf + SELECT/INSERT found
+        run: |
+          hits=$(grep -rn 'fmt\.Sprintf.*SELECT\|fmt\.Sprintf.*INSERT' \
+            backend/ --include="*.go" | grep -v "_test\|//" | wc -l)
+          if [ "$hits" -gt 0 ]; then
+            echo "❌ Potential CQL injection via fmt.Sprintf"
+            grep -rn 'fmt\.Sprintf.*SELECT\|fmt\.Sprintf.*INSERT' backend/ --include="*.go" \
+              | grep -v "_test\|//"
+            exit 1
+          fi
+          echo "✅ No CQL injection patterns"
+
+  # ── iOS: xcodebuild (simulator build — no signing required) ───────────────
+  ios-build:
+    name: iOS build
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        working-directory: ios
+        run: xcodegen generate
+
+      - name: Build for simulator
+        working-directory: ios
+        run: |
+          xcodebuild \
+            -project nobordershealthcare.xcodeproj \
+            -scheme nobordershealthcare \
+            -destination "platform=iOS Simulator,name=iPhone 16" \
+            CODE_SIGNING_ALLOWED=NO \
+            clean build \
+            | xcpretty || cat /tmp/xcodebuild.log
+        env:
+          DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+
+  # ── iOS: no SHA-256 on medical data ───────────────────────────────────────
+  security-gate-ios-sha2:
+    name: "Gate: no SHA-256 in iOS medical path"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if CryptoKit SHA256 used outside allowed files
+        run: |
+          # Exclusions (protocol-mandated — see CLAUDE.md "Hashing standard"):
+          #   eciesEncryption  — Apple SecKey ECIES API constant names; no SHA3 variant exists
+          #   BankIDClient     — PKCE/RFC 7636 mandates S256 = SHA-256
+          hits=$(grep -rn "SHA256\|CryptoKit\.SHA256\|SHA512\|MD5" \
+            ios/Sources/nobordershealthcare/ --include="*.swift" \
+            | grep -iv "SupportProfile\|test\|//\|eciesEncryption\|BankIDClient" | wc -l)
+          if [ "$hits" -gt 0 ]; then
+            echo "❌ SHA-256/MD5 found in iOS medical path (outside approved exceptions)"
+            grep -rn "SHA256\|CryptoKit\.SHA256\|SHA512\|MD5" \
+              ios/Sources/nobordershealthcare/ --include="*.swift" \
+              | grep -iv "SupportProfile\|test\|//\|eciesEncryption\|BankIDClient"
+            exit 1
+          fi
+          echo "✅ No disallowed hash algorithms in iOS medical path"
+
+  # ── iOS: no force-unwrap in production code ────────────────────────────────
+  security-gate-force-unwrap:
+    name: "Gate: no force unwraps"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fail if try! or as! found outside comments
+        run: |
+          hits=$(grep -rn "try!\|as!\b" ios/Sources/ ios/App/ --include="*.swift" \
+            | grep -v "//.*try!\|//.*as!" | wc -l)
+          if [ "$hits" -gt 0 ]; then
+            echo "❌ Force unwrap (try! / as!) found"
+            grep -rn "try!\|as!\b" ios/Sources/ ios/App/ --include="*.swift" \
+              | grep -v "//.*try!\|//.*as!"
+            exit 1
+          fi
+          echo "✅ No force unwraps"
+
+  # ── Docker: physician-view image build (no push on PR) ────────────────────
+  docker-physician-view:
+    name: Docker build physician-view
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/physician-view
+          push: false
+          tags: ghcr.io/nobordershealthcare/physician-view:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

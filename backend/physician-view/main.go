@@ -98,8 +98,10 @@ func main() {
 	})
 
 	srv := &http.Server{
-		Addr:         addr,
-		Handler:      requestLogger(mux),
+		Addr: addr,
+		// maxBodyMiddleware caps request bodies at 64 KiB before requestLogger
+		// so the limit fires before any handler reads r.Body.
+		Handler:      requestLogger(maxBodyMiddleware(mux)),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -126,6 +128,20 @@ func main() {
 		slog.Error("graceful shutdown failed", slog.String("err", err.Error()))
 	}
 	slog.Info("server stopped")
+}
+
+// maxBodyMiddleware caps inbound request bodies at 64 KiB.
+// Without this a POST /clinician with a multi-megabyte body would be read
+// fully into memory before any handler can reject it — a trivial DoS vector.
+// http.MaxBytesReader causes r.Body.Read to return an error after the limit,
+// which propagates as a 413 when the handler calls r.ParseForm.
+const maxBodyBytes = 64 * 1024 // 64 KiB — ample for any legitimate form POST
+
+func maxBodyMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		next.ServeHTTP(w, r)
+	})
 }
 
 // requestLogger wraps a handler and logs each request. Never logs URL query

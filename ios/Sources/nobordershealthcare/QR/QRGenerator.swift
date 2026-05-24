@@ -38,8 +38,8 @@ enum QRGenerator {
     // Convenience: generates QR from the current live token.
     // Returns nil if the token is expired (caller should prompt for refresh).
     static func currentQR(size: CGSize = CGSize(width: 300, height: 300)) async throws -> UIImage? {
-        let token = try await EmergencyCard.shared.loadCurrentToken()
-        if case .expired = try await EmergencyCard.shared.tokenState() { return nil }
+        let token = try await ScopedTokenActor.shared.loadCurrentToken()
+        if case .expired = try await ScopedTokenActor.shared.tokenState() { return nil }
         return try image(for: token, size: size)
     }
 }

@@ -8,6 +8,8 @@ import (
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/redis/go-redis/v9"
 )
 
 // Config holds all runtime configuration. Values come from environment variables
@@ -31,7 +33,7 @@ type Config struct {
 	RedisTLSKey   string
 	RedisCA       string
 
-	// Hyperledger Fabric
+	// Hyperledger Fabric — channel 3 (access control)
 	FabricEndpoint    string
 	FabricMSPID       string
 	FabricCertPath    string
@@ -40,6 +42,12 @@ type Config struct {
 	FabricChannelName string
 	FabricChaincode   string
 	FabricTimeout     time.Duration
+
+	// Hyperledger Fabric — channel 2 (consent-audit event subscription)
+	// Reuses the same peer endpoint and identity as the access-control channel.
+	// Only the channel name and chaincode name differ.
+	FabricConsentChannel   string // env: FABRIC_CONSENT_CHANNEL   default: consent-audit
+	FabricConsentChaincode string // env: FABRIC_CONSENT_CHAINCODE default: consent-audit
 
 	// HSM (PKCS#11 for salt retrieval)
 	HSMLibPath string
@@ -66,14 +74,42 @@ func Load() (*Config, error) {
 		FabricCertPath:    mustEnv("FABRIC_CERT_PATH"),
 		FabricKeyPath:     mustEnv("FABRIC_KEY_PATH"),
 		FabricTLSCAPath:   mustEnv("FABRIC_TLS_CA_PATH"),
-		FabricChannelName: mustEnv("FABRIC_CHANNEL"),
-		FabricChaincode:   mustEnv("FABRIC_CHAINCODE"),
-		FabricTimeout:     fabricTimeout(),
+		FabricChannelName:      mustEnv("FABRIC_CHANNEL"),
+		FabricChaincode:        mustEnv("FABRIC_CHAINCODE"),
+		FabricTimeout:          fabricTimeout(),
+		FabricConsentChannel:   envOrDefault("FABRIC_CONSENT_CHANNEL", "consent-audit"),
+		FabricConsentChaincode: envOrDefault("FABRIC_CONSENT_CHAINCODE", "consent-audit"),
 		HSMLibPath:        mustEnv("HSM_LIB_PATH"),
 		HSMSlotPin:        mustEnv("HSM_SLOT_PIN"),
 		HSMKeyLabel:       mustEnv("HSM_KEY_LABEL"),
 	}
 	return c, nil
+}
+
+// BuildRedisClient constructs a *redis.Client with mTLS using the paths in Config.
+// Redis ACL in production must restrict this client to only the key prefixes it
+// needs: jti:* (SETNX/EXPIRE) and revoke:* (SET/DEL/EXISTS).
+func (c *Config) BuildRedisClient() (*redis.Client, error) {
+	cert, err := tls.LoadX509KeyPair(c.RedisTLSCert, c.RedisTLSKey)
+	if err != nil {
+		return nil, fmt.Errorf("redis tls cert: %w", err)
+	}
+	caPool, err := loadCertPool(c.RedisCA)
+	if err != nil {
+		return nil, fmt.Errorf("redis tls ca: %w", err)
+	}
+	tlsCfg := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+		RootCAs:      caPool,
+		MinVersion:   tls.VersionTLS13,
+	}
+	return redis.NewClient(&redis.Options{
+		Addr:      c.RedisAddr,
+		Password:  c.RedisPassword,
+		TLSConfig: tlsCfg,
+		// No DB index — gatekeeper uses the default DB (0).
+		// Persistence is disabled cluster-wide (no AOF, no RDB) — by design.
+	}), nil
 }
 
 // MutualTLSConfig returns a tls.Config that enforces mTLS with TLS 1.3 minimum.

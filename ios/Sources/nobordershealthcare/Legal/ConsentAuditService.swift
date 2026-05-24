@@ -91,7 +91,19 @@ final class ConsentAuditService: ObservableObject {
                 // Optional: verify on-chain status (catches admin-side revocations)
                 let chainStatus = await checkChainRevocation(consentType: consentType, txHash: txHash)
                 if case .revoked(let at) = chainStatus {
-                    try? await LegalVaultManager.shared.revokeConsentType(consentType, revokedAt: at)
+                    // Mirror on-chain revocation to local vault.
+                    // If the local write fails we still honour the on-chain revocation —
+                    // the caller receives .revoked regardless.  Never use try? here:
+                    // silent failure would leave local vault out of sync without any
+                    // diagnostic trace.
+                    do {
+                        try await LegalVaultManager.shared.revokeConsentType(consentType, revokedAt: at)
+                    } catch {
+                        // Log error hash only — no PII in logs (GDPR Art.83).
+                        let tag = SHA3_256.hash(data: Data(error.localizedDescription.utf8))
+                            .description.prefix(16)
+                        print("[ConsentAuditService] local revocation mirror failed — errTag:\(tag)")
+                    }
                     return chainStatus
                 }
 

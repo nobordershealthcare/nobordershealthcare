@@ -82,7 +82,7 @@ actor AttestationService {
             kSecClass as String:           kSecClassGenericPassword,
             kSecAttrAccount as String:     lockdownAccount,
             kSecValueData as String:       Data([0x01]),
-            kSecAttrAccessible as String:  kSecAttrAccessibleAfterFirstUnlock,
+            kSecAttrAccessible as String:  kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemDelete(flag as CFDictionary)
         SecItemAdd(flag as CFDictionary, nil)

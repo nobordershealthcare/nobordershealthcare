@@ -68,11 +68,14 @@ func ClinicianHandler(logger *ch3log.Logger, rdb *redis.Client) http.HandlerFunc
 		// Step 1: validate license format
 		lic, err := license.Validate(licenseInput)
 		if errors.Is(err, license.ErrInvalidFormat) {
-			http.Error(w, fmt.Sprintf("unrecognised license format: %q — accepted: PT-NNNN, NNNNNNNNN (DE), UA-YYYY-NNNNNN, CC/CC/ID (eIDAS)", licenseInput), http.StatusUnprocessableEntity)
+			// Do NOT reflect licenseInput back — prevents input echoing.
+			// Generic hint is sufficient for legitimate users; attackers learn nothing.
+			http.Error(w, "unrecognised license format — accepted: PT-NNNN, NNNNNNNNN (DE), UA-YYYY-NNNNNN, CC/CC/ID (eIDAS)", http.StatusUnprocessableEntity)
 			return
 		}
 		if err != nil {
-			http.Error(w, fmt.Sprintf("license validation error: %s", err.Error()), http.StatusUnprocessableEntity)
+			// Do NOT expose err.Error() to the client — internal detail leak.
+			http.Error(w, "license validation failed", http.StatusUnprocessableEntity)
 			return
 		}
 
