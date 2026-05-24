@@ -52,11 +52,11 @@ struct WelcomeView: View {
     // MARK: - Sections
 
     private var logoSection: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: 8) {
             Image("NBHC logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 200, height: 200)
+                .frame(width: 240, height: 240)
 
             Text("Emergency eHR Wallet")
                 .font(.subheadline)
@@ -65,7 +65,7 @@ struct WelcomeView: View {
     }
 
     private var purposeStatement: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             Text("Your Emergency Health Identity")
                 .font(.title3)
                 .fontWeight(.bold)
