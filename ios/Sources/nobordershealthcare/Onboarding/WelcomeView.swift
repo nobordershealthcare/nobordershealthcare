@@ -26,17 +26,19 @@ struct WelcomeView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 40) {
-                    Spacer(minLength: 32)
+                VStack(spacing: 0) {
+                    Spacer(minLength: 20)
 
                     // ── Logo + Brand ───────────────────────────────────────────
                     logoSection
 
                     // ── Purpose statement ──────────────────────────────────────
                     purposeStatement
+                        .padding(.top, 8)
 
                     // ── Language picker ────────────────────────────────────────
                     languagePicker
+                        .padding(.top, 16)
 
                     Spacer(minLength: 32)
 
@@ -56,7 +58,7 @@ struct WelcomeView: View {
             Image("NBHC logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 240, height: 240)
+                .frame(width: 180, height: 180)
 
             Text("Emergency eHR Wallet")
                 .font(.subheadline)
@@ -65,7 +67,7 @@ struct WelcomeView: View {
     }
 
     private var purposeStatement: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 10) {
             Text("Your Emergency Health Identity")
                 .font(.title3)
                 .fontWeight(.bold)
