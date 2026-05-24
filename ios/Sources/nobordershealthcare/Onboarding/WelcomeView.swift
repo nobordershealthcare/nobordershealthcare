@@ -75,6 +75,8 @@ struct WelcomeView: View {
             Text("Receive medical care anywhere in the EU regardless of language or institutional barriers. Your critical health data — allergies, medications, blood type — available to emergency doctors in seconds, in their language, offline.")
                 .font(.body)
                 .foregroundStyle(.secondary)
+                .multilineTextAlignment(.leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack(alignment: .top, spacing: 12) {
