@@ -56,17 +56,11 @@ struct WelcomeView: View {
             Image("NBHC logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 120, height: 120)
+                .frame(width: 200, height: 200)
 
-            VStack(spacing: 6) {
-                Text("#nobordershealthcare")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                    .foregroundStyle(Color.navy)
-                Text("Emergency eHR Wallet")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+            Text("Emergency eHR Wallet")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
         }
     }
 
