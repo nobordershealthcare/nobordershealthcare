@@ -64,7 +64,7 @@
 		27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA3.swift; sourceTree = "<group>"; };
 		2A6411BE2A63765FA00C6091 /* KyberOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyberOperations.swift; sourceTree = "<group>"; };
 		2C12AA53CF41B4033407B0CF /* IPFSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFSClient.swift; sourceTree = "<group>"; };
-		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		34EDABFB131AEE01B59471B5 /* BankIDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankIDClient.swift; sourceTree = "<group>"; };
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
@@ -447,6 +447,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -454,6 +455,10 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 6.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -467,6 +472,7 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = App/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -474,6 +480,10 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
 				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 6.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
