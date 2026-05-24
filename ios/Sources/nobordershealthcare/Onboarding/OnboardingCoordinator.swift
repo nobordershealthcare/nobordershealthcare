@@ -1,36 +1,34 @@
-// OnboardingCoordinator.swift — State machine for the 7-step onboarding flow.
+// OnboardingCoordinator.swift — State machine for the 5-step onboarding flow.
 //
-// complete = true ONLY after ALL 7 steps have been signed and stored.
+// Steps: welcome → registration → identity → userAgreement → emergencyContact → complete
+//
+// complete = true ONLY after all steps have been signed/completed.
 // State persists across app restarts — interrupted onboarding resumes at correct step.
-// Each step's completion writes its artifact to the appropriate vault:
-//   identity     → VaultManager (Silo 1)
-//   emergencyCard → VaultManager (Silo 1)
-//   proxy        → LegalVaultManager (Silo 2)
-//   consent      → LegalVaultManager (Silo 2)
-//   dataAuth     → LegalVaultManager (Silo 2)
+//
+// Activation wizard keys (post-onboarding, shown in HomeView until all done):
+//   wizardDoctorDone     — first-visit + family doctor questionnaire
+//   wizardGuardianDone   — personal data + guardian documents upload
+//   wizardInsuranceDone  — insurance policies verification
 
 import SwiftUI
-import Combine
 
 // MARK: - Steps
 
 enum OnboardingStep: Int, Codable, CaseIterable {
-    case welcome        = 0
-    case identity       = 1
-    case emergencyCard  = 2
-    case healthcareProxy = 3
-    case gdprConsent    = 4
-    case dataAuthorization = 5
-    case complete       = 6
+    case welcome          = 0
+    case registration     = 1
+    case identity         = 2
+    case userAgreement    = 3
+    case emergencyContact = 4
+    case complete         = 5
 
     var title: String {
         switch self {
         case .welcome:          return "Welcome"
+        case .registration:     return "Your Account"
         case .identity:         return "Your Identity"
-        case .emergencyCard:    return "Emergency Card"
-        case .healthcareProxy:  return "Healthcare Proxy"
-        case .gdprConsent:      return "Data Consent"
-        case .dataAuthorization: return "Data Authorization"
+        case .userAgreement:    return "Agreement"
+        case .emergencyContact: return "Emergency Contact"
         case .complete:         return "Done"
         }
     }
@@ -47,14 +45,18 @@ final class OnboardingCoordinator: ObservableObject {
 
     static let shared = OnboardingCoordinator()
 
-    // Persisted across launches — resumes interrupted onboarding
-    @AppStorage("onboardingComplete")     var complete: Bool = false
-    @AppStorage("onboardingCurrentStep")  private var storedStep: Int = OnboardingStep.welcome.rawValue
-    @AppStorage("onboardingIdentityDone") var identityDone: Bool = false
-    @AppStorage("onboardingCardDone")     var cardDone: Bool = false
-    @AppStorage("onboardingProxyDone")    var proxyDone: Bool = false
-    @AppStorage("onboardingConsentDone")  var consentDone: Bool = false
-    @AppStorage("onboardingDataAuthDone") var dataAuthDone: Bool = false
+    // Persisted across launches
+    @AppStorage("onboardingComplete")             var complete: Bool = false
+    @AppStorage("onboardingCurrentStep")          private var storedStep: Int = OnboardingStep.welcome.rawValue
+    @AppStorage("onboardingRegistrationDone")     var registrationDone: Bool = false
+    @AppStorage("onboardingIdentityDone")         var identityDone: Bool = false
+    @AppStorage("onboardingUserAgreementDone")    var userAgreementDone: Bool = false
+    @AppStorage("onboardingEmergencyContactDone") var emergencyContactDone: Bool = false
+
+    // Activation wizard — shown in HomeView after onboarding until all done
+    @AppStorage("wizardDoctorDone")    var wizardDoctorDone: Bool = false
+    @AppStorage("wizardGuardianDone")  var wizardGuardianDone: Bool = false
+    @AppStorage("wizardInsuranceDone") var wizardInsuranceDone: Bool = false
 
     @Published var currentStep: OnboardingStep
     @Published var errors: [OnboardingStep: String] = [:]
@@ -69,19 +71,26 @@ final class OnboardingCoordinator: ObservableObject {
     func advance(from step: OnboardingStep) {
         errors[step] = nil
         switch step {
-        case .welcome:       currentStep = .identity
-        case .identity:      currentStep = identityDone ? .emergencyCard : .identity
-        case .emergencyCard: currentStep = cardDone ? .healthcareProxy : .emergencyCard
-        case .healthcareProxy: currentStep = .gdprConsent
-        case .gdprConsent:   currentStep = consentDone ? .dataAuthorization : .gdprConsent
-        case .dataAuthorization:
-            if dataAuthDone {
-                complete = true
-                currentStep = .complete
-            }
-        case .complete: break
+        case .welcome:
+            currentStep = .registration
+        case .registration:
+            currentStep = registrationDone ? .identity : .registration
+        case .identity:
+            currentStep = identityDone ? .userAgreement : .identity
+        case .userAgreement:
+            currentStep = userAgreementDone ? .emergencyContact : .userAgreement
+        case .emergencyContact:
+            complete    = true
+            currentStep = .complete
+        case .complete:
+            break
         }
         storedStep = currentStep.rawValue
+    }
+
+    func markRegistrationComplete() {
+        registrationDone = true
+        advance(from: .registration)
     }
 
     func markIdentityComplete() {
@@ -89,25 +98,23 @@ final class OnboardingCoordinator: ObservableObject {
         advance(from: .identity)
     }
 
-    func markCardComplete() {
-        cardDone = true
-        advance(from: .emergencyCard)
+    func markUserAgreementComplete() {
+        userAgreementDone = true
+        advance(from: .userAgreement)
     }
 
-    func markProxyComplete() {
-        proxyDone = true
-        advance(from: .healthcareProxy)
+    func markEmergencyContactComplete() {
+        emergencyContactDone = true
+        advance(from: .emergencyContact)
     }
 
-    func markConsentComplete() {
-        consentDone = true
-        advance(from: .gdprConsent)
-    }
-
-    func markDataAuthComplete() {
-        dataAuthDone = true
-        advance(from: .dataAuthorization)
-    }
+    // MARK: - Legacy stubs (EmergencyCardSetupView / HealthcareProxyView / ConsentView / DataAuthorizationView)
+    // These views are no longer part of the main onboarding flow but remain in the
+    // codebase for use from Settings.  The stubs prevent compile errors.
+    func markCardComplete()     {}
+    func markProxyComplete()    {}
+    func markConsentComplete()  {}
+    func markDataAuthComplete() {}
 
     func setError(_ message: String, for step: OnboardingStep) {
         errors[step] = message
@@ -122,6 +129,12 @@ final class OnboardingCoordinator: ObservableObject {
 
     var stepsCompleted: Int { currentStep.rawValue }
     var totalSteps: Int     { OnboardingStep.complete.rawValue }
+
+    // MARK: - Activation wizard
+
+    var wizardAllDone: Bool {
+        wizardDoctorDone && wizardGuardianDone && wizardInsuranceDone
+    }
 }
 
 // MARK: - OnboardingFlowView
@@ -137,7 +150,7 @@ struct OnboardingFlowView: View {
             Color.appBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Progress bar
+                // Progress bar (hidden on welcome and complete)
                 if coordinator.currentStep != .welcome && coordinator.currentStep != .complete {
                     progressBar
                 }
@@ -147,18 +160,15 @@ struct OnboardingFlowView: View {
                     switch coordinator.currentStep {
                     case .welcome:
                         WelcomeView()
+                    case .registration:
+                        RegistrationView()
                     case .identity:
                         IdentityView()
-                    case .emergencyCard:
-                        EmergencyCardSetupView()
-                    case .healthcareProxy:
-                        HealthcareProxyView()
-                    case .gdprConsent:
-                        ConsentView()
-                    case .dataAuthorization:
-                        DataAuthorizationView()
+                    case .userAgreement:
+                        UserAgreementView()
+                    case .emergencyContact:
+                        EmergencyContactView()
                     case .complete:
-                        // Caller (App) switches to ContentView when complete == true
                         Color.clear
                     }
                 }

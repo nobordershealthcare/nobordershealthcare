@@ -105,11 +105,19 @@ struct HomeView: View {
     @Binding var showEmergency: Bool
     @StateObject private var detector = NetworkCountryDetector.shared
 
+    // Activation wizard — shown until all 3 steps are ticked
+    @AppStorage("wizardDoctorDone")    private var wizardDoctorDone: Bool = false
+    @AppStorage("wizardGuardianDone")  private var wizardGuardianDone: Bool = false
+    @AppStorage("wizardInsuranceDone") private var wizardInsuranceDone: Bool = false
+
+    private var wizardAllDone: Bool { wizardDoctorDone && wizardGuardianDone && wizardInsuranceDone }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
                     emergencyCard
+                    if !wizardAllDone { activationWizardCard }
                     quickActions
                     vitalsSection
                     documentsSection
@@ -147,6 +155,107 @@ struct HomeView: View {
             // The solid .toolbarBackground is intentionally absent so the
             // system glass blur appears behind the inline title + toolbar items.
         }
+    }
+
+    // ── Activation wizard — .ultraThinMaterial card, visible until all 3 done ──
+
+    private var activationWizardCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Complete Your Setup")
+                        .font(.headline)
+                    Text("\(wizardStepsDone)/3 steps completed")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                Spacer()
+                // Mini progress ring
+                ZStack {
+                    Circle()
+                        .stroke(Color.secondary.opacity(0.2), lineWidth: 3)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(wizardStepsDone) / 3.0)
+                        .stroke(Color.navy, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring, value: wizardStepsDone)
+                }
+                .frame(width: 32, height: 32)
+            }
+
+            Divider()
+
+            wizardRow(
+                done: $wizardDoctorDone,
+                icon: "stethoscope",
+                title: "Family Doctor",
+                subtitle: "First visit questionnaire + GP assignment"
+            )
+            Divider().padding(.leading, 44)
+            wizardRow(
+                done: $wizardGuardianDone,
+                icon: "person.2.fill",
+                title: "Personal Data & Guardian",
+                subtitle: "Upload ID documents + designate proxy"
+            )
+            Divider().padding(.leading, 44)
+            wizardRow(
+                done: $wizardInsuranceDone,
+                icon: "creditcard.fill",
+                title: "Insurance",
+                subtitle: "Verify health & travel policies"
+            )
+        }
+        .padding(16)
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color.navy.opacity(0.15), lineWidth: 1)
+        )
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+    }
+
+    private var wizardStepsDone: Int {
+        [wizardDoctorDone, wizardGuardianDone, wizardInsuranceDone].filter { $0 }.count
+    }
+
+    private func wizardRow(done: Binding<Bool>, icon: String, title: String, subtitle: String) -> some View {
+        Button {
+            withAnimation(.spring(duration: 0.25)) { done.wrappedValue = true }
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    Circle()
+                        .fill(done.wrappedValue ? Color.navy : Color.secondary.opacity(0.12))
+                        .frame(width: 32, height: 32)
+                    if done.wrappedValue {
+                        Image(systemName: "checkmark")
+                            .font(.caption).fontWeight(.bold).foregroundStyle(.white)
+                    } else {
+                        Image(systemName: icon)
+                            .font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline).fontWeight(.semibold)
+                        .strikethrough(done.wrappedValue, color: .secondary)
+                        .foregroundStyle(done.wrappedValue ? .secondary : .primary)
+                    Text(subtitle)
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                if !done.wrappedValue {
+                    Image(systemName: "chevron.right")
+                        .font(.caption2).foregroundStyle(.secondary)
+                }
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // ── Emergency card — dark solid gradient, NO glass (readability first) ──

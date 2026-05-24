@@ -53,6 +53,10 @@
 		EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CA8B193143B17EBD08578 /* DocumentView.swift */; };
 		F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */; };
 		FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA091911DC16BA81A2BDDB90 /* ConsentView.swift */; };
+		A7B8C9D0E1F2A3B4C5D6E7F8 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */; };
+		B8C9D0E1F2A3B4C5D6E7F8A9 /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */; };
+		C9D0E1F2A3B4C5D6E7F8A9B0 /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */; };
+		F6A7B8C9D0E1F2A3B4C5D6E7 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -105,6 +109,10 @@
 		F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardSetupView.swift; sourceTree = "<group>"; };
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -205,13 +213,24 @@
 			children = (
 				CA091911DC16BA81A2BDDB90 /* ConsentView.swift */,
 				4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */,
 				F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */,
 				6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */,
 				8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */,
 				1237E8685774F975A3477230 /* OnboardingCoordinator.swift */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */,
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */,
 				F465B171728A2EE0DA91643D /* WelcomeView.swift */,
 			);
 			path = Onboarding;
+			sourceTree = "<group>";
+		};
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */,
+			);
+			path = Profile;
 			sourceTree = "<group>";
 		};
 		AAD9CA16C2C7675F77AD5927 /* SHA3Kit */ = {
@@ -266,6 +285,7 @@
 				C5DC5B80FAEE69F1741090A7 /* Legal */,
 				3A5ADF7F05D3DDEBB4FA4184 /* Location */,
 				A18EE47162F2B75A353FAD84 /* Onboarding */,
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* Profile */,
 				F31359D560C031FECE62EA16 /* QR */,
 				37AEB26E64686B0D8F007261 /* Support */,
 				829F00AEC966B81B80D13A2D /* Telemedicine */,
@@ -394,6 +414,8 @@
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
 				4C75DEE1002D08A25449F758 /* CallView.swift in Sources */,
 				F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */,
+				B8C9D0E1F2A3B4C5D6E7F8A9 /* UserAgreementView.swift in Sources */,
+				F6A7B8C9D0E1F2A3B4C5D6E7 /* UserProfile.swift in Sources */,
 				FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */,
 				7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */,
 				0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */,
@@ -404,6 +426,7 @@
 				EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */,
 				5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */,
 				57B85DE5DCD54B13D52FA2A7 /* EmergencyCardService.swift in Sources */,
+				C9D0E1F2A3B4C5D6E7F8A9B0 /* EmergencyContactView.swift in Sources */,
 				E94E30F03EBACE766A13938B /* EmergencyCardSetupView.swift in Sources */,
 				8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */,
 				C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */,
@@ -419,6 +442,7 @@
 				352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */,
 				1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */,
 				496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */,
+				A7B8C9D0E1F2A3B4C5D6E7F8 /* RegistrationView.swift in Sources */,
 				B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */,
 				80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */,
 				D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */,
