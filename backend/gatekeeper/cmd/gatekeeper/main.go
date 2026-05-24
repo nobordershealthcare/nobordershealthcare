@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nobordershealthcare/gatekeeper/internal/config"
+	"github.com/nobordershealthcare/gatekeeper/internal/fabric"
 )
 
 func main() {
@@ -24,6 +25,50 @@ func main() {
 		slog.Error("config load failed", "err", err)
 		os.Exit(1)
 	}
+
+	// ── Redis (shared: jti replay + consent revoke keys) ─────────────────────
+	redisClient, err := cfg.BuildRedisClient()
+	if err != nil {
+		slog.Error("redis client build failed", "err", err)
+		os.Exit(1)
+	}
+
+	// ── Fabric client (channel 3 / access control) ────────────────────────────
+	fabricClient, err := fabric.New(fabric.Config{
+		Endpoint:    cfg.FabricEndpoint,
+		MSPID:       cfg.FabricMSPID,
+		CertPEM:     mustReadFile(cfg.FabricCertPath),
+		KeyPEM:      mustReadFile(cfg.FabricKeyPath),
+		TLSCACert:   mustReadFile(cfg.FabricTLSCAPath),
+		ChannelName: cfg.FabricChannelName,
+		Chaincode:   cfg.FabricChaincode,
+		Timeout:     cfg.FabricTimeout,
+	})
+	if err != nil {
+		slog.Error("fabric client init failed", "err", err)
+		os.Exit(1)
+	}
+	defer fabricClient.Close()
+
+	// ── Consent watcher (channel 2 / consent-audit) ───────────────────────────
+	// Reuses the same gateway connection as the access-control client.
+	// Subscribes from block 0 on every startup to rehydrate Redis revoke keys.
+	consentNetwork := fabricClient.GetNetwork(cfg.FabricConsentChannel)
+	watcher := fabric.NewConsentWatcher(consentNetwork, cfg.FabricConsentChaincode, redisClient)
+
+	watcherCtx, cancelWatcher := context.WithCancel(context.Background())
+	defer cancelWatcher()
+
+	go func() {
+		if err := watcher.Run(watcherCtx); err != nil && watcherCtx.Err() == nil {
+			slog.Error("consent watcher exited unexpectedly", "err", err)
+			os.Exit(1)
+		}
+	}()
+
+	// ── HTTP server ───────────────────────────────────────────────────────────
+	_ = redisClient  // used by auth handlers registered below
+	_ = fabricClient // used by auth handlers registered below
 
 	tlsCfg, err := cfg.MutualTLSConfig()
 	if err != nil {
@@ -67,10 +112,14 @@ func main() {
 	<-stop
 	slog.Info("shutdown signal received")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
+	// Cancel the consent watcher first so the Fabric event stream closes cleanly
+	// before we drain in-flight HTTP requests.
+	cancelWatcher()
 
-	if err := srv.Shutdown(ctx); err != nil {
+	shutCtx, shutCancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer shutCancel()
+
+	if err := srv.Shutdown(shutCtx); err != nil {
 		slog.Error("graceful shutdown failed", "err", err)
 		os.Exit(1)
 	}
@@ -79,4 +128,16 @@ func main() {
 
 func handleHealthz(w http.ResponseWriter, _ *http.Request) {
 	w.WriteHeader(http.StatusOK)
+}
+
+// mustReadFile reads a file and exits on failure. Used for loading PEM blobs
+// at startup — if a cert path is wrong the pod should crash rather than run
+// with an empty identity.
+func mustReadFile(path string) []byte {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		slog.Error("failed to read required file", "path", path, "err", err)
+		os.Exit(1)
+	}
+	return data
 }

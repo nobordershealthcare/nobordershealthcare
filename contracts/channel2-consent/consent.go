@@ -103,6 +103,20 @@ func (c *ConsentAuditContract) RecordConsentGrant(
 	if err := putConsentRecord(ctx, rec); err != nil {
 		return "", err
 	}
+
+	// Emit chaincode event so the gatekeeper ConsentWatcher can clear any active
+	// revoke:{userIdHash} key in Redis when consent is re-established.
+	evtPayload, err := json.Marshal(struct {
+		UserIdHash  string `json:"userIdHash"`
+		ConsentType string `json:"consentType"`
+	}{UserIdHash: userIdHash, ConsentType: consentType})
+	if err != nil {
+		return "", fmt.Errorf("marshal ConsentGranted event: %w", err)
+	}
+	if err := ctx.GetStub().SetEvent("ConsentGranted", evtPayload); err != nil {
+		return "", fmt.Errorf("SetEvent ConsentGranted: %w", err)
+	}
+
 	return txID, nil
 }
 
@@ -149,6 +163,21 @@ func (c *ConsentAuditContract) RecordConsentRevoke(
 	if err := putConsentRecord(ctx, rec); err != nil {
 		return "", err
 	}
+
+	// Emit chaincode event so the gatekeeper ConsentWatcher can SET revoke:{userIdHash}
+	// in Redis. The watcher then gates all physician access for this patient until
+	// consent is re-established (ConsentGranted event clears the key).
+	evtPayload, err := json.Marshal(struct {
+		UserIdHash  string `json:"userIdHash"`
+		ConsentType string `json:"consentType"`
+	}{UserIdHash: userIdHash, ConsentType: consentType})
+	if err != nil {
+		return "", fmt.Errorf("marshal ConsentRevoked event: %w", err)
+	}
+	if err := ctx.GetStub().SetEvent("ConsentRevoked", evtPayload); err != nil {
+		return "", fmt.Errorf("SetEvent ConsentRevoked: %w", err)
+	}
+
 	return txID, nil
 }
 

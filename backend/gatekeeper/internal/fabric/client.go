@@ -24,7 +24,10 @@ type AccessResult struct {
 }
 
 // Client wraps the Fabric Gateway with fail-closed access control semantics.
+// It holds the underlying *client.Gateway so callers can obtain a *client.Network
+// for any channel — used by ConsentWatcher to subscribe to channel-2 events.
 type Client struct {
+	gw       *client.Gateway // kept alive; Close() is the caller's responsibility
 	contract *client.Contract
 	timeout  time.Duration
 }
@@ -75,7 +78,18 @@ func New(cfg Config) (*Client, error) {
 		timeout = 500 * time.Millisecond
 	}
 
-	return &Client{contract: contract, timeout: timeout}, nil
+	return &Client{gw: gw, contract: contract, timeout: timeout}, nil
+}
+
+// GetNetwork returns a *client.Network for the named channel. Callers use this
+// to create a ConsentWatcher for channel 2 without establishing a new connection.
+func (c *Client) GetNetwork(channelName string) *client.Network {
+	return c.gw.GetNetwork(channelName)
+}
+
+// Close tears down the underlying gateway connection. Call this once on shutdown.
+func (c *Client) Close() {
+	c.gw.Close()
 }
 
 // CheckAccess queries the chaincode with hashed requester and document IDs.
