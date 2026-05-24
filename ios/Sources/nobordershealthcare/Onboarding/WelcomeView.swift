@@ -38,8 +38,6 @@ struct WelcomeView: View {
             VStack(spacing: 0) {
                 ScrollView {
                     VStack(spacing: 0) {
-                        Spacer(minLength: 20)
-
                         // ── Logo + Brand ───────────────────────────────────────
                         logoSection
 
@@ -50,10 +48,10 @@ struct WelcomeView: View {
                         // ── Language picker ───────────────────────────────────
                         languagePicker
                             .padding(.top, 16)
-
-                        Spacer(minLength: 16)
                     }
                     .padding(.horizontal, 24)
+                    .padding(.top, 20)
+                    .padding(.bottom, 16)
                 }
 
                 // ── CTA — pinned to bottom, always visible ─────────────────
