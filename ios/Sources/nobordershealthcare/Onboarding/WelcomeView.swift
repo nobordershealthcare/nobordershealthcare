@@ -53,15 +53,10 @@ struct WelcomeView: View {
 
     private var logoSection: some View {
         VStack(spacing: 16) {
-            ZStack {
-                Circle()
-                    .fill(Color.navy.opacity(0.12))
-                    .frame(width: 100, height: 100)
-                Image(systemName: "cross.case.fill")
-                    .font(.system(size: 44))
-                    .foregroundStyle(Color.navy)
-            }
-            .glassEffect(in: Circle())
+            Image("NBHC logo")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 120, height: 120)
 
             VStack(spacing: 6) {
                 Text("#nobordershealthcare")
