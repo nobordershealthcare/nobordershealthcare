@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ═══════════════════════════════════════════════════════════════════
+         REFERRAL CODE VIEWS
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_referral_code_list" model="ir.ui.view">
+        <field name="name">nbhc.referral.code.list</field>
+        <field name="model">nbhc.referral.code</field>
+        <field name="arch" type="xml">
+            <list string="Referral Codes" decoration-muted="not active">
+                <field name="code_hash"/>
+                <field name="referral_type" widget="badge"
+                       decoration-info="referral_type == 'individual'"
+                       decoration-success="referral_type == 'partner'"
+                       decoration-warning="referral_type == 'affiliate'"
+                       decoration-primary="referral_type == 'provider'"/>
+                <field name="referrer_partner_id"/>
+                <field name="usage_count"/>
+                <field name="usage_limit"/>
+                <field name="active" widget="toggle_button"/>
+                <field name="created_at"/>
+                <field name="conversion_count" string="Conversions"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_referral_code_form" model="ir.ui.view">
+        <field name="name">nbhc.referral.code.form</field>
+        <field name="model">nbhc.referral.code</field>
+        <field name="arch" type="xml">
+            <form string="Referral Code">
+                <header>
+                    <button name="action_view_conversions"
+                            string="View Conversions"
+                            type="object"
+                            class="btn-primary"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_conversions" type="object"
+                                class="oe_stat_button" icon="fa-exchange">
+                            <field name="conversion_count" widget="statinfo" string="Conversions"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group string="Identity">
+                            <field name="code_hash"/>
+                            <field name="referral_type"/>
+                            <field name="referrer_partner_id"/>
+                            <field name="referrer_hash"/>
+                        </group>
+                        <group string="Stripe / Limits">
+                            <field name="stripe_account"/>
+                            <field name="usage_count"/>
+                            <field name="usage_limit"/>
+                            <field name="active"/>
+                            <field name="created_at"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Conversions">
+                            <field name="conversion_ids" readonly="1">
+                                <list>
+                                    <field name="conversion_id"/>
+                                    <field name="referral_type"/>
+                                    <field name="plan_tier"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="converted_at"/>
+                                    <field name="total_accrued" string="Total Earned (EUR)"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         CONVERSION VIEWS
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_referral_conversion_list" model="ir.ui.view">
+        <field name="name">nbhc.referral.conversion.list</field>
+        <field name="model">nbhc.referral.conversion</field>
+        <field name="arch" type="xml">
+            <list string="Conversions" decoration-danger="status == 'flagged'"
+                  decoration-muted="status == 'cancelled'">
+                <field name="conversion_id"/>
+                <field name="code_id"/>
+                <field name="referral_type" widget="badge"/>
+                <field name="plan_tier"/>
+                <field name="commission_rate" widget="percentage"/>
+                <field name="status" widget="badge"
+                       decoration-success="status == 'paid'"
+                       decoration-warning="status == 'pending'"
+                       decoration-danger="status == 'flagged'"/>
+                <field name="converted_at"/>
+                <field name="total_accrued" string="Total (EUR)"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_referral_conversion_form" model="ir.ui.view">
+        <field name="name">nbhc.referral.conversion.form</field>
+        <field name="model">nbhc.referral.conversion</field>
+        <field name="arch" type="xml">
+            <form string="Referral Conversion">
+                <header>
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="pending,approved,paid"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group string="Referral">
+                            <field name="conversion_id" readonly="1"/>
+                            <field name="code_id"/>
+                            <field name="referral_type"/>
+                            <field name="converted_at" readonly="1"/>
+                        </group>
+                        <group string="Commission">
+                            <field name="commission_rate" widget="percentage"/>
+                            <field name="commission_type"/>
+                            <field name="plan_tier"/>
+                            <field name="total_accrued"/>
+                        </group>
+                        <group string="Hashes (no PII)">
+                            <field name="referrer_hash"/>
+                            <field name="referred_hash"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Accruals">
+                            <field name="accrual_ids" readonly="1">
+                                <list>
+                                    <field name="period"/>
+                                    <field name="revenue_amount" string="Revenue (EUR)"/>
+                                    <field name="commission_amount" string="Commission (EUR)"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="stripe_tx_id"/>
+                                    <field name="paid_at"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         COMMISSION ACCRUAL VIEWS
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_commission_accrual_list" model="ir.ui.view">
+        <field name="name">nbhc.commission.accrual.list</field>
+        <field name="model">nbhc.commission.accrual</field>
+        <field name="arch" type="xml">
+            <list string="Commission Accruals"
+                  decoration-success="status == 'paid'"
+                  decoration-danger="status == 'failed'">
+                <field name="period"/>
+                <field name="conversion_id"/>
+                <field name="revenue_amount" string="Revenue (EUR)" sum="Total Revenue"/>
+                <field name="commission_amount" string="Commission (EUR)" sum="Total Commission"/>
+                <field name="status" widget="badge"/>
+                <field name="stripe_tx_id"/>
+                <field name="paid_at"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         MENU ACTIONS
+    ═══════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_referral_codes" model="ir.actions.act_window">
+        <field name="name">Referral Codes</field>
+        <field name="res_model">nbhc.referral.code</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_referral_conversions" model="ir.actions.act_window">
+        <field name="name">Conversions</field>
+        <field name="res_model">nbhc.referral.conversion</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_commission_accruals" model="ir.actions.act_window">
+        <field name="name">Commission Accruals</field>
+        <field name="res_model">nbhc.commission.accrual</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Top-level menu -->
+    <menuitem id="menu_referral_root"
+              name="Referrals"
+              sequence="85"/>
+    <menuitem id="menu_referral_codes"
+              name="Referral Codes"
+              parent="menu_referral_root"
+              action="action_referral_codes"
+              sequence="10"/>
+    <menuitem id="menu_referral_conversions"
+              name="Conversions"
+              parent="menu_referral_root"
+              action="action_referral_conversions"
+              sequence="20"/>
+    <menuitem id="menu_commission_accruals"
+              name="Commission Accruals"
+              parent="menu_referral_root"
+              action="action_commission_accruals"
+              sequence="30"/>
+</odoo>

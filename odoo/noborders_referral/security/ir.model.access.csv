@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nbhc_referral_code_user,access.nbhc.referral.code.user,model_nbhc_referral_code,base.group_user,1,0,0,0
+access_nbhc_referral_code_manager,access.nbhc.referral.code.manager,model_nbhc_referral_code,base.group_system,1,1,1,1
+access_nbhc_referral_conversion_user,access.nbhc.referral.conversion.user,model_nbhc_referral_conversion,base.group_user,1,0,0,0
+access_nbhc_referral_conversion_manager,access.nbhc.referral.conversion.manager,model_nbhc_referral_conversion,base.group_system,1,1,1,1
+access_nbhc_commission_accrual_user,access.nbhc.commission.accrual.user,model_nbhc_commission_accrual,base.group_user,1,0,0,0
+access_nbhc_commission_accrual_manager,access.nbhc.commission.accrual.manager,model_nbhc_commission_accrual,base.group_system,1,1,1,1

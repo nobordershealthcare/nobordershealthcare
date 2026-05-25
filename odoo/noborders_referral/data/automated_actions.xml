@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Automated action: generate monthly commission report on the 1st of each month -->
+    <record id="action_monthly_commission_report" model="ir.actions.server">
+        <field name="name">Monthly Commission Report</field>
+        <field name="model_id" ref="model_nbhc_commission_accrual"/>
+        <field name="state">code</field>
+        <field name="code">
+model.action_generate_monthly_report()
+        </field>
+    </record>
+
+    <!-- Scheduled action: run on the 1st of every month at 03:00 UTC -->
+    <record id="ir_cron_monthly_commission_report" model="ir.cron">
+        <field name="name">NoBorders: Monthly Commission Report</field>
+        <field name="model_id" ref="model_nbhc_commission_accrual"/>
+        <field name="state">code</field>
+        <field name="code">model.action_generate_monthly_report()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">months</field>
+        <field name="numbercall">-1</field>
+        <field name="doall">False</field>
+        <field name="active">True</field>
+    </record>
+</odoo>
