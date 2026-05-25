@@ -868,19 +868,59 @@ struct EmergencyView: View {
     }
 
     // ── Profile-aware card ─────────────────────────────────────────────────
+    // Operational role overrides take precedence over IdentityProtectionLevel:
+    //   .gendarmerie  → hybrid military+police card (service number + law enforcement label)
+    //   .sarTeam / .civilDefense  → rescue team card (EUCP ID, CBRN status, civilian NOK)
+    // All other roles fall through to the protection-level switch.
 
     @ViewBuilder
     private var profileAwareCard: some View {
-        switch protection {
-        case .covert:
-            covertCard
-        case .minimal:
-            minimalCard
-        case .reduced:
-            reducedCard
-        case .standard:
-            standardCard
+        if opRole == .gendarmerie {
+            gendarmerieCard
+        } else if opRole == .sarTeam || opRole == .civilDefense {
+            sarCard
+        } else {
+            switch protection {
+            case .covert:
+                covertCard
+            case .minimal:
+                minimalCard
+            case .reduced:
+                reducedCard
+            case .standard:
+                standardCard
+            }
         }
+    }
+
+    // .gendarmerie — hybrid military+police: service number + medical + NOK via duty
+    // Label uses generic "Law Enforcement" — no country, no unit name
+    private var gendarmerieCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("🪖⚖ MEDICAL CARD")
+                        .font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6)).tracking(1.5)
+                    Text("Service №: ••••••  (biometric required)")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                    Text("Authority: Law Enforcement")   // no country, no unit
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("A+").font(.title2).fontWeight(.heavy).foregroundStyle(.red)
+                    Text("✓ VERIFIED").font(.system(size: 9)).foregroundStyle(.green)
+                }
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            Text("NOK: via duty officer")
+                .font(.caption).foregroundStyle(.white.opacity(0.55))
+        }
+        .cardStyle()
     }
 
     // .covert — special ops: blood type + allergies ONLY, no identity
