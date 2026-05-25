@@ -6,6 +6,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/nobordershealthcare/bulk-import/internal/admin"
 	"github.com/nobordershealthcare/bulk-import/internal/importer"
 )
 
@@ -16,8 +17,9 @@ type server struct {
 func newServer() *server {
 	s := &server{mux: http.NewServeMux()}
 	s.mux.HandleFunc("POST /bulk/upload", s.handleUpload)
-	s.mux.HandleFunc("GET /bulk/status/{batchID}", s.handleStatus)
-	s.mux.HandleFunc("POST /bulk/resend/{entryID}", s.handleResend)
+	s.mux.HandleFunc("GET /bulk/stats/{batchID}", s.handleStats)
+	s.mux.HandleFunc("POST /bulk/resend/{batchID}", s.handleResend)
+	s.mux.HandleFunc("POST /activate/validate", s.handleValidateToken)
 	return s
 }
 
@@ -31,16 +33,19 @@ func (s *server) ListenAndServe(addr string) error {
 
 // handleUpload processes a CSV upload and dispatches activation invitations.
 // Auth: admin JWT (validated by api-gateway mTLS layer before reaching this handler).
-// For military batches: 2-person FIDO2 confirmation required (header X-Cosigner-Token).
+// For military batches: 2-of-2 FIDO2 confirmation required (header X-Cosigner-Token).
+// GDPR gate: admin must set gdpr_legal_basis_confirmed=true in form data.
 func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseMultipartForm(32 << 20); err != nil {
 		http.Error(w, "invalid multipart form", http.StatusBadRequest)
 		return
 	}
 
-	legalBasisConfirmed := r.FormValue("gdpr_legal_basis_confirmed")
-	if legalBasisConfirmed != "true" {
-		http.Error(w, "GDPR legal basis confirmation required: set gdpr_legal_basis_confirmed=true", http.StatusBadRequest)
+	legalBasis := r.FormValue("gdpr_legal_basis_confirmed")
+	if legalBasis != "true" {
+		http.Error(w, "GDPR/LED legal basis confirmation required: set gdpr_legal_basis_confirmed=true\n"+
+			"Admin confirms: 'I confirm legal basis under GDPR Art.6.1(b)/(c) or LED Art.8 for law enforcement data'",
+			http.StatusBadRequest)
 		return
 	}
 
@@ -51,7 +56,7 @@ func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	csvType := r.FormValue("csv_type") // "military" or "corporate" or "family"
+	csvType := r.FormValue("csv_type") // "military" | "corporate" | "family"
 	if csvType == "" {
 		csvType = "corporate"
 	}
@@ -72,30 +77,78 @@ func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(batch)
 }
 
-func (s *server) handleStatus(w http.ResponseWriter, r *http.Request) {
+// handleStats returns delivery telemetry for a batch.
+// Used by Odoo dashboard and admin web UI.
+// Returns phone_hash (SHA3-256) in failed_delivery — never plaintext phone.
+func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
 	batchID := r.PathValue("batchID")
 	if batchID == "" {
 		http.Error(w, "batchID required", http.StatusBadRequest)
 		return
 	}
-	status, err := importer.GetBatchStatus(r.Context(), batchID)
+	stats, err := admin.GetBatchStats(r.Context(), batchID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(status)
+	json.NewEncoder(w).Encode(stats)
 }
 
+// handleResend re-dispatches invitations for failed/pending entries.
+// Body: {"phone_hashes": [...]} or {"all_failed": true}
+// Rate-limited: max 1000 SMS/minute.
 func (s *server) handleResend(w http.ResponseWriter, r *http.Request) {
-	entryID := r.PathValue("entryID")
-	if entryID == "" {
-		http.Error(w, "entryID required", http.StatusBadRequest)
+	batchID := r.PathValue("batchID")
+	if batchID == "" {
+		http.Error(w, "batchID required", http.StatusBadRequest)
 		return
 	}
-	if err := importer.ResendInvitation(r.Context(), entryID); err != nil {
+
+	var req admin.ResendRequest
+	if r.ContentLength > 0 {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid JSON body", http.StatusBadRequest)
+			return
+		}
+	} else {
+		req.AllFailed = true
+	}
+
+	count, err := admin.ResendFailed(r.Context(), batchID, req)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusNoContent)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]int{"queued": count})
+}
+
+// handleValidateToken validates an activation token presented by the iOS app.
+// Body: {"token_hash": "<SHA3-256(token)>"}
+// Returns: profile metadata. Invalidates token on first use (one-shot Redis NX).
+// Returns 410 Gone on second attempt (token already consumed).
+// The plaintext token NEVER reaches this endpoint — only its hash.
+func (s *server) handleValidateToken(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		TokenHash string `json:"token_hash"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.TokenHash == "" {
+		http.Error(w, "token_hash required", http.StatusBadRequest)
+		return
+	}
+
+	meta, err := importer.ConsumeActivationToken(r.Context(), req.TokenHash)
+	if err != nil {
+		// Distinguish between not-found/expired and already-consumed.
+		if err == importer.ErrTokenAlreadyConsumed {
+			http.Error(w, "token already used", http.StatusGone)
+			return
+		}
+		http.Error(w, "invalid or expired token", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(meta)
 }

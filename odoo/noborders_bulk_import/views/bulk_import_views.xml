@@ -1,0 +1,297 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Form view
+         Odoo 19: invisible/readonly use inline Python-like expressions.
+         No attrs={} — that was removed in v17+.
+    ═══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_nbhc_bulk_import_form" model="ir.ui.view">
+        <field name="name">nbhc.bulk.import.form</field>
+        <field name="model">nbhc.bulk.import</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <!-- Step 1: confirm legal basis (only shown while not confirmed) -->
+                    <button
+                        name="action_confirm_legal_basis"
+                        string="✓ Confirm Legal Basis (GDPR/LED)"
+                        type="object"
+                        class="btn-warning"
+                        invisible="gdpr_confirmed"
+                    />
+                    <!-- Step 2: upload + dispatch (only after confirmation, in draft) -->
+                    <button
+                        name="action_upload_and_dispatch"
+                        string="Upload &amp; Dispatch"
+                        type="object"
+                        class="btn-primary"
+                        invisible="not gdpr_confirmed or status != 'draft'"
+                    />
+                    <button
+                        name="action_refresh_stats"
+                        string="↻ Refresh Stats"
+                        type="object"
+                        invisible="status != 'processing'"
+                    />
+                    <button
+                        name="action_resend_failed"
+                        string="↩ Re-send Failed"
+                        type="object"
+                        invisible="status not in ('processing', 'done')"
+                    />
+                    <field name="status" widget="statusbar"
+                           statusbar_visible="draft,processing,done"/>
+                </header>
+
+                <sheet>
+                    <group>
+                        <group string="Batch Details">
+                            <field name="name"/>
+                            <field name="import_type"/>
+                            <field name="authority"/>
+                            <field name="expiry_days"/>
+                            <field name="created_by" readonly="1"/>
+                        </group>
+                        <group string="CSV Upload">
+                            <field name="csv_file" filename="csv_filename" widget="binary"/>
+                            <field name="csv_filename" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <!-- GDPR confirmation box -->
+                    <group string="Legal Basis" invisible="gdpr_confirmed">
+                        <div class="alert alert-warning" role="alert">
+                            <strong>Required before dispatch:</strong>
+                            Click "Confirm Legal Basis" to confirm that you have a valid
+                            legal basis under <strong>GDPR Art.6.1(b)/(c)</strong> or
+                            <strong>LED Art.8</strong> for law enforcement data to process
+                            these phone numbers and send activation invitations.
+                        </div>
+                    </group>
+                    <group string="Legal Basis" invisible="not gdpr_confirmed">
+                        <field name="gdpr_confirmed" readonly="1"/>
+                        <field name="gdpr_confirmed_at" readonly="1"/>
+                        <field name="gdpr_confirmed_by" readonly="1"/>
+                    </group>
+
+                    <!-- Activation progress (hidden in draft) -->
+                    <group string="Activation Progress" invisible="status == 'draft'">
+                        <group>
+                            <field name="total_count"     readonly="1"/>
+                            <field name="activated_count" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="pending_count"   readonly="1"/>
+                            <field name="failed_count"    readonly="1"/>
+                        </group>
+                        <!-- Progress bar widget (Odoo 19 standard progressbar) -->
+                        <div class="col-12 mt-2" invisible="total_count == 0">
+                            <div class="progress" style="height:8px; border-radius:4px;">
+                                <div class="progress-bar bg-success"
+                                     role="progressbar"
+                                     style="width: 0%"
+                                     id="activation_progress_bar">
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                Activation rate computed from activated / total.
+                            </small>
+                        </div>
+                    </group>
+
+                    <!-- Import lines -->
+                    <notebook>
+                        <page string="Import Lines">
+                            <field name="line_ids" readonly="1">
+                                <list editable="0" decoration-success="status == 'activated'"
+                                      decoration-warning="status == 'pending'"
+                                      decoration-danger="status == 'failed'"
+                                      decoration-muted="status == 'expired'">
+                                    <field name="phone_hash"/>
+                                    <field name="status" widget="badge"/>
+                                    <field name="delivery_sms"      widget="boolean_toggle"/>
+                                    <field name="delivery_telegram" widget="boolean_toggle"/>
+                                    <field name="delivery_whatsapp" widget="boolean_toggle"/>
+                                    <field name="delivery_signal"   widget="boolean_toggle"/>
+                                    <field name="delivery_viber"    widget="boolean_toggle"/>
+                                    <field name="delivery_email"    widget="boolean_toggle"/>
+                                    <field name="resend_attempts"/>
+                                    <field name="activated_at"/>
+                                    <field name="expires_at"/>
+                                    <field name="failure_reason"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         List view (replaces <tree> in Odoo 17+)
+    ═══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_nbhc_bulk_import_list" model="ir.ui.view">
+        <field name="name">nbhc.bulk.import.list</field>
+        <field name="model">nbhc.bulk.import</field>
+        <field name="arch" type="xml">
+            <list decoration-success="status == 'done'"
+                  decoration-warning="status == 'processing'"
+                  decoration-danger="status == 'failed'">
+                <field name="name"/>
+                <field name="import_type" widget="badge"/>
+                <field name="authority"/>
+                <field name="total_count"     string="Total"/>
+                <field name="activated_count" string="Activated"
+                       decoration-success="activated_count == total_count and total_count &gt; 0"/>
+                <field name="pending_count"   string="Pending"/>
+                <field name="failed_count"    string="Failed"
+                       decoration-danger="failed_count &gt; 0"/>
+                <field name="status" widget="badge"/>
+                <field name="gdpr_confirmed"  widget="boolean"/>
+                <field name="created_by"/>
+                <field name="create_date"     string="Created"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Kanban dashboard — activation rates per batch
+    ═══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_nbhc_bulk_import_kanban" model="ir.ui.view">
+        <field name="name">nbhc.bulk.import.kanban</field>
+        <field name="model">nbhc.bulk.import</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="status" class="o_kanban_small_column">
+                <field name="name"/>
+                <field name="import_type"/>
+                <field name="authority"/>
+                <field name="total_count"/>
+                <field name="activated_count"/>
+                <field name="pending_count"/>
+                <field name="failed_count"/>
+                <field name="status"/>
+                <field name="gdpr_confirmed"/>
+                <templates>
+                    <t t-name="kanban-card">
+                        <div class="oe_kanban_global_click">
+                            <div class="fw-bold">
+                                <field name="name"/>
+                            </div>
+                            <div class="text-muted small mt-1">
+                                <field name="import_type"/> ·
+                                <field name="authority"/>
+                            </div>
+                            <!-- Activation progress -->
+                            <div class="mt-2 d-flex align-items-center gap-2">
+                                <div class="progress flex-grow-1" style="height:6px;">
+                                    <div class="progress-bar bg-success"
+                                         t-att-style="'width:' + (record.total_count.raw_value > 0
+                                             ? Math.min(100, Math.round(record.activated_count.raw_value
+                                               / record.total_count.raw_value * 100))
+                                             : 0) + '%'">
+                                    </div>
+                                </div>
+                                <small class="text-muted text-nowrap">
+                                    <t t-esc="record.activated_count.raw_value"/>/<t t-esc="record.total_count.raw_value"/>
+                                </small>
+                            </div>
+                            <!-- Delivery badges -->
+                            <div class="mt-2">
+                                <t t-if="record.failed_count.raw_value > 0">
+                                    <span class="badge text-bg-danger">
+                                        <t t-esc="record.failed_count.raw_value"/> failed
+                                    </span>
+                                </t>
+                                <t t-if="record.pending_count.raw_value > 0">
+                                    <span class="badge text-bg-warning ms-1">
+                                        <t t-esc="record.pending_count.raw_value"/> pending
+                                    </span>
+                                </t>
+                            </div>
+                            <!-- Legal basis warning -->
+                            <t t-if="!record.gdpr_confirmed.raw_value">
+                                <div class="alert alert-warning p-1 mt-2 small mb-0">
+                                    ⚠ Legal basis not confirmed
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Search view
+    ═══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="view_nbhc_bulk_import_search" model="ir.ui.view">
+        <field name="name">nbhc.bulk.import.search</field>
+        <field name="model">nbhc.bulk.import</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Batch Name"/>
+                <field name="import_type"/>
+                <field name="authority"/>
+                <separator/>
+                <filter string="Draft"      name="draft"
+                        domain="[('status','=','draft')]"/>
+                <filter string="Processing" name="processing"
+                        domain="[('status','=','processing')]"/>
+                <filter string="Done"       name="done"
+                        domain="[('status','=','done')]"/>
+                <filter string="Failed"     name="failed"
+                        domain="[('status','=','failed')]"/>
+                <separator/>
+                <filter string="Military"   name="military"
+                        domain="[('import_type','=','military')]"/>
+                <filter string="Corporate"  name="corporate"
+                        domain="[('import_type','=','corporate')]"/>
+                <filter string="Family"     name="family"
+                        domain="[('import_type','=','family')]"/>
+                <separator/>
+                <filter string="Legal Basis Missing" name="no_gdpr"
+                        domain="[('gdpr_confirmed','=',False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Type"      name="by_type"
+                            context="{'group_by':'import_type'}"/>
+                    <filter string="Authority" name="by_auth"
+                            context="{'group_by':'authority'}"/>
+                    <filter string="Status"    name="by_status"
+                            context="{'group_by':'status'}"/>
+                    <filter string="Created By" name="by_user"
+                            context="{'group_by':'created_by'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════════════════════
+         Window action
+    ═══════════════════════════════════════════════════════════════════════ -->
+
+    <record id="action_nbhc_bulk_import" model="ir.actions.act_window">
+        <field name="name">Bulk Import</field>
+        <field name="res_model">nbhc.bulk.import</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_nbhc_bulk_import_search"/>
+        <field name="context">{'search_default_processing': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first bulk import batch
+            </p>
+            <p>
+                Upload a CSV to send activation invitations to military personnel,
+                corporate employees, or family members via SMS, Telegram, WhatsApp,
+                Signal, Viber, and Email. Activation rates tracked per batch.
+            </p>
+        </field>
+    </record>
+
+</odoo>

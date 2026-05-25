@@ -9,14 +9,15 @@ import (
 
 // MilitaryContract implements channel 4: STANAG 2154 military health audit.
 //
-// Endorsement policy (configured at channel level, enforced outside chaincode):
-//   MEDEVAC:       1-of-2 peers (fast — field conditions)
-//   Forensic:      2-of-2 peers (higher stakes — DVI identification)
-//   BulkRegister:  2-of-2 peers + admin signature
+// Endorsement policy (configured in configtx.yaml, enforced outside chaincode):
+//   MEDEVAC:       1-of-2 orgs — field speed over certainty
+//   Forensic:      2-of-2 orgs — DVI identification certainty
+//   BulkRegister:  2-of-2 orgs + admin MSP signature
+//   All others:    2-of-2 standard
 //
 // INVARIANT: Every field written to world state is a SHA3-256 hex hash,
 // a string enum, a primitive, or a Fabric txID.
-// No PII, no coordinates, no clearance, no unit, no rank.
+// Fields never stored: PII, clearance, unit designation, rank, or coordinates.
 type MilitaryContract struct {
 	contractapi.Contract
 }
@@ -35,9 +36,34 @@ func validateHash(h string, fieldName string) error {
 	return nil
 }
 
+func validateAuthority(authority string) error {
+	if !validAuthorities[authority] {
+		return fmt.Errorf("unknown authority %q", authority)
+	}
+	return nil
+}
+
 func validateAccessScope(scope []string) error {
 	if len(scope) == 0 {
 		return fmt.Errorf("accessScope must contain at least one element")
+	}
+	return nil
+}
+
+func validateRoutingPath(path string) error {
+	valid := map[string]bool{
+		"direct": true, "via_duty_officer": true, "via_europol_siena": true,
+	}
+	if !valid[path] {
+		return fmt.Errorf("routingPath must be 'direct', 'via_duty_officer', or 'via_europol_siena', got %q", path)
+	}
+	return nil
+}
+
+func validateNotificationType(t string) error {
+	valid := map[string]bool{"injured": true, "kia": true, "missing": true, "found": true}
+	if !valid[t] {
+		return fmt.Errorf("notificationType must be 'injured', 'kia', 'missing', or 'found', got %q", t)
 	}
 	return nil
 }
@@ -74,13 +100,17 @@ func getHistoryByPartialKey(ctx contractapi.TransactionContextInterface, objectT
 
 // RegisterMilitaryProfile registers a military profile hash on-chain.
 // Called once during profile activation via the admin portal.
-// Writes only hashes — never plaintext serviceNumber or dnaRefNumber.
+// operationalRole: OperationalRole value (e.g. "gendarmerie", "specialOps")
+// authority: AuthorityType value (e.g. "ua_mo", "eu_gendarmerie", "nato")
+// legalBasis: LegalBasisType value (e.g. "nato_stanag", "led_art10")
 func (c *MilitaryContract) RegisterMilitaryProfile(
 	ctx contractapi.TransactionContextInterface,
 	serviceNumberHash string,
 	nationalityCode string,
 	dnaReferenceHash string,
-	profileType string,
+	operationalRole string,
+	authority string,
+	legalBasis string,
 ) error {
 	if err := validateHash(serviceNumberHash, "serviceNumberHash"); err != nil {
 		return err
@@ -91,8 +121,14 @@ func (c *MilitaryContract) RegisterMilitaryProfile(
 	if err := validateHash(dnaReferenceHash, "dnaReferenceHash"); err != nil {
 		return err
 	}
-	if !validProfileTypes[profileType] {
-		return fmt.Errorf("profileType must be 'military' or 'firstResponder', got %q", profileType)
+	if !validOperationalRoles[operationalRole] {
+		return fmt.Errorf("unknown operationalRole %q", operationalRole)
+	}
+	if err := validateAuthority(authority); err != nil {
+		return err
+	}
+	if !validLegalBases[legalBasis] {
+		return fmt.Errorf("unknown legalBasis %q", legalBasis)
 	}
 
 	key, err := ctx.GetStub().CreateCompositeKey("MILPROFILE", []string{serviceNumberHash})
@@ -112,23 +148,27 @@ func (c *MilitaryContract) RegisterMilitaryProfile(
 		ServiceNumberHash: serviceNumberHash,
 		NationalityCode:   nationalityCode,
 		DNAReferenceHash:  dnaReferenceHash,
-		ProfileType:       profileType,
-		RegisteredAt:      ts.Seconds,
+		OperationalRole:   operationalRole,
+		Authority:         authority,
+		LegalBasis:        legalBasis,
+		RegisteredAt:      fmt.Sprintf("%d", ts.Seconds),
 		TxID:              ctx.GetStub().GetTxID(),
 	}
 	return putJSON(ctx, key, rec)
 }
 
 // RecordMEDEVACAccess logs a paramedic reading a military emergency card in the field.
-// Endorsement policy: 1-of-2 peers (prioritises field speed).
+// Endorsement policy: 1-of-2 peers (field speed — no time for 2-of-2).
 // locationHash must be SHA3-256(grid_coords) — never plaintext coordinates.
+// crossBorder: true if access is in a different country from the profile's registration.
 func (c *MilitaryContract) RecordMEDEVACAccess(
 	ctx contractapi.TransactionContextInterface,
 	patientHash string,
 	medicHash string,
 	locationHash string,
 	accessScope []string,
-	timestamp string,
+	authority string,
+	crossBorder bool,
 ) error {
 	if err := validateHash(patientHash, "patientHash"); err != nil {
 		return err
@@ -142,6 +182,9 @@ func (c *MilitaryContract) RecordMEDEVACAccess(
 	if err := validateAccessScope(accessScope); err != nil {
 		return err
 	}
+	if err := validateAuthority(authority); err != nil {
+		return err
+	}
 
 	ts, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
@@ -152,10 +195,12 @@ func (c *MilitaryContract) RecordMEDEVACAccess(
 	rec := &MilitaryAccessRecord{
 		PatientHash:  patientHash,
 		AccessorHash: medicHash,
-		AccessorType: "medevac_medic",
+		AccessorType: "medic",
+		Authority:    authority,
 		AccessScope:  accessScope,
 		LocationHash: locationHash,
-		RecordedAt:   ts.Seconds,
+		Timestamp:    fmt.Sprintf("%d", ts.Seconds),
+		CrossBorder:  crossBorder,
 		TxID:         txID,
 	}
 	key, err := ctx.GetStub().CreateCompositeKey("MIL", []string{patientHash, txID})
@@ -166,12 +211,15 @@ func (c *MilitaryContract) RecordMEDEVACAccess(
 }
 
 // RecordForensicAccess logs a DVI team reading identifying marks for victim identification.
-// Endorsement policy: 2-of-2 peers (higher stakes than MEDEVAC).
+// Endorsement policy: 2-of-2 peers (identification certainty — no rush).
+// eucpReference: UCPM coordination reference if EU civil protection involved; empty otherwise.
 func (c *MilitaryContract) RecordForensicAccess(
 	ctx contractapi.TransactionContextInterface,
 	patientHash string,
 	dviTeamHash string,
 	accessScope []string,
+	authority string,
+	eucpReference string,
 ) error {
 	if err := validateHash(patientHash, "patientHash"); err != nil {
 		return err
@@ -182,6 +230,9 @@ func (c *MilitaryContract) RecordForensicAccess(
 	if err := validateAccessScope(accessScope); err != nil {
 		return err
 	}
+	if err := validateAuthority(authority); err != nil {
+		return err
+	}
 
 	ts, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
@@ -190,11 +241,13 @@ func (c *MilitaryContract) RecordForensicAccess(
 	txID := ctx.GetStub().GetTxID()
 
 	rec := &ForensicAccessRecord{
-		PatientHash: patientHash,
-		DVITeamHash: dviTeamHash,
-		AccessScope: accessScope,
-		RecordedAt:  ts.Seconds,
-		TxID:        txID,
+		PatientHash:   patientHash,
+		DVITeamHash:   dviTeamHash,
+		Authority:     authority,
+		AccessScope:   accessScope,
+		EUCPReference: eucpReference,
+		Timestamp:     fmt.Sprintf("%d", ts.Seconds),
+		TxID:          txID,
 	}
 	key, err := ctx.GetStub().CreateCompositeKey("FORENSIC", []string{patientHash, txID})
 	if err != nil {
@@ -205,11 +258,14 @@ func (c *MilitaryContract) RecordForensicAccess(
 
 // RecordNOKNotification logs a next-of-kin notification event.
 // nokHash is SHA3-256(nok_phone) — never the phone number itself.
+// routingPath: "direct" | "via_duty_officer" | "via_europol_siena"
 func (c *MilitaryContract) RecordNOKNotification(
 	ctx contractapi.TransactionContextInterface,
 	patientHash string,
 	nokHash string,
 	notificationType string,
+	routingPath string,
+	authority string,
 ) error {
 	if err := validateHash(patientHash, "patientHash"); err != nil {
 		return err
@@ -217,9 +273,14 @@ func (c *MilitaryContract) RecordNOKNotification(
 	if err := validateHash(nokHash, "nokHash"); err != nil {
 		return err
 	}
-	validTypes := map[string]bool{"injured": true, "kia": true, "missing": true}
-	if !validTypes[notificationType] {
-		return fmt.Errorf("notificationType must be 'injured', 'kia', or 'missing', got %q", notificationType)
+	if err := validateNotificationType(notificationType); err != nil {
+		return err
+	}
+	if err := validateRoutingPath(routingPath); err != nil {
+		return err
+	}
+	if err := validateAuthority(authority); err != nil {
+		return err
 	}
 
 	ts, err := ctx.GetStub().GetTxTimestamp()
@@ -232,7 +293,9 @@ func (c *MilitaryContract) RecordNOKNotification(
 		PatientHash:      patientHash,
 		NOKHash:          nokHash,
 		NotificationType: notificationType,
-		RecordedAt:       ts.Seconds,
+		RoutingPath:      routingPath,
+		Authority:        authority,
+		Timestamp:        fmt.Sprintf("%d", ts.Seconds),
 		TxID:             txID,
 	}
 	key, err := ctx.GetStub().CreateCompositeKey("NOK", []string{patientHash, txID})
@@ -242,17 +305,21 @@ func (c *MilitaryContract) RecordNOKNotification(
 	return putJSON(ctx, key, rec)
 }
 
-// BulkRegisterProfiles registers a battalion-level import batch on-chain.
-// Called by admin portal — not by individual patients.
-// Endorsement policy: 2-of-2 peers + admin signature (configured at channel level).
-// profileHashes: each must be SHA3-256(serviceNumber) — 64 lowercase hex chars.
+// BulkRegisterProfiles registers a battalion/corporate/family import batch on-chain.
+// Endorsement policy: 2-of-2 peers + admin MSP signature (configured at channel level).
+// profileHashes: each must be SHA3-256(service_number) — 64 lowercase hex chars.
+// batchReference: SHA3-256(admin_id + timestamp) — never the admin's plaintext identity.
 func (c *MilitaryContract) BulkRegisterProfiles(
 	ctx contractapi.TransactionContextInterface,
 	profileHashes []string,
 	tenantHash string,
+	authority string,
 	batchReference string,
 ) error {
 	if err := validateHash(tenantHash, "tenantHash"); err != nil {
+		return err
+	}
+	if err := validateAuthority(authority); err != nil {
 		return err
 	}
 	if len(batchReference) == 0 {
@@ -270,36 +337,35 @@ func (c *MilitaryContract) BulkRegisterProfiles(
 		}
 	}
 
+	key, err := ctx.GetStub().CreateCompositeKey("BULK", []string{tenantHash, batchReference})
+	if err != nil {
+		return fmt.Errorf("composite key error: %w", err)
+	}
+	existing, _ := ctx.GetStub().GetState(key)
+	if existing != nil {
+		return fmt.Errorf("batch %q already registered for tenant %s", batchReference, tenantHash)
+	}
+
 	ts, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
 		return fmt.Errorf("cannot get tx timestamp: %w", err)
 	}
 	txID := ctx.GetStub().GetTxID()
 
-	rec := &BulkBatchRecord{
+	rec := &BulkRegistrationRecord{
 		TenantHash:     tenantHash,
-		BatchReference: batchReference,
 		ProfileHashes:  profileHashes,
-		Count:          len(profileHashes),
-		RecordedAt:     ts.Seconds,
+		Authority:      authority,
+		BatchReference: batchReference,
+		ProfileCount:   len(profileHashes),
+		Timestamp:      fmt.Sprintf("%d", ts.Seconds),
 		TxID:           txID,
 	}
-	key, err := ctx.GetStub().CreateCompositeKey("BULK", []string{tenantHash, batchReference})
-	if err != nil {
-		return fmt.Errorf("composite key error: %w", err)
-	}
-
-	// Reject duplicate batch references for the same tenant.
-	existing, _ := ctx.GetStub().GetState(key)
-	if existing != nil {
-		return fmt.Errorf("batch %q already registered for tenant %s", batchReference, tenantHash)
-	}
-
 	return putJSON(ctx, key, rec)
 }
 
-// GetMilitaryAuditTrail returns the full MEDEVAC + Forensic + NOK audit trail
-// for a given patient hash, for STANAG 2154 reporting.
+// GetMilitaryAuditTrail returns the full MEDEVAC audit trail for a given patient hash.
+// Used for STANAG 2154 reporting and GDPR Art.15 right-of-access responses.
 func (c *MilitaryContract) GetMilitaryAuditTrail(
 	ctx contractapi.TransactionContextInterface,
 	patientHash string,

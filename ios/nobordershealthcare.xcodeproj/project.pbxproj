@@ -27,6 +27,7 @@
 		5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */; };
 		5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6411BE2A63765FA00C6091 /* KyberOperations.swift */; };
 		64DE2C7E17763878BAFADAF7 /* LegalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */; };
+		686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */; };
 		7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEDC1416C64BDAF416257DAA /* ContentView.swift */; };
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
 		7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */; };
@@ -57,7 +58,6 @@
 		EBA7E953E5DE5ED4FDCD735B /* SIPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */; };
 		EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CA8B193143B17EBD08578 /* DocumentView.swift */; };
 		F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */; };
-		F7082CF9E0C5D77968E90A2C /* ActivationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */; };
 		FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA091911DC16BA81A2BDDB90 /* ConsentView.swift */; };
 /* End PBXBuildFile section */
 
@@ -98,6 +98,7 @@
 		B7D55527378C1D8F0F7697F1 /* SentencePieceShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentencePieceShim.swift; sourceTree = "<group>"; };
 		BC87B71F0505A1931D9A8413 /* LocalOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalOCR.swift; sourceTree = "<group>"; };
 		C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPClient.swift; sourceTree = "<group>"; };
+		C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationCoordinator.swift; sourceTree = "<group>"; };
 		C49CA8B193143B17EBD08578 /* DocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentView.swift; sourceTree = "<group>"; };
 		CA091911DC16BA81A2BDDB90 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardService.swift; sourceTree = "<group>"; };
@@ -108,7 +109,6 @@
 		E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactView.swift; sourceTree = "<group>"; };
 		E6A46B21098DBE228CFA150F /* AttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestationService.swift; sourceTree = "<group>"; };
 		EC86BB66FE5565C9184E8490 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
-		EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationCoordinator.swift; sourceTree = "<group>"; };
 		F04BF4200C2337B15544CBDC /* DocumentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStore.swift; sourceTree = "<group>"; };
 		F465B171728A2EE0DA91643D /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
@@ -216,6 +216,7 @@
 		A18EE47162F2B75A353FAD84 /* Onboarding */ = {
 			isa = PBXGroup;
 			children = (
+				C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */,
 				CA091911DC16BA81A2BDDB90 /* ConsentView.swift */,
 				4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */,
 				F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */,
@@ -259,14 +260,6 @@
 			path = App;
 			sourceTree = "<group>";
 		};
-		BC1AEA3248FD39E4787AE9E5 /* Activation */ = {
-			isa = PBXGroup;
-			children = (
-				EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */,
-			);
-			path = Activation;
-			sourceTree = "<group>";
-		};
 		C5DC5B80FAEE69F1741090A7 /* Legal */ = {
 			isa = PBXGroup;
 			children = (
@@ -281,7 +274,6 @@
 		DA55866E9310F24F77CD28D5 /* nobordershealthcare */ = {
 			isa = PBXGroup;
 			children = (
-				BC1AEA3248FD39E4787AE9E5 /* Activation */,
 				02B2F7E18E8A7E8FFB198EBA /* Backup */,
 				371E7BC818D058D49B5C3531 /* Core */,
 				EF8BE9525689369301943D17 /* Documents */,
@@ -423,7 +415,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F7082CF9E0C5D77968E90A2C /* ActivationCoordinator.swift in Sources */,
+				686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */,
 				AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */,
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,

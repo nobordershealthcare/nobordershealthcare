@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── Top-level #nobordershealthcare menu (reuse if already declared) ── -->
+
+    <menuitem
+        id="menu_nbhc_root"
+        name="#nobordershealthcare"
+        sequence="80"
+        web_icon="noborders_bulk_import,static/description/icon.png"
+    />
+
+    <menuitem
+        id="menu_nbhc_operations"
+        name="Operations"
+        parent="menu_nbhc_root"
+        sequence="10"
+    />
+
+    <menuitem
+        id="menu_nbhc_bulk_import"
+        name="Bulk Import"
+        parent="menu_nbhc_operations"
+        action="action_nbhc_bulk_import"
+        sequence="20"
+        groups="base.group_system"
+    />
+
+</odoo>

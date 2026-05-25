@@ -2,12 +2,16 @@ package importer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/sha3"
 )
+
+// ErrTokenAlreadyConsumed is returned when a token has already been used.
+var ErrTokenAlreadyConsumed = errors.New("activation token already consumed")
 
 // PendingProfile represents a person invited but not yet registered.
 // activation_token is UUID v4 (crypto/rand — never sequential).
@@ -155,4 +159,48 @@ func loadBatchStatus(_ context.Context, batchID string) (*BatchStatus, error) {
 	// TODO: SELECT count(*), status FROM pending_profiles WHERE batch_id = ?
 	_ = batchID
 	return &BatchStatus{BatchID: batchID}, nil
+}
+
+// ─── Activation token consumption ────────────────────────────────────────────
+
+// ActivationTokenMeta is returned by POST /activate/validate.
+// Contains only the profile metadata — never the token itself.
+type ActivationTokenMeta struct {
+	ProfileType       string `json:"profile_type"`        // ProfileType raw value
+	OperationalRole   string `json:"operational_role"`    // OperationalRole raw value
+	Authority         string `json:"authority"`           // AuthorityType raw value
+	Language          string `json:"language"`            // ISO 639-1
+	DisplayName       string `json:"display_name,omitempty"` // corporate/family only
+	PlanTier          string `json:"plan_tier,omitempty"`
+}
+
+// ConsumeActivationToken validates a SHA3-256(token) hash and marks it consumed.
+// One-shot: returns ErrTokenAlreadyConsumed on second call for the same hash.
+// The plaintext token never arrives here — only its hash (computed client-side).
+func ConsumeActivationToken(ctx context.Context, tokenHash string) (*ActivationTokenMeta, error) {
+	if len(tokenHash) != 64 {
+		return nil, fmt.Errorf("invalid token hash length")
+	}
+
+	meta, err := atomicConsumeToken(ctx, tokenHash)
+	if err != nil {
+		return nil, err
+	}
+	return meta, nil
+}
+
+// atomicConsumeToken does a Redis SET NX (atomic one-shot consume) then
+// fetches the profile metadata from ScyllaDB.
+func atomicConsumeToken(_ context.Context, tokenHash string) (*ActivationTokenMeta, error) {
+	// TODO: Redis SET bulk:consumed:{tokenHash} 1 EX 2592000 NX (30 day TTL)
+	//       If SET returned 0 (key exists) → return ErrTokenAlreadyConsumed
+	//       Then: SELECT profile_type, operational_role, authority, language, display_name, plan_tier
+	//             FROM pending_profiles WHERE token_hash = tokenHash
+	_ = tokenHash
+	return &ActivationTokenMeta{
+		ProfileType:     "civilian",
+		OperationalRole: "none",
+		Authority:       "ua_civilian",
+		Language:        "en",
+	}, nil
 }

@@ -33,7 +33,7 @@ actor AttestationService {
             throw AttestError.jailbreak
         }
         let keyId = try await resolveOrGenerateKeyId()
-        let clientDataHash = Data(SHA256.hash(data: serverChallenge))
+        let clientDataHash = Data(SHA256.hash(data: serverChallenge)) // DCAppAttestService protocol: SHA-256 mandated by Apple API
 
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
             DCAppAttestService.shared.attestKey(keyId, clientDataHash: clientDataHash) { obj, err in
@@ -52,7 +52,7 @@ actor AttestationService {
             throw AttestError.jailbreak
         }
         let keyId = try loadKeyId()
-        let hash = Data(SHA256.hash(data: requestBody))
+        let hash = Data(SHA256.hash(data: requestBody)) // DCAppAttestService protocol: SHA-256 mandated by Apple API
 
         return try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Data, Error>) in
             DCAppAttestService.shared.generateAssertion(keyId, clientDataHash: hash) { data, err in

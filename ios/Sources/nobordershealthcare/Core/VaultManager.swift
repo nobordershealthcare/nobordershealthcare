@@ -7,20 +7,9 @@ import Foundation
 import Security
 import CryptoKit
 
-// MARK: - ProfileType (single source of truth)
-// Stored in Keychain under com.noborders.profile.type — NOT UserDefaults (sensitive).
-// Included as "profile_type" claim in every emergency JWT.
-// Drives: blockchain channel routing, consent rules, UI template selection.
-
-enum ProfileType: String, Codable, Sendable {
-    case civilian       // default — current behavior
-    case military       // STANAG 2154, channel4
-    case firstResponder // paramedic, firefighter, police
-    case corporate      // company employee (bulk import)
-    case family         // family member (bulk import)
-}
-
 // MARK: - ProfileTypeStore
+// ProfileType is defined in Legal/Models.swift (single source of truth).
+// ProfileTypeStore is the Keychain-backed persistence layer for it.
 // Thread-safe Keychain-backed store for the user's ProfileType.
 // Separate from VaultManager actor to keep the encryption layer focused.
 
@@ -62,6 +51,64 @@ final class ProfileTypeStore: @unchecked Sendable {
         ]
         SecItemDelete(q as CFDictionary)
         SecItemAdd(q as CFDictionary, nil)
+    }
+}
+
+// MARK: - OperationalProfileStore
+// Keychain-backed store for OperationalProfile (Silo 2: Legal Vault).
+// Stored as JSON under com.noborders.operational.profile.
+// Separate key from eHR vault (com.noborders.vault.key) and legal vault (com.noborders.legal.key).
+
+final class OperationalProfileStore: @unchecked Sendable {
+
+    static let shared = OperationalProfileStore()
+
+    private let keychainAccount = "com.noborders.operational.profile"
+    private let lock = NSLock()
+
+    private init() {}
+
+    func read() -> OperationalProfile? {
+        lock.lock()
+        defer { lock.unlock() }
+        let q: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String:  true,
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data
+        else { return nil }
+        let dec = JSONDecoder()
+        dec.dateDecodingStrategy = .iso8601
+        return try? dec.decode(OperationalProfile.self, from: data)
+    }
+
+    func write(_ profile: OperationalProfile) {
+        lock.lock()
+        defer { lock.unlock() }
+        let enc = JSONEncoder()
+        enc.dateEncodingStrategy = .iso8601
+        guard let data = try? enc.encode(profile) else { return }
+        let q: [String: Any] = [
+            kSecClass as String:          kSecClassGenericPassword,
+            kSecAttrAccount as String:    keychainAccount,
+            kSecValueData as String:      data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        ]
+        SecItemDelete(q as CFDictionary)
+        SecItemAdd(q as CFDictionary, nil)
+    }
+
+    func delete() {
+        lock.lock()
+        defer { lock.unlock() }
+        let q: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: keychainAccount,
+        ]
+        SecItemDelete(q as CFDictionary)
     }
 }
 

@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_nbhc_bulk_import_admin,nbhc.bulk.import admin,model_nbhc_bulk_import,base.group_system,1,1,1,1
+access_nbhc_bulk_import_user,nbhc.bulk.import user,model_nbhc_bulk_import,base.group_user,1,0,0,0
+access_nbhc_bulk_import_line_admin,nbhc.bulk.import.line admin,model_nbhc_bulk_import_line,base.group_system,1,1,1,1
+access_nbhc_bulk_import_line_user,nbhc.bulk.import.line user,model_nbhc_bulk_import_line,base.group_user,1,0,0,0

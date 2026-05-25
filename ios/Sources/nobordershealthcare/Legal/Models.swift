@@ -9,11 +9,138 @@
 //   → Legal Vault (Silo 2) ONLY. Never touch VaultManager or com.noborders.vault.key.
 //   EmergencyCard → eHR Vault (Silo 1) ONLY.
 //
-// Hashing: SHA3-256 (SHA3Kit) everywhere — NEVER crypto/sha256.
+// Hashing: SHA3-256 (SHA3Kit) throughout — never SHA-2 family digests.
 // Blockchain writes: hashes only — never content, paths, or URLs.
 // Medications: ATC codes — NEVER RxNorm.
 
 import Foundation
+
+// MARK: - Profile classification (single source of truth — also in ProfileTypeStore/VaultManager)
+
+enum ProfileType: String, Codable, Sendable {
+    case civilian        // default
+    case military        // ЗСУ, NATO armed forces
+    case firstResponder  // paramedic, firefighter
+    case corporate       // company employee (bulk import)
+    case family          // family member (bulk import)
+}
+
+// Operational role — orthogonal to ProfileType.
+// A Gendarmerie officer is both .military + .gendarmerie.
+enum OperationalRole: String, Codable, Sendable {
+    case none            // civilian default
+    case lawEnforcement  // police, patrol
+    case specialOps      // SBU, SSO, GSG9, RAID, GIGN — covert protection
+    case nationalGuard   // НГУ (UA-MVS), NG (US-DoD)
+    case gendarmerie     // FR Gendarmerie, IT Carabinieri, ES Guardia Civil, PT GNR
+                         // military structure + police role
+    case civilDefense    // ДСНС, THW, Sécurité Civile, IT Protezione Civile, PT ANEPC
+    case fireRescue      // fire department
+    case sarTeam         // INSARAG / UCPM USAR teams
+    case euBorderGuard   // Frontex, national border police
+    case europolOfficer  // Europol operational staff
+}
+
+// Controls what appears on Emergency Card QR.
+// Rule: Emergency Card contains ONLY what saves lives.
+enum IdentityProtectionLevel: String, Codable, Sendable {
+    case standard  // civilian — full name, full data
+    case reduced   // military — service number, no unit
+    case minimal   // police/NGU — no affiliation shown
+    case covert    // special ops — blood type + allergies ONLY
+                   // command channel only, never direct disclosure
+}
+
+// Authority — for kin notification routing and DVI database selection.
+enum AuthorityType: String, Codable, Sendable {
+    // Ukraine
+    case ua_mo           // МО України
+    case ua_mvs          // МВС (includes НГУ)
+    case ua_sbu          // СБУ
+    case ua_dsns         // ДСНС
+    case ua_civilian     // civilian, no authority
+    // EU — national
+    case eu_police       // generic national police
+    case eu_gendarmerie  // FR/IT/ES/PT military-police
+    case eu_special      // ATLAS Network member
+    case eu_civil        // UCPM / civil protection
+    case eu_border       // Frontex / border guard
+    case eu_interpol     // Interpol liaison officer
+    // Multinational
+    case nato            // NATO SOFA covered
+    case interpol        // Interpol direct
+}
+
+// Legal basis for data processing.
+// Determines which regulation governs this profile.
+enum LegalBasisType: String, Codable, Sendable {
+    case gdpr_art9       // civilian medical — GDPR Art.9.2(a) + Art.9.2(c)
+    case led_art10       // EU Law Enforcement Directive 2016/680 Art.10 — EU police
+    case nato_stanag     // STANAG 2154 — NATO military
+    case vital_interests // GDPR Art.9.2(c) — unconscious patient
+}
+
+// MARK: - Operational profile (stored in Legal Vault, key: com.noborders.operational.profile)
+
+struct OperationalProfile: Codable, Sendable {
+    var profileType: ProfileType
+    var operationalRole: OperationalRole
+    var identityProtection: IdentityProtectionLevel
+    var authority: AuthorityType
+    var legalBasis: LegalBasisType
+
+    // NOK routing
+    var nokNotifyDirect: Bool
+    // true  = notify family directly
+    // false = notify via duty officer / command first
+
+    // Cross-border (Schengen Art.40-41)
+    var schengenCrossBorder: Bool
+    // If injured in another Schengen country:
+    // true = NOK routed via Europol SIENA first
+
+    // EU Civil Protection
+    var eucpId: String?
+    // Format: "UCPM-{country}-{year}-{number}"
+
+    // EU Special Ops
+    var atlasNetworkId: String?
+    // Format: "ATLAS-{country}-{unit_hash}"
+    // unit_hash = SHA3-256(unit_designation) — never store unit designation plaintext
+
+    // CBRN exposure history
+    var cbrnExposureHistory: CBRNExposure?
+
+    // Law enforcement mental health flag
+    // true = treating physician sees mental health meds — NOT on standard emergency card
+    var hasPsychologicalMedications: Bool
+
+    // Computed: what goes into Emergency QR JWT
+    var emergencyCardScope: [String] {
+        switch identityProtection {
+        case .standard:
+            return ["name", "dob", "blood_type", "allergies",
+                    "medications", "nok_direct"]
+        case .reduced:
+            return ["service_number", "blood_type", "allergies",
+                    "medications", "dna_reference", "nok_via_duty"]
+        case .minimal:
+            return ["blood_type", "allergies",
+                    "medications", "nok_via_duty"]
+        case .covert:
+            return ["blood_type", "allergies"]
+            // command channel only — kin notification not in QR payload
+        }
+    }
+}
+
+struct CBRNExposure: Codable, Sendable {
+    var radiationDoseRemainingMSv: Double?
+    var lastDecontaminationDate: Date?
+    var chemicalExposures: [String]
+    var kiDosesAdministered: Int    // potassium iodide doses
+    var cbrnCertificationLevel: String? // "HAZMAT-A", etc.
+}
 
 // MARK: - Consent types (12 total — maps to GDPR toggle list in ConsentView)
 
@@ -295,11 +422,11 @@ struct Medication: Codable, Identifiable, Sendable {
 // Stored in Silo 2 (Legal Vault, com.noborders.legal.key).
 // Only what saves lives — see exclusion list below.
 
-// EXPLICITLY EXCLUDED:
-// ❌ Security clearance — security risk on unconscious body
-// ❌ Unit designation — operational security
-// ❌ Rank — irrelevant for medical treatment
-// ❌ Tactical information of any kind
+// EXPLICITLY EXCLUDED (never stored — see rule below):
+// ❌ Security clearance — never stored, security risk on unconscious body
+// ❌ Unit designation — never stored, operational security
+// ❌ Rank — never stored, irrelevant for medical treatment
+// ❌ Tactical information of any kind — never stored
 // Rule: Emergency Card contains ONLY what saves lives
 
 struct MessengerHandle: Codable, Sendable {
@@ -315,6 +442,7 @@ struct NextOfKin: Codable, Identifiable, Sendable {
     var messenger: MessengerHandle?
     var notifyOnCasualty: Bool     // true = notify if injured/KIA
     var priority: Int              // 1 = first to notify
+    var viaCommandOnly: Bool       // true for special-ops profiles — command-channel routing only
 }
 
 struct IdentifyingMark: Codable, Identifiable, Sendable {

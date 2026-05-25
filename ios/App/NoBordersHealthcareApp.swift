@@ -67,7 +67,7 @@ struct NoBordersHealthcareApp: App {
                       url.path.hasPrefix("/activate/")
                 else { return }
                 let token = String(url.path.dropFirst("/activate/".count))
-                activationCoordinator.handleToken(token)
+                Task { await activationCoordinator.handleToken(token) }
             }
         }
         .onChange(of: scenePhase) { _, phase in

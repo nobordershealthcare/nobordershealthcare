@@ -668,6 +668,13 @@ struct EmergencyView: View {
     @StateObject private var detector = NetworkCountryDetector.shared
     @State private var pulse = false
     @State private var showLanguagePicker = false
+    @State private var showForensicQR = false
+    @State private var forensicUnlocked = false
+
+    // Profile-aware rendering — read from Keychain at view appear.
+    @State private var profileType: ProfileType = .civilian
+    @State private var opRole: OperationalRole = .none
+    @State private var protection: IdentityProtectionLevel = .standard
     // isTranslating is reserved for future async translation paths.
     // All pilot-language strings use the static lookup table below — instant, no async.
     @State private var isTranslating = false
@@ -750,47 +757,32 @@ struct EmergencyView: View {
                     }
                     .onAppear { pulse = true }
 
-                    // ── Patient card — dark solid, deliberately NOT glass ───
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Maria Kowalczyk")
-                                    .font(.title3).fontWeight(.bold).foregroundStyle(.white)
-                                Text("DOB: \(formattedDOB()) · " + t("Polish", lang: currentLang))
-                                    .font(.subheadline).foregroundStyle(.white.opacity(0.65))
-                            }
-                            Spacer()
-                            // Blood type is universal — no translation
-                            Text("A+").font(.title).fontWeight(.heavy).foregroundStyle(.red)
-                        }
+                    // ── Patient card — profile-aware rendering ─────────────
+                    profileAwareCard
 
-                        Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(t("ALLERGIES", lang: currentLang))
-                                .font(.caption2).fontWeight(.bold)
-                                .foregroundStyle(Color.red).tracking(1.5)
+                    // ── Forensic QR button (military/firstResponder only) ───
+                    if profileType == .military || profileType == .firstResponder {
+                        Button {
+                            Task { await requestForensicUnlock() }
+                        } label: {
                             HStack(spacing: 8) {
-                                allergyBadge(t("Penicillin", lang: currentLang))
-                                allergyBadge(t("Ibuprofen", lang: currentLang))
-                                allergyBadge(t("Sulfa", lang: currentLang))
+                                Image(systemName: "dna").foregroundStyle(.green)
+                                Text("Forensic ID").fontWeight(.semibold)
+                                Spacer()
+                                Text("5 min TTL").font(.caption2).foregroundStyle(.white.opacity(0.5))
                             }
+                            .padding(14)
+                            .background(Color.green.opacity(0.18))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.green.opacity(0.4)))
                         }
-
-                        Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(t("MEDICATIONS", lang: currentLang))
-                                .font(.caption2).fontWeight(.bold)
-                                .foregroundStyle(.white.opacity(0.5)).tracking(1.5)
-                            medRow(t("Metformin", lang: currentLang),  "500mg", "2×/day")
-                            medRow(t("Lisinopril", lang: currentLang), "10mg",  "1×/day")
+                        .buttonStyle(.plain)
+                        .overlay {
+                            if showForensicQR {
+                                forensicQROverlay
+                            }
                         }
                     }
-                    .padding(20)
-                    .background(Color.white.opacity(0.07))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
-                    .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.12)))
 
                     // ── Detection source label ─────────────────────────────
                     Text(translatedSourceLabel())
@@ -838,6 +830,12 @@ struct EmergencyView: View {
         .task {
             await detector.detect()
         }
+        .onAppear {
+            profileType = ProfileTypeStore.shared.read()
+            let op = OperationalProfileStore.shared.read()
+            opRole = op?.operationalRole ?? .none
+            protection = op?.identityProtection ?? .standard
+        }
         // Scope dark mode to this view tree ONLY.
         // .environment(\.colorScheme, .dark) changes the SwiftUI environment
         // without touching UIWindow.overrideUserInterfaceStyle — the rest of
@@ -866,6 +864,214 @@ struct EmergencyView: View {
                     }
                 }
             }
+        }
+    }
+
+    // ── Profile-aware card ─────────────────────────────────────────────────
+
+    @ViewBuilder
+    private var profileAwareCard: some View {
+        switch protection {
+        case .covert:
+            covertCard
+        case .minimal:
+            minimalCard
+        case .reduced:
+            reducedCard
+        case .standard:
+            standardCard
+        }
+    }
+
+    // .covert — special ops: blood type + allergies ONLY, no identity
+    private var covertCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("⚕ EMERGENCY MEDICAL")
+                    .font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6)).tracking(1.5)
+                Spacer()
+                Text("A+").font(.title).fontWeight(.heavy).foregroundStyle(.red)
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+            // NO identity, NO NOK — covert profile
+        }
+        .cardStyle()
+    }
+
+    // .minimal — police/NGU: medical + NOK via duty, no affiliation
+    private var minimalCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("🪖⚖ MEDICAL CARD")
+                        .font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6)).tracking(1.5)
+                    Text("Authority: Law Enforcement")   // no country, no unit
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                }
+                Spacer()
+                Text("A+").font(.title).fontWeight(.heavy).foregroundStyle(.red)
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            Text("NOK: via duty officer")
+                .font(.caption).foregroundStyle(.white.opacity(0.55))
+        }
+        .cardStyle()
+    }
+
+    // .reduced — military: service number + medical + DNA ref + NOK via duty
+    private var reducedCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("🪖 COMBAT MEDICAL CARD")
+                        .font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6)).tracking(1.5)
+                    Text("Service №: ••••••  (biometric required)")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                    Text("Nationality: UA")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                }
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("A+").font(.title2).fontWeight(.heavy).foregroundStyle(.red)
+                    Text("✓ VERIFIED").font(.system(size: 9)).foregroundStyle(.green)
+                }
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("NOK: via duty officer")
+                        .font(.caption).foregroundStyle(.white.opacity(0.55))
+                    Text("DNA Ref: on file")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.4))
+                }
+            }
+        }
+        .cardStyle()
+    }
+
+    // .standard — civilian: full name, DOB, full data
+    private var standardCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Maria Kowalczyk")
+                        .font(.title3).fontWeight(.bold).foregroundStyle(.white)
+                    Text("DOB: \(formattedDOB()) · " + t("Polish", lang: currentLang))
+                        .font(.subheadline).foregroundStyle(.white.opacity(0.65))
+                }
+                Spacer()
+                Text("A+").font(.title).fontWeight(.heavy).foregroundStyle(.red)
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+        }
+        .cardStyle()
+    }
+
+    // .sarTeam / civilDefense — EUCP ID shown
+    private var sarCard: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("🦺 RESCUE TEAM MEMBER")
+                        .font(.caption).fontWeight(.bold).foregroundStyle(.white.opacity(0.6)).tracking(1.5)
+                    Text("EUCP ID: UCPM-DE-2024-001234")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.5))
+                    Text("Maria Kowalczyk").font(.caption2).foregroundStyle(.white.opacity(0.7))
+                }
+                Spacer()
+                Text("A+").font(.title2).fontWeight(.heavy).foregroundStyle(.red)
+            }
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            allergySection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            medSection
+            Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            Text("NOK: direct contact")
+                .font(.caption).foregroundStyle(.white.opacity(0.55))
+        }
+        .cardStyle()
+    }
+
+    private var allergySection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(t("ALLERGIES", lang: currentLang))
+                .font(.caption2).fontWeight(.bold)
+                .foregroundStyle(Color.red).tracking(1.5)
+            HStack(spacing: 8) {
+                allergyBadge(t("Penicillin", lang: currentLang))
+                allergyBadge(t("Ibuprofen", lang: currentLang))
+                allergyBadge(t("Sulfa", lang: currentLang))
+            }
+        }
+    }
+
+    private var medSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(t("MEDICATIONS", lang: currentLang))
+                .font(.caption2).fontWeight(.bold)
+                .foregroundStyle(.white.opacity(0.5)).tracking(1.5)
+            medRow(t("Metformin", lang: currentLang),  "500mg", "2×/day")
+            medRow(t("Lisinopril", lang: currentLang), "10mg",  "1×/day")
+        }
+    }
+
+    // ── Forensic QR overlay — DVI use only, 5 min TTL ─────────────────────
+
+    private var forensicQROverlay: some View {
+        ZStack {
+            Color.black.opacity(0.92).ignoresSafeArea()
+            VStack(spacing: 20) {
+                Text("⚠️ FOR AUTHORIZED DVI USE ONLY")
+                    .font(.caption).fontWeight(.bold).foregroundStyle(.orange).tracking(1)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(Color.white.opacity(0.1))
+                    .frame(width: 180, height: 180)
+                    .overlay(
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 90)).foregroundStyle(.white.opacity(0.4))
+                    )
+                VStack(spacing: 4) {
+                    Text("Scope: DNA ref · Identifying marks · Dental ref · Blood type")
+                        .font(.caption2).foregroundStyle(.white.opacity(0.6))
+                        .multilineTextAlignment(.center)
+                    Text("TTL: 5 minutes · Biometric required each display")
+                        .font(.caption2).foregroundStyle(.orange.opacity(0.7))
+                }
+                Button("Close") { showForensicQR = false; forensicUnlocked = false }
+                    .foregroundStyle(.white).padding(.horizontal, 32)
+            }
+            .padding(24)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func requestForensicUnlock() async {
+        do {
+            try await BiometricAuth.shared.evaluate(
+                reason: "Authenticate to display Forensic ID — authorized DVI personnel only"
+            )
+            forensicUnlocked = true
+            showForensicQR = true
+            // Auto-dismiss after 300 seconds (5 min TTL)
+            try await Task.sleep(nanoseconds: 300_000_000_000)
+            showForensicQR = false
+            forensicUnlocked = false
+        } catch {
+            forensicUnlocked = false
         }
     }
 
@@ -1176,6 +1382,18 @@ struct SupportProfileEditView: View {
         SupportProfileStore.save(updated)
         onSaved(updated)
         dismiss()
+    }
+}
+
+// MARK: - Card style modifier (emergency views)
+
+private extension View {
+    func cardStyle() -> some View {
+        self
+            .padding(20)
+            .background(Color.white.opacity(0.07))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.12)))
     }
 }
 
