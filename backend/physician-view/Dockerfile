@@ -17,7 +17,7 @@
 #     ghcr.io/nobordershealthcare/physician-view:latest
 
 # ── Stage 1: builder ────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install CA certificates for TLS calls (Redis mTLS, Fabric gateway)
 RUN apk add --no-cache ca-certificates
