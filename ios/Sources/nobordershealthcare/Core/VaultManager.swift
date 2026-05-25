@@ -7,6 +7,64 @@ import Foundation
 import Security
 import CryptoKit
 
+// MARK: - ProfileType (single source of truth)
+// Stored in Keychain under com.noborders.profile.type — NOT UserDefaults (sensitive).
+// Included as "profile_type" claim in every emergency JWT.
+// Drives: blockchain channel routing, consent rules, UI template selection.
+
+enum ProfileType: String, Codable, Sendable {
+    case civilian       // default — current behavior
+    case military       // STANAG 2154, channel4
+    case firstResponder // paramedic, firefighter, police
+    case corporate      // company employee (bulk import)
+    case family         // family member (bulk import)
+}
+
+// MARK: - ProfileTypeStore
+// Thread-safe Keychain-backed store for the user's ProfileType.
+// Separate from VaultManager actor to keep the encryption layer focused.
+
+final class ProfileTypeStore: @unchecked Sendable {
+
+    static let shared = ProfileTypeStore()
+
+    private let keychainAccount = "com.noborders.profile.type"
+    private let lock = NSLock()
+
+    private init() {}
+
+    func read() -> ProfileType {
+        lock.lock()
+        defer { lock.unlock() }
+        let q: [String: Any] = [
+            kSecClass as String:       kSecClassGenericPassword,
+            kSecAttrAccount as String: keychainAccount,
+            kSecReturnData as String:  true,
+        ]
+        var result: AnyObject?
+        guard SecItemCopyMatching(q as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data,
+              let raw = String(data: data, encoding: .utf8),
+              let type = ProfileType(rawValue: raw)
+        else { return .civilian }
+        return type
+    }
+
+    func write(_ type: ProfileType) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let data = type.rawValue.data(using: .utf8) else { return }
+        let q: [String: Any] = [
+            kSecClass as String:          kSecClassGenericPassword,
+            kSecAttrAccount as String:    keychainAccount,
+            kSecValueData as String:      data,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        ]
+        SecItemDelete(q as CFDictionary)
+        SecItemAdd(q as CFDictionary, nil)
+    }
+}
+
 actor VaultManager {
 
     static let shared = VaultManager()

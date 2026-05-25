@@ -290,3 +290,64 @@ struct Medication: Codable, Identifiable, Sendable {
     var frequency: String
     var atcCode: String?           // ATC code from normalization module — NEVER RxNorm
 }
+
+// MARK: - Military profile (STANAG 2154 compliant)
+// Stored in Silo 2 (Legal Vault, com.noborders.legal.key).
+// Only what saves lives — see exclusion list below.
+
+// EXPLICITLY EXCLUDED:
+// ❌ Security clearance — security risk on unconscious body
+// ❌ Unit designation — operational security
+// ❌ Rank — irrelevant for medical treatment
+// ❌ Tactical information of any kind
+// Rule: Emergency Card contains ONLY what saves lives
+
+struct MessengerHandle: Codable, Sendable {
+    var platform: String   // "telegram" | "whatsapp" | "signal" | "viber"
+    var handle: String     // username or phone-linked handle
+}
+
+struct NextOfKin: Codable, Identifiable, Sendable {
+    let id: UUID
+    var name: String
+    var relationship: String       // "spouse" | "parent" | "sibling"
+    var phone: String              // E.164
+    var messenger: MessengerHandle?
+    var notifyOnCasualty: Bool     // true = notify if injured/KIA
+    var priority: Int              // 1 = first to notify
+}
+
+struct IdentifyingMark: Codable, Identifiable, Sendable {
+    let id: UUID
+    var type: String               // "tattoo" | "scar" | "birthmark"
+    var location: String           // e.g. "left forearm, inner"
+    var description: String
+    var photoHash: String?         // SHA3-256(photo) — never the photo itself
+}
+
+struct MilitaryIdentification: Codable, Sendable {
+
+    // Identity — for DVI and MEDEVAC radio report
+    var serviceNumber: String      // personal military ID only
+    var nationality: String        // ISO 3166-1 alpha-2
+
+    // Medical — critical for treatment
+    var bloodTypeVerified: Bool    // true = genetic confirmation; false = self-reported
+    var dnaReferenceNumber: String // NATO DNA DB or UA MO registry reference
+    var dnaStandard: String        // "ESS" (European Standard Set) or "CODIS" (US)
+    var dentalRecordReference: String?
+
+    // Next of Kin — up to 3, priority order
+    var nextOfKin: [NextOfKin]     // max 3 entries
+
+    // Identifying marks — for DVI (Disaster Victim Identification)
+    var identifyingMarks: [IdentifyingMark]
+    var prosthetics: [String]?
+
+    // Medical preferences
+    var bloodTransfusionConsent: Bool  // true for most military personnel
+    var organDonorConsent: Bool        // DD Form 93 equivalent
+
+    // Religious preference — for burial procedures if KIA
+    var religiousPreference: String?   // e.g. "Orthodox", "Catholic", "Muslim"
+}

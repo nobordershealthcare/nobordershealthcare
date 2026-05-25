@@ -29,23 +29,27 @@
 		64DE2C7E17763878BAFADAF7 /* LegalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */; };
 		7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEDC1416C64BDAF416257DAA /* ContentView.swift */; };
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
+		7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */; };
 		80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56A573DBC9BE53097E791F51 /* QRGenerator.swift */; };
 		8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */; };
 		9BD2225F1C282A68C940859E /* SupportProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEEA8EC8166D9607512E78D /* SupportProfile.swift */; };
 		A1A273BEC65112CD3F80C289 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */; };
 		A1A6525BF19CD02CB185B64B /* SHA3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */; };
 		A27716086B07DCD6634C1EA7 /* SentencePieceShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D55527378C1D8F0F7697F1 /* SentencePieceShim.swift */; };
+		A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */; };
 		A5A1492E8D4FE212ABCB1854 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DFED60BDDE94483E29635A6B /* Assets.xcassets */; };
 		A7AAB394F54896C7DF219E8F /* IPFSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C12AA53CF41B4033407B0CF /* IPFSClient.swift */; };
 		AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC1623F564ECBC26952904 /* SignatureButton.swift */; };
+		AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E241D7E7155434C8739A07C /* BiometricLockView.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
 		B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6194C26F3263738B3825DA8 /* BiometricAuth.swift */; };
-		D9E0F1A2B3C4D5E6F7A8B9C1 /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */; };
 		BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */; };
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
 		C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */; };
+		D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62524B8496BE6AD1B7264711 /* UserProfile.swift */; };
+		D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CB4396676A9C48242F3099 /* UserAgreementView.swift */; };
 		D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15B0D42A99D7F83F5FCC12E /* QRGeneratorView.swift */; };
 		E1E651ABBD800234624285A8 /* IPS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155E0940A4102DEE59FDF511 /* IPS.swift */; };
 		E94E30F03EBACE766A13938B /* EmergencyCardSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */; };
@@ -53,11 +57,8 @@
 		EBA7E953E5DE5ED4FDCD735B /* SIPClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */; };
 		EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CA8B193143B17EBD08578 /* DocumentView.swift */; };
 		F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */; };
+		F7082CF9E0C5D77968E90A2C /* ActivationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */; };
 		FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA091911DC16BA81A2BDDB90 /* ConsentView.swift */; };
-		A7B8C9D0E1F2A3B4C5D6E7F8 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */; };
-		B8C9D0E1F2A3B4C5D6E7F8A9 /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */; };
-		C9D0E1F2A3B4C5D6E7F8A9B0 /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */; };
-		F6A7B8C9D0E1F2A3B4C5D6E7 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -69,13 +70,16 @@
 		27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA3.swift; sourceTree = "<group>"; };
 		2A6411BE2A63765FA00C6091 /* KyberOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyberOperations.swift; sourceTree = "<group>"; };
 		2C12AA53CF41B4033407B0CF /* IPFSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFSClient.swift; sourceTree = "<group>"; };
-		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		34EDABFB131AEE01B59471B5 /* BankIDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankIDClient.swift; sourceTree = "<group>"; };
+		39CB4396676A9C48242F3099 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
+		3E241D7E7155434C8739A07C /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
 		56A573DBC9BE53097E791F51 /* QRGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGenerator.swift; sourceTree = "<group>"; };
 		622F23DBC018E3F6C9948C28 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
+		62524B8496BE6AD1B7264711 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthcareProxyView.swift; sourceTree = "<group>"; };
 		6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalVaultManager.swift; sourceTree = "<group>"; };
 		6D72112E9BDE6DDF792806A3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
@@ -85,6 +89,7 @@
 		8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFImporter.swift; sourceTree = "<group>"; };
 		8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityView.swift; sourceTree = "<group>"; };
 		9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentTranslator.swift; sourceTree = "<group>"; };
+		A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
 		ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCountryDetector.swift; sourceTree = "<group>"; };
 		ACDC1623F564ECBC26952904 /* SignatureButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureButton.swift; sourceTree = "<group>"; };
 		AFBD308E0C72E134F31C8FF7 /* ShamirShard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShamirShard.swift; sourceTree = "<group>"; };
@@ -100,21 +105,18 @@
 		D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminologyMapper.swift; sourceTree = "<group>"; };
 		DBEEA8EC8166D9607512E78D /* SupportProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportProfile.swift; sourceTree = "<group>"; };
 		DFED60BDDE94483E29635A6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactView.swift; sourceTree = "<group>"; };
 		E6A46B21098DBE228CFA150F /* AttestationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttestationService.swift; sourceTree = "<group>"; };
 		EC86BB66FE5565C9184E8490 /* CallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CallView.swift; sourceTree = "<group>"; };
+		EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationCoordinator.swift; sourceTree = "<group>"; };
 		F04BF4200C2337B15544CBDC /* DocumentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStore.swift; sourceTree = "<group>"; };
 		F465B171728A2EE0DA91643D /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
 		F5600417288BAD034AAC350F /* DIDWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIDWallet.swift; sourceTree = "<group>"; };
 		F6194C26F3263738B3825DA8 /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
-		E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
 		F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardSetupView.swift; sourceTree = "<group>"; };
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
-		B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
-		C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
-		D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -158,7 +160,7 @@
 			children = (
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
-				E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */,
+				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
 				825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */,
 				D343F73610356376EFA4EC1B /* VaultManager.swift */,
 			);
@@ -216,24 +218,16 @@
 			children = (
 				CA091911DC16BA81A2BDDB90 /* ConsentView.swift */,
 				4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */,
-				D4E5F6A7B8C9D0E1F2A3B4C5 /* EmergencyContactView.swift */,
 				F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */,
+				E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */,
 				6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */,
 				8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */,
 				1237E8685774F975A3477230 /* OnboardingCoordinator.swift */,
-				B2C3D4E5F6A7B8C9D0E1F2A3 /* RegistrationView.swift */,
-				C3D4E5F6A7B8C9D0E1F2A3B4 /* UserAgreementView.swift */,
+				A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */,
+				39CB4396676A9C48242F3099 /* UserAgreementView.swift */,
 				F465B171728A2EE0DA91643D /* WelcomeView.swift */,
 			);
 			path = Onboarding;
-			sourceTree = "<group>";
-		};
-		E5F6A7B8C9D0E1F2A3B4C5D6 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* UserProfile.swift */,
-			);
-			path = Profile;
 			sourceTree = "<group>";
 		};
 		AAD9CA16C2C7675F77AD5927 /* SHA3Kit */ = {
@@ -265,6 +259,14 @@
 			path = App;
 			sourceTree = "<group>";
 		};
+		BC1AEA3248FD39E4787AE9E5 /* Activation */ = {
+			isa = PBXGroup;
+			children = (
+				EE8355D3DF2A44D8D91BA128 /* ActivationCoordinator.swift */,
+			);
+			path = Activation;
+			sourceTree = "<group>";
+		};
 		C5DC5B80FAEE69F1741090A7 /* Legal */ = {
 			isa = PBXGroup;
 			children = (
@@ -279,6 +281,7 @@
 		DA55866E9310F24F77CD28D5 /* nobordershealthcare */ = {
 			isa = PBXGroup;
 			children = (
+				BC1AEA3248FD39E4787AE9E5 /* Activation */,
 				02B2F7E18E8A7E8FFB198EBA /* Backup */,
 				371E7BC818D058D49B5C3531 /* Core */,
 				EF8BE9525689369301943D17 /* Documents */,
@@ -288,7 +291,7 @@
 				C5DC5B80FAEE69F1741090A7 /* Legal */,
 				3A5ADF7F05D3DDEBB4FA4184 /* Location */,
 				A18EE47162F2B75A353FAD84 /* Onboarding */,
-				E5F6A7B8C9D0E1F2A3B4C5D6 /* Profile */,
+				F2ADB786FEFB19E27DD88287 /* Profile */,
 				F31359D560C031FECE62EA16 /* QR */,
 				37AEB26E64686B0D8F007261 /* Support */,
 				829F00AEC966B81B80D13A2D /* Telemedicine */,
@@ -321,6 +324,14 @@
 				8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */,
 			);
 			path = Documents;
+			sourceTree = "<group>";
+		};
+		F2ADB786FEFB19E27DD88287 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				62524B8496BE6AD1B7264711 /* UserProfile.swift */,
+			);
+			path = Profile;
 			sourceTree = "<group>";
 		};
 		F31359D560C031FECE62EA16 /* QR */ = {
@@ -412,14 +423,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F7082CF9E0C5D77968E90A2C /* ActivationCoordinator.swift in Sources */,
 				AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */,
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
-				D9E0F1A2B3C4D5E6F7A8B9C1 /* BiometricLockView.swift in Sources */,
+				AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */,
 				4C75DEE1002D08A25449F758 /* CallView.swift in Sources */,
 				F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */,
-				B8C9D0E1F2A3B4C5D6E7F8A9 /* UserAgreementView.swift in Sources */,
-				F6A7B8C9D0E1F2A3B4C5D6E7 /* UserProfile.swift in Sources */,
 				FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */,
 				7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */,
 				0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */,
@@ -430,8 +440,8 @@
 				EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */,
 				5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */,
 				57B85DE5DCD54B13D52FA2A7 /* EmergencyCardService.swift in Sources */,
-				C9D0E1F2A3B4C5D6E7F8A9B0 /* EmergencyContactView.swift in Sources */,
 				E94E30F03EBACE766A13938B /* EmergencyCardSetupView.swift in Sources */,
+				7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */,
 				8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */,
 				C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */,
 				0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */,
@@ -446,10 +456,10 @@
 				352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */,
 				1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */,
 				496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */,
-				A7B8C9D0E1F2A3B4C5D6E7F8 /* RegistrationView.swift in Sources */,
 				B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */,
 				80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */,
 				D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */,
+				A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */,
 				A1A6525BF19CD02CB185B64B /* SHA3.swift in Sources */,
 				EBA7E953E5DE5ED4FDCD735B /* SIPClient.swift in Sources */,
 				5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */,
@@ -459,6 +469,8 @@
 				AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */,
 				9BD2225F1C282A68C940859E /* SupportProfile.swift in Sources */,
 				BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */,
+				D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */,
+				D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */,
 				11450AFA62CF73FA482F3998 /* VaultManager.swift in Sources */,
 				7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */,
 				EA9257C5986D3EB4CA43A7E1 /* xLMEngine.swift in Sources */,
@@ -475,7 +487,6 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -483,10 +494,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 6.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -500,7 +507,6 @@
 				CODE_SIGNING_ALLOWED = NO;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				INFOPLIST_FILE = App/Info.plist;
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.medical";
 				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -508,10 +514,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare;
 				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SUPPORTS_MACCATALYST = NO;
-				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
-				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 6.2;
 				TARGETED_DEVICE_FAMILY = "1,2";

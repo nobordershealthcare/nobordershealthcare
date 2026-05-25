@@ -37,6 +37,7 @@ struct NoBordersHealthcareApp: App {
     // is shown again on the next foreground resume.
     @State private var isUnlocked = false
 
+    @StateObject private var activationCoordinator = ActivationCoordinator.shared
     @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
@@ -55,8 +56,18 @@ struct NoBordersHealthcareApp: App {
                     // ── Onboarding flow ────────────────────────────────────
                     OnboardingFlowView()
                         .environmentObject(detector)
+                        .environmentObject(activationCoordinator)
                         .preferredColorScheme(resolvedScheme)
                 }
+            }
+            .onOpenURL { url in
+                // Deep link: app.noborders.healthcare/activate/{token}
+                // Token is UUID v4 — never log, never store after use.
+                guard url.host == "app.noborders.healthcare",
+                      url.path.hasPrefix("/activate/")
+                else { return }
+                let token = String(url.path.dropFirst("/activate/".count))
+                activationCoordinator.handleToken(token)
             }
         }
         .onChange(of: scenePhase) { _, phase in

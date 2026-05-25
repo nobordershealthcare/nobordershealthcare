@@ -163,18 +163,21 @@ final class EmergencyCardService: ObservableObject {
             return m
         }
 
+        let profileType = ProfileTypeStore.shared.read().rawValue
+
         let payloadDict: [String: Any] = [
-            "sub":         userIdHash,
-            "name":        card.displayName,
-            "dob":         dobFmt.string(from: card.dateOfBirth),
-            "blood":       card.bloodType.rawValue,
-            "allergies":   card.allergies,
-            "medications": medsArray,
-            "lang":        lang,
-            "pk":          pubKeyB64,
-            "iat":         Int(now.timeIntervalSince1970),
-            "exp":         Int(exp.timeIntervalSince1970),
-            "jti":         jti,
+            "sub":          userIdHash,
+            "name":         card.displayName,
+            "dob":          dobFmt.string(from: card.dateOfBirth),
+            "blood":        card.bloodType.rawValue,
+            "allergies":    card.allergies,
+            "medications":  medsArray,
+            "lang":         lang,
+            "pk":           pubKeyB64,
+            "profile_type": profileType,
+            "iat":          Int(now.timeIntervalSince1970),
+            "exp":          Int(exp.timeIntervalSince1970),
+            "jti":          jti,
         ]
 
         let header  = try base64url(json: ["alg": "EdDSA", "typ": "JWT"])
