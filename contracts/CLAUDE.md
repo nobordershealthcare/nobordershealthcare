@@ -2,7 +2,7 @@
 
 ## Language: Go 1.22+  |  Fabric: 2.5 LTS
 
-## 3-Channel Architecture
+## 5-Channel Architecture
 
 Each Fabric channel is a separate blockchain ledger with its own chaincode deployment,
 world state, and endorsement policy. Channels share no data.
@@ -12,6 +12,8 @@ world state, and endorsement policy. Channels share no data.
 | `signatures` | contracts/channel1-signatures/ | AdES legally-binding signature records |
 | `consent-audit` | contracts/channel2-consent/ | GDPR Art.7 consent lifecycle |
 | `access-audit` | contracts/channel3-access/ | GDPR Art.15 eHR access log |
+| `military` | contracts/channel4-military/ | STANAG 2154 military profile access |
+| `token-distribution` | contracts/channel5-token/ | NBHC token revenue distribution + MiCA audit |
 | *(access control)* | contracts/ | Permission grants/revocations (this directory) |
 
 ## What goes ON-CHAIN (only this, nothing else)
@@ -116,6 +118,43 @@ ForceAssemble(ctx, hashedUserID, hashedDocID, role, expiry, cosignerAdminHash)
 - ConsentRevocation is immediate — no grace period
 - All audit logs are append-only — no delete function exists in any channel
 - Cross-channel references use txID strings — never embed data from another channel
+
+## Channel 5: token-distribution — chaincode functions
+```go
+// Record total EURC revenue for a quarter. totalRevenue = micro-EURC integer string.
+// One allocation per period — immutable after write.
+RecordRevenueAllocation(ctx, period, totalRevenue)
+    → txID string
+
+// Read back a revenue allocation (evaluate, no endorsement).
+GetRevenueAllocation(ctx, period)
+    → RevenueAllocation
+
+// Record a single EURC payout.  Enforces MiCA Art.71 consent gate internally.
+// paymentRef = Stripe charge ID or on-chain tx hash.
+RecordDistribution(ctx, holderHash, amount, period, paymentRef)
+    → txID string
+
+// Return all payout records for a holder (evaluate). Used for MiCA statements.
+GetDistributionHistory(ctx, holderHash)
+    → []DistributionRecord
+
+// Returns true if holder has active distribution consent (evaluate).
+VerifyHolderConsent(ctx, holderHash)
+    → bool
+
+// Write or update MiCA Art.71 distribution consent.
+// signatureTxHash = channel-1 AdES txID (required when granting).
+RecordHolderConsent(ctx, holderHash, granted, signatureTxHash)
+    → txID string
+```
+
+**Key invariants for channel 5:**
+- Amounts are stored as micro-EURC integer strings (1 EURC = 1_000_000) — never floats
+- holderHash = SHA3-256(salt + holderAddress.Bytes()) — never a raw Polygon address
+- RecordDistribution re-checks consent atomically — no distribution without MiCA consent
+- Revenue allocations are immutable once written (one per period)
+- This channel contains NO health data — it is purely a financial audit ledger
 
 ## Hashing
 - Algorithm: SHA3-256 (`golang.org/x/crypto/sha3`)
