@@ -1,4 +1,4 @@
-# __manifest__.py — Odoo 17 module: NoBorders Healthcare Referral Management
+# __manifest__.py — Odoo 19 module: NoBorders Healthcare Referral Management
 #
 # Manages the 4-type referral programme:
 #   TYPE 1 — Individual (patient → friend):   account credit, no cash
@@ -9,7 +9,7 @@
 # Privacy note: referred_hash is SHA3-256(salt+userID) — no PII stored in Odoo.
 {
     'name': 'NoBorders Healthcare — Referral Management',
-    'version': '17.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Healthcare / Marketing',
     'summary': '4-type referral programme: individual credits, partner/affiliate Stripe commissions, provider API credits',
     'author': 'NoBorders Healthcare',

@@ -2,9 +2,8 @@
 <odoo>
 
     <!-- ══════════════════════════════════════════════════════════════════════
-         Form view
-         Odoo 19: invisible/readonly use inline Python-like expressions.
-         No attrs={} — that was removed in v17+.
+         Form view — Odoo 19
+         invisible/readonly use inline Python-like expressions (not legacy dicts).
     ═══════════════════════════════════════════════════════════════════════ -->
 
     <record id="view_nbhc_bulk_import_form" model="ir.ui.view">
@@ -132,7 +131,7 @@
     </record>
 
     <!-- ══════════════════════════════════════════════════════════════════════
-         List view (replaces <tree> in Odoo 17+)
+         List view — Odoo 19
     ═══════════════════════════════════════════════════════════════════════ -->
 
     <record id="view_nbhc_bulk_import_list" model="ir.ui.view">

@@ -1,4 +1,4 @@
-# __manifest__.py — Odoo 17 module: NoBorders Healthcare API Partners
+# __manifest__.py — Odoo 19 module: NoBorders Healthcare API Partners
 #
 # Manages healthcare partner API integrations:
 #   - Partner registration lifecycle (pending → approved → suspended / revoked)
@@ -9,7 +9,7 @@
 #   - Dashboard: kanban by type, API-call graph, DSA expiry timeline
 {
     'name': 'NoBorders Healthcare — API Partners',
-    'version': '17.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Healthcare / Integration',
     'summary': 'Manage healthcare provider API partner registrations and billing',
     'author': 'NoBorders Healthcare',
