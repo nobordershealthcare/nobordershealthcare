@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/hyperledger/fabric-gateway/pkg/client"
@@ -168,15 +169,15 @@ func NewFromEnv() (*Logger, error) {
 		return nil, errors.New("ch3log: missing required environment variables (FABRIC_ENDPOINT, FABRIC_MSPID, FABRIC_CERT_PATH, FABRIC_KEY_PATH, FABRIC_TLSCA_PATH, FABRIC_CHANNEL3, FABRIC_CHAINCODE3)")
 	}
 
-	certPEM, err := os.ReadFile(certPath)
+	certPEM, err := os.ReadFile(filepath.Clean(certPath))
 	if err != nil {
 		return nil, fmt.Errorf("ch3log read cert: %w", err)
 	}
-	keyPEM, err := os.ReadFile(keyPath)
+	keyPEM, err := os.ReadFile(filepath.Clean(keyPath))
 	if err != nil {
 		return nil, fmt.Errorf("ch3log read key: %w", err)
 	}
-	tlsPEM, err := os.ReadFile(tlsPath)
+	tlsPEM, err := os.ReadFile(filepath.Clean(tlsPath))
 	if err != nil {
 		return nil, fmt.Errorf("ch3log read tls ca: %w", err)
 	}

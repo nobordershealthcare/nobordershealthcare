@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -356,7 +357,7 @@ func loadClientCA() *x509.CertPool {
 		slog.Warn("MTLS_CA_CERT_PATH not set — client CA verification may fail")
 		return nil
 	}
-	pem, err := os.ReadFile(caPath)
+	pem, err := os.ReadFile(filepath.Clean(caPath))
 	if err != nil {
 		slog.Error("failed to load mTLS CA cert", "path", caPath, "err", err)
 		return nil

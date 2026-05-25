@@ -41,7 +41,9 @@ RUN CGO_ENABLED=0 GOFLAGS=-trimpath \
 # Run: docker pull gcr.io/distroless/static-debian12:nonroot \
 #        && docker inspect --format='{{index .RepoDigests 0}}' \
 #           gcr.io/distroless/static-debian12:nonroot
-FROM gcr.io/distroless/static-debian12:nonroot  # TODO: replace with digest-pinned reference
+# TODO: replace with digest-pinned reference before deploying to production.
+# Run: docker inspect --format='{{index .RepoDigests 0}}' gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 # Copy CA bundle from builder (needed for mTLS to Redis and Fabric peers)
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
