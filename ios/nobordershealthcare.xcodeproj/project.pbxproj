@@ -41,6 +41,7 @@
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
 		B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6194C26F3263738B3825DA8 /* BiometricAuth.swift */; };
+		D9E0F1A2B3C4D5E6F7A8B9C1 /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */; };
 		BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */; };
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
@@ -106,6 +107,7 @@
 		F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
 		F5600417288BAD034AAC350F /* DIDWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIDWallet.swift; sourceTree = "<group>"; };
 		F6194C26F3263738B3825DA8 /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
+		E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
 		F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardSetupView.swift; sourceTree = "<group>"; };
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -156,6 +158,7 @@
 			children = (
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
+				E0F1A2B3C4D5E6F7A8B9C0D1 /* BiometricLockView.swift */,
 				825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */,
 				D343F73610356376EFA4EC1B /* VaultManager.swift */,
 			);
@@ -412,6 +415,7 @@
 				AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */,
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
+				D9E0F1A2B3C4D5E6F7A8B9C1 /* BiometricLockView.swift in Sources */,
 				4C75DEE1002D08A25449F758 /* CallView.swift in Sources */,
 				F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */,
 				B8C9D0E1F2A3B4C5D6E7F8A9 /* UserAgreementView.swift in Sources */,

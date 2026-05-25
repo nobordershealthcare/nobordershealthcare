@@ -10,6 +10,7 @@
 // After sign: coordinator.markUserAgreementComplete() via "Continue" button.
 
 import SwiftUI
+import LocalAuthentication
 
 // MARK: - UserAgreementView
 
@@ -18,8 +19,20 @@ struct UserAgreementView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
+    // Persisted — controls the gate in NoBordersHealthcareApp
+    @AppStorage("biometricLockEnabled") private var biometricLockEnabled = false
+
     @State private var aiTrainingConsent: Bool = false
     @State private var signed = false
+
+    // Biometric enrollment state
+    @State private var enrolling = false
+    @State private var biometryIcon:  String = "faceid"
+    @State private var biometryLabel: String = "Face ID"
+    @State private var biometricAvailable = true
+    @State private var showUnavailableAlert = false
+    @State private var showFailedAlert      = false
+    @State private var failedReason         = ""
 
     var body: some View {
         NavigationStack {
@@ -48,6 +61,60 @@ struct UserAgreementView: View {
                                pt: "Acordo de Utilizador",
                                ru: "Пользовательское соглашение"))
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear { resolvebiometryType() }
+            .alert(
+                s("Biometrics Unavailable",
+                  uk: "Біометрія недоступна",
+                  de: "Biometrie nicht verfügbar",
+                  pt: "Biometria indisponível",
+                  ru: "Биометрия недоступна"),
+                isPresented: $showUnavailableAlert
+            ) {
+                Button(s("Open Settings",
+                         uk: "Відкрити Налаштування",
+                         de: "Einstellungen öffnen",
+                         pt: "Abrir Definições",
+                         ru: "Открыть Настройки")) {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button(s("Skip for now",
+                         uk: "Пропустити зараз",
+                         de: "Jetzt überspringen",
+                         pt: "Ignorar por agora",
+                         ru: "Пропустить сейчас")) {
+                    coordinator.markUserAgreementComplete()
+                }
+                Button(s("Cancel", uk: "Скасувати", de: "Abbrechen", pt: "Cancelar", ru: "Отмена"),
+                       role: .cancel) { }
+            } message: {
+                Text(s("Face ID / Touch ID is not set up on this device. Open Settings to enable biometrics, or skip to proceed without biometric lock.",
+                       uk: "Face ID / Touch ID не налаштовано на цьому пристрої. Відкрийте Налаштування або пропустіть для продовження без блокування.",
+                       de: "Face ID / Touch ID ist nicht eingerichtet. Öffnen Sie die Einstellungen oder überspringen Sie diesen Schritt.",
+                       pt: "Face ID / Touch ID não está configurado. Abra as Definições ou ignore para continuar sem bloqueio biométrico.",
+                       ru: "Face ID / Touch ID не настроен на этом устройстве. Откройте Настройки или пропустите для продолжения без биометрической блокировки."))
+            }
+            .alert(
+                s("Authentication Failed",
+                  uk: "Помилка аутентифікації",
+                  de: "Authentifizierung fehlgeschlagen",
+                  pt: "Autenticação falhada",
+                  ru: "Ошибка аутентификации"),
+                isPresented: $showFailedAlert
+            ) {
+                Button(s("Try Again",
+                         uk: "Спробувати ще",
+                         de: "Erneut versuchen",
+                         pt: "Tentar novamente",
+                         ru: "Повторить")) {
+                    enrollBiometricAndAdvance()
+                }
+                Button(s("Cancel", uk: "Скасувати", de: "Abbrechen", pt: "Cancelar", ru: "Отмена"),
+                       role: .cancel) { }
+            } message: {
+                Text(failedReason)
+            }
         }
     }
 
@@ -233,18 +300,35 @@ struct UserAgreementView: View {
                 }
 
                 Button {
-                    coordinator.markUserAgreementComplete()
+                    enrollBiometricAndAdvance()
                 } label: {
-                    Text(s("Continue",
-                           uk: "Продовжити",
-                           de: "Weiter",
-                           pt: "Continuar",
-                           ru: "Продолжить"))
-                        .font(.headline)
-                        .frame(maxWidth: .infinity, minHeight: 50)
+                    HStack(spacing: 8) {
+                        if enrolling {
+                            ProgressView().tint(.white).controlSize(.small)
+                        } else {
+                            Image(systemName: biometryIcon)
+                        }
+                        Text(
+                            enrolling
+                                ? s("Enabling \(biometryLabel)…",
+                                    uk: "Вмикання \(biometryLabel)…",
+                                    de: "\(biometryLabel) wird aktiviert…",
+                                    pt: "A ativar \(biometryLabel)…",
+                                    ru: "Включение \(biometryLabel)…")
+                                : s("Continue — Enable \(biometryLabel)",
+                                    uk: "Продовжити — Увімкнути \(biometryLabel)",
+                                    de: "Weiter — \(biometryLabel) aktivieren",
+                                    pt: "Continuar — Ativar \(biometryLabel)",
+                                    ru: "Продолжить — Включить \(biometryLabel)")
+                        )
+                        .fontWeight(.semibold)
+                    }
+                    .font(.headline)
+                    .frame(maxWidth: .infinity, minHeight: 50)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(Color.navy)
+                .disabled(enrolling)
             } else {
                 SignatureButton(
                     document: buildAgreementDocument(),
@@ -264,6 +348,70 @@ struct UserAgreementView: View {
                              ru: "Согласен — Подписать")
                 ) { _ in
                     signed = true
+                }
+            }
+        }
+    }
+
+    // MARK: - Biometric helpers
+
+    private func resolvebiometryType() {
+        let ctx = LAContext()
+        var err: NSError?
+        biometricAvailable = ctx.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &err)
+        switch ctx.biometryType {
+        case .faceID:
+            biometryIcon  = "faceid"
+            biometryLabel = "Face ID"
+        case .touchID:
+            biometryIcon  = "touchid"
+            biometryLabel = "Touch ID"
+        case .opticID:
+            biometryIcon  = "opticid"
+            biometryLabel = "Optic ID"
+        default:
+            biometryIcon  = "lock.fill"
+            biometryLabel = s("Biometrics",
+                              uk: "Біометрія",
+                              de: "Biometrie",
+                              pt: "Biometria",
+                              ru: "Биометрия")
+        }
+    }
+
+    private func enrollBiometricAndAdvance() {
+        guard !enrolling else { return }
+        guard biometricAvailable else {
+            showUnavailableAlert = true
+            return
+        }
+        enrolling = true
+        let reason = s(
+            "Enable biometric lock for your NoBorders Healthcare wallet",
+            uk: "Увімкнути біометричне блокування гаманця NoBorders Healthcare",
+            de: "Biometrischen Schutz für Ihr NoBorders Healthcare Wallet aktivieren",
+            pt: "Ativar bloqueio biométrico para a sua carteira NoBorders Healthcare",
+            ru: "Включить биометрическую блокировку кошелька NoBorders Healthcare"
+        )
+        Task {
+            do {
+                try await BiometricAuth.shared.evaluate(reason: reason)
+                await MainActor.run {
+                    enrolling            = false
+                    biometricLockEnabled = true
+                    coordinator.markUserAgreementComplete()
+                }
+            } catch BiometricAuth.AuthError.unavailable {
+                await MainActor.run {
+                    enrolling            = false
+                    biometricAvailable   = false
+                    showUnavailableAlert = true
+                }
+            } catch {
+                await MainActor.run {
+                    enrolling       = false
+                    failedReason    = error.localizedDescription
+                    showFailedAlert = true
                 }
             }
         }

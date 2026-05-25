@@ -24,19 +24,46 @@ struct NoBordersHealthcareApp: App {
         }
     }
 
-    // Onboarding gate — complete = true only after all 7 steps signed.
+    // Onboarding gate — complete = true only after all steps are done.
     @AppStorage("onboardingComplete") private var onboardingComplete = false
+
+    // Biometric gate — set to true automatically when the user signs the
+    // User Agreement in onboarding.  After that every launch + foreground
+    // resume requires a successful biometric challenge.
+    @AppStorage("biometricLockEnabled") private var biometricLockEnabled = false
+
+    // Tracks whether the current session has passed the biometric challenge.
+    // Reset to false whenever the app moves to the background so BiometricLockView
+    // is shown again on the next foreground resume.
+    @State private var isUnlocked = false
+
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some Scene {
         WindowGroup {
-            if onboardingComplete {
-                ContentView()
-                    .environmentObject(detector)
-                    .preferredColorScheme(resolvedScheme)
-            } else {
-                OnboardingFlowView()
-                    .environmentObject(detector)
-                    .preferredColorScheme(resolvedScheme)
+            Group {
+                if onboardingComplete && biometricLockEnabled && !isUnlocked {
+                    // ── Biometric gate ─────────────────────────────────────
+                    BiometricLockView { isUnlocked = true }
+                        .preferredColorScheme(resolvedScheme)
+                } else if onboardingComplete {
+                    // ── Main app ───────────────────────────────────────────
+                    ContentView()
+                        .environmentObject(detector)
+                        .preferredColorScheme(resolvedScheme)
+                } else {
+                    // ── Onboarding flow ────────────────────────────────────
+                    OnboardingFlowView()
+                        .environmentObject(detector)
+                        .preferredColorScheme(resolvedScheme)
+                }
+            }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Re-lock the app the moment it leaves the foreground.
+            // BiometricLockView will prompt again on the next foreground resume.
+            if phase == .background {
+                isUnlocked = false
             }
         }
     }
