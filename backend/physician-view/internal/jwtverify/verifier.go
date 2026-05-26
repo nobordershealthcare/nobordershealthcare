@@ -51,6 +51,27 @@ type PatientClaims struct {
 	IAT         int64               `json:"iat"`
 	EXP         int64               `json:"exp"`
 	JTI         string              `json:"jti"`
+	// Optional — populated for military / gendarmerie / covert profiles.
+	Profile string    `json:"profile,omitempty"` // "civilian"|"military"|"gendarmerie"|"covert"
+	NOK     *NOKInfo  `json:"nok,omitempty"`
+	CBRN    *CBRNInfo `json:"cbrn,omitempty"`
+}
+
+// NOKInfo carries next-of-kin / duty-officer routing for military patients.
+// Contains only non-classified routing references — no personal names, addresses,
+// or operational details.
+type NOKInfo struct {
+	UnitRef     string `json:"unit_ref"`      // sanitised unit reference
+	DutyContact string `json:"duty_contact"`  // duty officer contact procedure
+	Protocol    string `json:"protocol"`      // e.g. "MINDEF-ATLAS-PTG"
+}
+
+// CBRNInfo carries Chemical/Biological/Radiological/Nuclear decontamination
+// status for military patients. "cleared" | "precaution" | "unknown".
+type CBRNInfo struct {
+	Status      string `json:"status"`
+	LastChecked string `json:"last_checked,omitempty"` // ISO 8601 date
+	Notes       string `json:"notes,omitempty"`
 }
 
 // Verify parses and cryptographically validates a patient JWT.

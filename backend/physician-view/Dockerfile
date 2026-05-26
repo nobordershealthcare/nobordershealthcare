@@ -51,9 +51,13 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy compiled binary
 COPY --from=builder /physician-view /physician-view
 
-# Copy HTML templates (read at startup via TEMPLATE_DIR env var)
+# Copy Go HTML templates (legacy; still used by some internal tooling)
 # Default: /templates — override with TEMPLATE_DIR=/path/to/templates
 COPY --from=builder /src/templates /templates
+
+# Copy the HTML5 web app (CSS/JS/HTML served as static files)
+# Default WEB_DIR: /web — override with WEB_DIR=/path/to/web
+COPY --from=builder /src/web /web
 
 # Distroless nonroot runs as uid 65532 (nonroot) — no privilege needed
 USER nonroot:nonroot
