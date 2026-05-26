@@ -34,7 +34,7 @@ COPY . .
 # CGO_ENABLED=0 produces a fully static binary — no glibc required.
 # GOFLAGS=-trimpath removes local build paths from the binary.
 RUN CGO_ENABLED=0 GOFLAGS=-trimpath \
-    go build -ldflags="-s -w" -o /physician-view ./...
+    go build -ldflags="-s -w" -o /physician-view .
 
 # ── Stage 2: final ──────────────────────────────────────────────────────────
 # SECURITY: Pin to digest before deploying.
