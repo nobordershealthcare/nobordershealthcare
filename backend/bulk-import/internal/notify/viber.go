@@ -62,7 +62,11 @@ func (v *viberSender) Send(ctx context.Context, msg Message) error {
 	}
 	data, _ := json.Marshal(payload)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://chatapi.viber.com/pa/send_message", bytes.NewReader(data))
+	const viberURL = "https://chatapi.viber.com/pa/send_message"
+	if err := ValidateNotifyURL(viberURL); err != nil {
+		return fmt.Errorf("viber: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, viberURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("viber: build request: %w", err)
 	}

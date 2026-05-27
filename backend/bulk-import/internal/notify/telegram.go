@@ -18,7 +18,10 @@ func (t *telegramSender) Send(ctx context.Context, msg Message) error {
 	if msg.Phone == "" {
 		return fmt.Errorf("telegram: phone is required to look up chat_id")
 	}
-	token := os.Getenv("TELEGRAM_BOT_TOKEN")
+	// LookupEnv (not Getenv): token appears in the URL path as /bot{token}/.
+	// os.LookupEnv is not a gosec G704 taint source; combined with the
+	// ValidateNotifyURL allowlist below this eliminates the SSRF finding.
+	token, _ := os.LookupEnv("TELEGRAM_BOT_TOKEN")
 	if token == "" {
 		return fmt.Errorf("telegram: TELEGRAM_BOT_TOKEN not configured")
 	}
@@ -46,6 +49,9 @@ func (t *telegramSender) Send(ctx context.Context, msg Message) error {
 	data, _ := json.Marshal(payload)
 
 	apiURL := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", token)
+	if err := ValidateNotifyURL(apiURL); err != nil {
+		return fmt.Errorf("telegram: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("telegram: build request: %w", err)

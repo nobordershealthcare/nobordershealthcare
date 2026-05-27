@@ -43,7 +43,11 @@ func (e *emailSender) Send(ctx context.Context, msg Message) error {
 	}
 	data, _ := json.Marshal(payload)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, "https://api.sendgrid.com/v3/mail/send", bytes.NewReader(data))
+	const sendgridURL = "https://api.sendgrid.com/v3/mail/send"
+	if err := ValidateNotifyURL(sendgridURL); err != nil {
+		return fmt.Errorf("email: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sendgridURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("email: build request: %w", err)
 	}

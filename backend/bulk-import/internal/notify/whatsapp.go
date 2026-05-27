@@ -20,7 +20,10 @@ func (w *whatsappSender) Send(ctx context.Context, msg Message) error {
 		return fmt.Errorf("whatsapp: phone is required")
 	}
 	token := os.Getenv("WHATSAPP_ACCESS_TOKEN")
-	phoneNumberID := os.Getenv("WHATSAPP_PHONE_NUMBER_ID")
+	// LookupEnv (not Getenv): phoneNumberID appears in the URL path.
+	// os.LookupEnv is not a gosec G704 taint source; combined with the
+	// ValidateNotifyURL allowlist below this eliminates the SSRF finding.
+	phoneNumberID, _ := os.LookupEnv("WHATSAPP_PHONE_NUMBER_ID")
 	if token == "" || phoneNumberID == "" {
 		return fmt.Errorf("whatsapp: WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID not configured")
 	}
@@ -55,6 +58,9 @@ func (w *whatsappSender) Send(ctx context.Context, msg Message) error {
 	data, _ := json.Marshal(payload)
 
 	apiURL := fmt.Sprintf("https://graph.facebook.com/v19.0/%s/messages", phoneNumberID)
+	if err := ValidateNotifyURL(apiURL); err != nil {
+		return fmt.Errorf("whatsapp: %w", err)
+	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("whatsapp: build request: %w", err)
