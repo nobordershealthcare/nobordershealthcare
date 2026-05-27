@@ -17,7 +17,7 @@
 #     ghcr.io/nobordershealthcare/physician-view:latest
 
 # ── Stage 1: builder ────────────────────────────────────────────────────────
-FROM golang:1.22-alpine AS builder
+FROM golang:1.26-alpine AS builder
 
 # Install CA certificates for TLS calls (Redis mTLS, Fabric gateway)
 RUN apk add --no-cache ca-certificates
@@ -34,14 +34,16 @@ COPY . .
 # CGO_ENABLED=0 produces a fully static binary — no glibc required.
 # GOFLAGS=-trimpath removes local build paths from the binary.
 RUN CGO_ENABLED=0 GOFLAGS=-trimpath \
-    go build -ldflags="-s -w" -o /physician-view ./...
+    go build -ldflags="-s -w" -o /physician-view .
 
 # ── Stage 2: final ──────────────────────────────────────────────────────────
 # SECURITY: Pin to digest before deploying.
 # Run: docker pull gcr.io/distroless/static-debian12:nonroot \
 #        && docker inspect --format='{{index .RepoDigests 0}}' \
 #           gcr.io/distroless/static-debian12:nonroot
-FROM gcr.io/distroless/static-debian12:nonroot  # TODO: replace with digest-pinned reference
+# TODO: replace with digest-pinned reference before deploying to production.
+# Run: docker inspect --format='{{index .RepoDigests 0}}' gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian12:nonroot
 
 # Copy CA bundle from builder (needed for mTLS to Redis and Fabric peers)
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -49,9 +51,13 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 # Copy compiled binary
 COPY --from=builder /physician-view /physician-view
 
-# Copy HTML templates (read at startup via TEMPLATE_DIR env var)
+# Copy Go HTML templates (legacy; still used by some internal tooling)
 # Default: /templates — override with TEMPLATE_DIR=/path/to/templates
 COPY --from=builder /src/templates /templates
+
+# Copy the HTML5 web app (CSS/JS/HTML served as static files)
+# Default WEB_DIR: /web — override with WEB_DIR=/path/to/web
+COPY --from=builder /src/web /web
 
 # Distroless nonroot runs as uid 65532 (nonroot) — no privilege needed
 USER nonroot:nonroot

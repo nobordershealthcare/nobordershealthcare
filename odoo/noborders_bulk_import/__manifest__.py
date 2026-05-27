@@ -15,12 +15,12 @@ Supports:
   • Corporate — company employee onboarding
   • Family — family-member onboarding
 
-Requires: noborders_api_partners (API-key config, mTLS credentials)
+mTLS credentials provided via ir.config_parameter — no Odoo module dependency.
     """,
     "author": "NoBorders Healthcare",
     "website": "https://noborders.healthcare",
     "category": "Health",
-    "depends": ["base", "mail", "contacts", "noborders_api_partners"],
+    "depends": ["base", "mail", "contacts"],
     "data": [
         "security/ir.model.access.csv",
         "views/bulk_import_views.xml",

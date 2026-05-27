@@ -23,6 +23,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
@@ -108,6 +109,7 @@ func sanitizeIPForKey(remoteAddr string) string {
 	return remoteAddr
 }
 
+<<<<<<< HEAD
 // CSPNonceContextKey is the exported context key used by securityHeadersMiddleware
 // (in main.go) to store the per-request CSP nonce, and by ScanHandler to retrieve it.
 // Exporting the type allows main.go to alias it (type cspNonceKey = handlers.CSPNonceContextKey)
@@ -181,8 +183,23 @@ var scanLandingTmpl = template.Must(template.New("landing").Parse(`<!DOCTYPE htm
 //
 // The fragment is never transmitted to the server in GET requests, so the JWT
 // never appears in nginx access logs, CDN logs, or any upstream proxy log.
+=======
+// ScanHandler handles GET /scan?token=<jwt>.
+//
+// Content negotiation:
+//   Accept: text/html  → serve a redirect page that moves the token to the
+//                        URL hash (#token=JWT) and navigates to emergency.html.
+//                        The hash is never sent to the server on subsequent loads.
+//   Accept: application/json (or default) → verify JWT and return CardAPIResponse.
+//
+// HTML browsers arriving via an old-format QR link (/scan?token=...) are
+// transparently migrated to the hash-based URL. New QR codes should encode
+// physician.noborders.healthcare/#token=JWT directly.
+//
+>>>>>>> feat/referral-system
 // rdb is required for rate limiting and consent revocation checks.
-func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
+// webDir is the filesystem path to the compiled web/ directory.
+func ScanHandler(tmpl *template.Template, rdb *redis.Client, webDir string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -209,6 +226,7 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 			return
 		}
 
+<<<<<<< HEAD
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "invalid form data", http.StatusBadRequest)
 			return
@@ -216,6 +234,50 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 		tokenStr := strings.TrimSpace(r.FormValue("token"))
 		if tokenStr == "" {
 			http.Error(w, "missing token", http.StatusBadRequest)
+=======
+		accept := r.Header.Get("Accept")
+		wantsHTML := strings.Contains(accept, "text/html")
+
+		tokenStr := strings.TrimSpace(r.URL.Query().Get("token"))
+
+		// ── HTML path ─────────────────────────────────────────
+		// Serve a minimal redirect page that moves the token to the hash,
+		// then navigates to emergency.html. After the redirect, the token
+		// lives only in the URL hash and is not sent to the server.
+		if wantsHTML {
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+
+			// The JS below runs once on load: moves ?token= to #token= and replaces
+			// the history entry so the query string is not retained in browser history.
+			fmt.Fprintf(w, `<!DOCTYPE html>
+<html><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Redirecting…</title>
+</head><body>
+<script>
+(function(){
+  var m = location.search.match(/[?&]token=([^&]+)/);
+  if (m) { location.replace('/emergency.html#token=' + m[1]); }
+  else   { location.replace('/emergency.html'); }
+})();
+</script>
+<noscript>
+  <meta http-equiv="refresh" content="0;url=/emergency.html">
+  <p>Redirecting…</p>
+</noscript>
+</body></html>
+`)
+			return
+		}
+
+		// ── JSON API path ──────────────────────────────────────
+		// Kept for backward-compat with existing API consumers.
+		// New code should call GET /api/card directly.
+		if tokenStr == "" {
+			jsonErr(w, "missing_token", http.StatusBadRequest)
+>>>>>>> feat/referral-system
 			return
 		}
 
@@ -225,50 +287,57 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 			if errors.Is(err, jwtverify.ErrExpired) {
 				code = http.StatusGone
 			}
-			// Do NOT log the token string — it contains patient data.
-			// Do NOT echo the internal error to the caller — prevents token oracle attacks.
-			slog.Warn("jwt verification failed", slog.String("err", err.Error()), slog.String("remote", r.RemoteAddr))
-			http.Error(w, "invalid or expired QR code", code)
+			slog.Warn("scan jwt verify failed",
+				slog.String("err", err.Error()),
+				slog.String("remote", r.RemoteAddr),
+			)
+			jsonErr(w, errCodeFromVerifyErr(err), code)
 			return
 		}
 
-		// Consent revocation check: reject if the patient has revoked access since this
-		// token was issued. The gatekeeper sets "revoke:{sub}" in Redis (TTL = 15 min)
-		// when it processes a RevocationEvent from Fabric channel 2.
 		revKey := RevocationKeyPrefix + claims.Sub
-		if revoked, err := rdb.Exists(r.Context(), revKey).Result(); err == nil && revoked > 0 {
+		if revoked, redisErr := rdb.Exists(r.Context(), revKey).Result(); redisErr == nil && revoked > 0 {
 			slog.Warn("scan blocked — consent revoked", slog.String("ref", safeRef(claims.Sub)))
-			http.Error(w, "access revoked", http.StatusForbidden)
+			jsonErr(w, "revoked", http.StatusForbidden)
 			return
 		}
-		// On Redis error, fail open with a warning — do not block ER access.
-		_ = fmt.Sprintf // suppress unused import warning; err already evaluated above
 
-
-		lang := selectLanguage(claims.Lang, r.Header.Get("Accept-Language"))
-		t := translations(lang)
-
-		data := CardTemplateData{
-			Blood:          claims.Blood,
-			Allergies:      claims.Allergies,
-			Medications:    claims.Medications,
-			PatientRef:     safeRef(claims.Sub),
-			JTI:            claims.JTI,
-			Lang:           lang,
-			Name:           claims.Name,
-			DOB:            claims.DOB,
-			T:              t,
-			CryptoVerified: true,
-			ExpiresAt:      formatUnix(claims.EXP),
+		profile := claims.Profile
+		if profile == "" {
+			profile = "civilian"
+		}
+		allergies := claims.Allergies
+		if allergies == nil {
+			allergies = []string{}
+		}
+		meds := claims.Medications
+		if meds == nil {
+			meds = []map[string]string{}
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		resp := CardAPIResponse{
+			Verified:    true,
+			Exp:         formatUnix(claims.EXP),
+			ExpUnix:     claims.EXP,
+			SubRef:      safeRef(claims.Sub),
+			JTI:         claims.JTI,
+			Lang:        selectLanguage(claims.Lang, r.Header.Get("Accept-Language")),
+			Profile:     profile,
+			Name:        claims.Name,
+			DOB:         claims.DOB,
+			Blood:       claims.Blood,
+			Allergies:   allergies,
+			Medications: meds,
+			NOK:         claims.NOK,
+			CBRN:        claims.CBRN,
+		}
+
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.Header().Set("Cache-Control", "no-store, no-cache")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 
-		if err := tmpl.ExecuteTemplate(w, "emergency-card.html", data); err != nil {
-			slog.Error("template render failed", slog.String("err", err.Error()))
-			http.Error(w, "render error", http.StatusInternalServerError)
+		if err := json.NewEncoder(w).Encode(resp); err != nil {
+			slog.Error("scan json encode failed", slog.String("err", err.Error()))
 		}
 	}
 }

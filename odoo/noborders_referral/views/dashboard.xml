@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Referral funnel dashboard: Codes → Conversions → Paid -->
+
+    <record id="view_referral_dashboard" model="ir.ui.view">
+        <field name="name">nbhc.referral.dashboard</field>
+        <field name="model">nbhc.referral.code</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_dashboard" default_group_by="referral_type">
+                <field name="referral_type"/>
+                <field name="active"/>
+                <field name="usage_count"/>
+                <field name="conversion_count"/>
+                <templates>
+                    <t t-name="kanban-card">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_card_header">
+                                <strong><field name="code_hash"/></strong>
+                            </div>
+                            <div class="o_kanban_card_content">
+                                <div>Activations: <field name="usage_count"/></div>
+                                <div>Conversions: <field name="conversion_count"/></div>
+                                <div>
+                                    <span t-if="record.active.raw_value"
+                                          class="badge text-bg-success">Active</span>
+                                    <span t-else=""
+                                          class="badge text-bg-secondary">Inactive</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="action_referral_dashboard" model="ir.actions.act_window">
+        <field name="name">Referral Dashboard</field>
+        <field name="res_model">nbhc.referral.code</field>
+        <field name="view_mode">kanban,list</field>
+        <field name="context">{'default_active': True}</field>
+    </record>
+
+    <menuitem id="menu_referral_dashboard"
+              name="Dashboard"
+              parent="menu_referral_root"
+              action="action_referral_dashboard"
+              sequence="1"/>
+</odoo>

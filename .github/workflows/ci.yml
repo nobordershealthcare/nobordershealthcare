@@ -9,7 +9,7 @@ on:
     branches: [main]
 
 env:
-  GO_VERSION: "1.22"
+  GO_VERSION: "1.26"
 
 jobs:
   # ── Go: build + vet + staticcheck ─────────────────────────────────────────
@@ -222,5 +222,5 @@ jobs:
           context: backend/physician-view
           push: false
           tags: ghcr.io/nobordershealthcare/physician-view:${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=physician-view
+          cache-to: type=gha,mode=max,scope=physician-view

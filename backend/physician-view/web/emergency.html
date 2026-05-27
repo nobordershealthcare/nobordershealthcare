@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#003f6b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <!-- No server-side cache — content is time-limited patient data -->
+  <meta http-equiv="Cache-Control" content="no-store">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>Emergency Medical Record</title>
+  <link rel="stylesheet" href="/css/main.css">
+</head>
+<!--
+  data-view="emergency" tells app.js which render path to use.
+  The view is set here in HTML so JS can read it before any async work.
+-->
+<body data-view="emergency">
+
+  <!-- ── Loading ─────────────────────────────────────────────── -->
+  <div id="view-loading" class="view active" role="status" aria-label="Loading">
+    <div class="spinner"></div>
+  </div>
+
+  <!-- ── Error ───────────────────────────────────────────────── -->
+  <div id="view-error" class="view" role="alert" aria-live="assertive">
+    <div class="error-card">
+      <div class="error-icon" aria-hidden="true">⚠</div>
+      <h1 id="error-title"></h1>
+      <p id="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- ── Clinician verification gate ────────────────────────── -->
+  <!-- Content injected by app.js renderVerificationGate() -->
+  <div id="view-verify" class="view" role="main"></div>
+
+  <!-- ── Emergency card ─────────────────────────────────────── -->
+  <!-- Content injected by app.js renderCard() after verification -->
+  <div id="view-card" class="view" role="main" aria-live="polite"></div>
+
+  <!-- ── Blur overlay (shown when window loses focus) ────────── -->
+  <div id="blur-overlay" class="blur-overlay hidden"
+       role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="blur-icon" aria-hidden="true">🔒</div>
+    <div class="blur-msg" id="blur-msg"></div>
+  </div>
+
+  <!-- ── Expired overlay ─────────────────────────────────────── -->
+  <div id="expired-overlay" class="expired-overlay hidden" role="alert">
+    <div class="expired-card">
+      <div class="expired-icon" aria-hidden="true">⏰</div>
+      <h2 id="expired-title">QR Expired</h2>
+      <p id="expired-msg">Ask the patient to refresh the QR code.</p>
+    </div>
+  </div>
+
+  <!-- ── QR scanner modal (desktop only) ─────────────────────── -->
+  <div id="qr-modal" class="qr-modal" role="dialog" aria-modal="true"
+       aria-label="QR Code Scanner">
+    <video id="qr-video" autoplay playsinline muted
+           aria-label="Camera viewfinder"></video>
+    <div class="qr-viewfinder" aria-hidden="true"></div>
+    <div class="qr-hint" id="qr-hint">Point camera at the patient's QR code</div>
+    <button class="qr-close-btn" id="qr-close-btn"
+            aria-label="Close scanner">✕</button>
+  </div>
+
+  <script src="/js/i18n.js"></script>
+  <script src="/js/qr.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    // Register Service Worker for offline app-shell caching.
+    // /api/card and /clinician are excluded from SW cache (see sw.js).
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('/sw.js', { scope: '/' })
+          .catch(function (err) {
+            // SW registration failure is non-fatal; app still works online.
+            console.warn('SW registration failed:', err);
+          });
+      });
+    }
+  </script>
+</body>
+</html>

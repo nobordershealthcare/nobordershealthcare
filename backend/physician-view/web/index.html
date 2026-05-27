@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Cache-Control" content="no-store">
+  <title>noborders health — physician view</title>
+</head>
+<body>
+<!--
+  index.html — entry point served at GET /
+
+  Moves the token from the query string to the URL hash (if present),
+  then redirects to emergency.html.
+
+  Hash fragments are not sent to the server on subsequent navigations,
+  so the JWT never leaves the browser after this redirect.
+
+  The redirect is done in JavaScript (not a server 302) so the hash
+  is preserved across the navigation.
+-->
+<script>
+(function () {
+  'use strict';
+
+  // Check for a token in the hash (already correct) or query string (legacy).
+  var hash  = location.hash;
+  var query = location.search;
+
+  // Already hash-based → just navigate to emergency.html preserving hash.
+  if (hash && hash.indexOf('token=') !== -1) {
+    location.replace('/emergency.html' + hash);
+    return;
+  }
+
+  // Legacy query string → move token to hash first.
+  if (query && query.indexOf('token=') !== -1) {
+    var m = query.match(/[?&]token=([^&]+)/);
+    if (m) {
+      location.replace('/emergency.html#token=' + m[1]);
+      return;
+    }
+  }
+
+  // No token — show emergency.html (it will display the "no token" error).
+  location.replace('/emergency.html');
+})();
+</script>
+<noscript>
+  <p>JavaScript is required for the noborders physician view.</p>
+</noscript>
+</body>
+</html>

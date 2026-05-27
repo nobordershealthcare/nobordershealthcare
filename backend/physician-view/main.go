@@ -40,6 +40,21 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
+// webShellHandler serves a specific HTML file from webDir.
+// Used for /emergency.html, /forensic.html, and GET / (→ index.html).
+func webShellHandler(webDir, filename string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		// Service-Worker-Allowed header lets the SW registered at /sw.js
+		// control the entire origin scope.
+		if filename == "sw.js" {
+			w.Header().Set("Service-Worker-Allowed", "/")
+		}
+		http.ServeFile(w, r, filepath.Join(webDir, filename))
+	}
+}
+
 func main() {
 	// Structured JSON logging — never log patient PII
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -47,10 +62,14 @@ func main() {
 	})))
 
 	// ── Configuration ──────────────────────────────────────────
-	addr         := envOr("LISTEN_ADDR", ":8080")
-	redisAddr    := envOr("REDIS_ADDR", "127.0.0.1:6379")
-	redisPass    := os.Getenv("REDIS_PASSWORD")
-	templateDir  := envOr("TEMPLATE_DIR", "templates")
+	addr        := envOr("LISTEN_ADDR", ":8080")
+	redisAddr   := envOr("REDIS_ADDR", "127.0.0.1:6379")
+	redisPass   := os.Getenv("REDIS_PASSWORD")
+	templateDir := envOr("TEMPLATE_DIR", "templates")
+	// webDir is the compiled HTML5 app directory (web/).
+	// In Docker: /web (copied from /src/web in the build stage).
+	// Locally: ./web relative to the binary.
+	webDir := envOr("WEB_DIR", "web")
 
 	// ── Redis client ───────────────────────────────────────────
 	// No AOF, no RDB, no CONFIG/SLAVEOF/DEBUG — Redis is RAM-only per spec.
@@ -92,12 +111,42 @@ func main() {
 	// ── HTTP mux ────────────────────────────────────────────────
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/scan", handlers.ScanHandler(tmpl, rdb))
+	// ── API routes ───────────────────────────────────────────
+	// /scan: legacy QR URL — HTML browsers get a token→hash redirect,
+	//        JSON clients get the card payload directly.
+	mux.HandleFunc("/scan", handlers.ScanHandler(tmpl, rdb, webDir))
+	// /api/card: primary JSON endpoint consumed by the HTML5 web app.
+	mux.HandleFunc("/api/card", handlers.CardAPIHandler(rdb))
 	mux.HandleFunc("/clinician", handlers.ClinicianHandler(ch3Logger, rdb))
 	mux.HandleFunc("/proxy/", handlers.ProxyTokenHandler(ch3Logger, rdb))
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok")) //nolint:errcheck
+	})
+
+	// ── Web app shell pages ──────────────────────────────────
+	// These are served with no-store so browsers always get the latest shell.
+	// Static assets (CSS/JS) are served by the FileServer below and may be
+	// cached by the Service Worker (sw.js handles its own cache versioning).
+	mux.HandleFunc("/emergency.html", webShellHandler(webDir, "emergency.html"))
+	mux.HandleFunc("/forensic.html",  webShellHandler(webDir, "forensic.html"))
+	mux.HandleFunc("/sw.js",          webShellHandler(webDir, "sw.js"))
+
+	// ── Static assets: /css/, /js/ ───────────────────────────
+	// http.FileServer strips the leading path prefix automatically via mux routing.
+	// Directory listing is disabled (web/ has no index.html in subdirs).
+	webFS := http.FileServer(http.Dir(webDir))
+	mux.Handle("/css/", webFS)
+	mux.Handle("/js/",  webFS)
+
+	// ── Root: serves index.html (token→hash redirect entry point) ─
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// Exact match only — 404 for unknown sub-paths not handled above.
+		if r.URL.Path != "/" {
+			http.NotFound(w, r)
+			return
+		}
+		webShellHandler(webDir, "index.html")(w, r)
 	})
 
 	srv := &http.Server{
