@@ -19,6 +19,59 @@ EU MDR Class IIa pathway. GDPR Art.9 by design. Pre-seed stage, Hospital da Luz 
 - AdES signature records NEVER stored in same silo as health data — always Fabric channel 1
 - Legal vault uses SEPARATE AES key from eHR vault (keychain tag com.noborders.legal.key vs com.noborders.vault.key)
 
+## SERVICE DISCOVERY — HARDCODED URLs AND PATHS ARE FORBIDDEN
+This is an absolute rule enforced by CI. Violations block merge.
+
+### No hardcoded internal service URLs — EVER
+```
+WRONG:  url := "https://normalization:8083/fhir"
+WRONG:  url := "http://127.0.0.1:8080"
+WRONG:  const apiURL = "https://api.noborders.healthcare"
+
+RIGHT (Go):
+  url := os.Getenv("NORMALIZATION_URL")
+  if url == "" {
+      url = "http://normalization.noborders.svc.cluster.local:8083"
+  }
+
+RIGHT (Swift/iOS):
+  // Use AppConfig — NEVER string literals
+  let url = AppConfig.authTokenURL
+  let url = AppConfig.apiBaseURL.appendingPathComponent("/my/path")
+```
+
+### DNS format for ALL internal k8s services
+```
+{service-name}.{namespace}.svc.cluster.local:{port}
+Our namespace: noborders
+
+Examples:
+  redis-cluster.noborders.svc.cluster.local:6379
+  normalization.noborders.svc.cluster.local:8083
+  api-gateway.noborders.svc.cluster.local:8080
+  referral.noborders.svc.cluster.local:8088
+  minio.noborders.svc.cluster.local:9000
+  scylladb.noborders.svc.cluster.local:9042
+```
+
+### Pre-signed / one-time links: 3-minute TTL maximum
+All pre-signed URLs (MinIO, proxy document links) MUST expire within 180 seconds.
+No link TTL > 180s is permitted for health-record access. (JWT TTL rule: 15 min max.)
+
+### File paths: env vars with well-known defaults
+```
+WRONG:  path := "/vault/secrets/service.json"    (const or literal)
+RIGHT:  path := envStr("VAULT_SECRETS_PATH", "/vault/secrets/service.json")
+```
+
+### Exceptions — legitimate static identifiers (NOT network endpoints)
+These are standard namespace/vocabulary URIs, not URLs that are fetched:
+- FHIR terminology: http://loinc.org, http://snomed.info/sct, http://hl7.org/fhir/*, http://www.whocc.no/atc, http://unitsofmeasure.org
+- W3C DID/VC context: https://www.w3.org/2018/credentials/v1
+- External government OAuth bases: autenticacao.gov.pt, api2.diia.gov.ua, eidas.ec.europa.eu (base URLs only — redirect_uri must come from AppConfig)
+- HIBP k-anonymity API: https://api.pwnedpasswords.com (security protocol requirement)
+- Stripe dashboard: https://dashboard.stripe.com (user-facing navigation only)
+
 ## Tech stack decisions (final, do not suggest alternatives)
 - iOS: Swift 5.9+, SwiftUI, CryptoKit, CoreML, Secure Enclave APIs
 - Backend services: Go 1.22+ (performance-critical) or Node.js 20 LTS (API services)

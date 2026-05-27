@@ -336,7 +336,7 @@ final class EmergencyCardService: ObservableObject {
     // MARK: - Revocation
 
     private func reportRevocation(jti: String) async {
-        guard let url = URL(string: "https://api.noborders.health/auth/revoke") else { return }
+        let url = AppConfig.authRevokeURL
         var req = URLRequest(url: url)
         req.httpMethod = "POST"
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")

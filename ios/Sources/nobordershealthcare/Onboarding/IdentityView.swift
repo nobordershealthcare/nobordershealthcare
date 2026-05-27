@@ -53,19 +53,23 @@ private enum EIDProvider: String, CaseIterable {
     }
 
     var authorizationURL: URL? {
+        // redirect_uri comes from AppConfig — never hardcoded.
+        // Government OAuth base URLs are static external standards (like FHIR URIs).
+        let cb = AppConfig.authCallbackURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? AppConfig.authCallbackURL
+        let tcToken = AppConfig.eidTCTokenURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? AppConfig.eidTCTokenURL
         switch self {
         case .cmdPT:
             // Portugal OIDC endpoint — requires Autenticação.gov.pt client registration
-            return URL(string: "https://preprod.autenticacao.gov.pt/oauth/asauthorize?client_id=noborders&scope=openid%20profile&response_type=code&redirect_uri=https://app.noborders.health/auth/callback")
+            return URL(string: "https://preprod.autenticacao.gov.pt/oauth/asauthorize?client_id=noborders&scope=openid%20profile&response_type=code&redirect_uri=\(cb)")
         case .diiaUA:
             // Ukraine Diia partner integration — Ministry of Digital Transformation
-            return URL(string: "https://api2.diia.gov.ua/api/v1/eid/partner/authorize?client_id=noborders&scope=diia.sign&redirect_uri=https://app.noborders.health/auth/callback")
+            return URL(string: "https://api2.diia.gov.ua/api/v1/eid/partner/authorize?client_id=noborders&scope=diia.sign&redirect_uri=\(cb)")
         case .npaDe:
-            // AusweisApp2 AppSwitch — universal link triggers native app
-            return URL(string: "eid://127.0.0.1:24727/eID-Client?tcTokenURL=https://app.noborders.health/eid/tc-token")
+            // AusweisApp2 AppSwitch — universal link triggers native eID app
+            return URL(string: "eid://127.0.0.1:24727/eID-Client?tcTokenURL=\(tcToken)")
         case .eidas:
             // EU eIDAS node — country detected from SIM/location at runtime
-            return URL(string: "https://eidas.ec.europa.eu/EidasNode/ServiceRequesterMetadata?client_id=noborders&scope=openid%20profile&redirect_uri=https://app.noborders.health/auth/callback")
+            return URL(string: "https://eidas.ec.europa.eu/EidasNode/ServiceRequesterMetadata?client_id=noborders&scope=openid%20profile&redirect_uri=\(cb)")
         }
     }
 
@@ -89,7 +93,7 @@ struct IdentityView: View {
     @State private var authState: AuthState = .idle
     @State private var webAuthSession: ASWebAuthenticationSession?
 
-    private let callbackURL = "https://app.noborders.health/auth/callback"
+    private let callbackURL = AppConfig.authCallbackURL
 
     var body: some View {
         NavigationStack {
@@ -320,7 +324,7 @@ struct IdentityView: View {
     private func exchangeCodeForIDToken(_ code: String, provider: EIDProvider) async throws -> String {
         // Exchange authorization code for ID token via Gatekeeper backend.
         // Gatekeeper validates the token against the provider's public keys.
-        let url = URL(string: "https://api.noborders.health/auth/token")!
+        let url = AppConfig.authTokenURL
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

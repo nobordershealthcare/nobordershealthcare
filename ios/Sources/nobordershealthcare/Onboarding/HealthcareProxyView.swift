@@ -595,7 +595,7 @@ struct ShareProxyDocumentView: View {
     }
 
     private func grantedView(_ grant: ProxyDocumentShareGrant) -> some View {
-        let link = "https://app.noborders.health/proxy/\(grant.oneTimeToken)"
+        let link = AppConfig.appBaseURL.appendingPathComponent("/proxy/\(grant.oneTimeToken)").absoluteString
         return VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(.green)

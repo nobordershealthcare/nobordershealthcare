@@ -21,8 +21,7 @@ final class ReferralViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var userKind: UserKind = .civilian
 
-    private let apiBase: String = ProcessInfo.processInfo.environment["API_BASE_URL"]
-        ?? "https://api.noborders.healthcare"
+    private let apiBase: String = AppConfig.apiBaseURL.absoluteString
 
     // Load referral code and stats for the current user.
     func load(referrerHash: String, kind: UserKind) async {

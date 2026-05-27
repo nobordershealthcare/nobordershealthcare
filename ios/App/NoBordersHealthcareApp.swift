@@ -61,9 +61,9 @@ struct NoBordersHealthcareApp: App {
                 }
             }
             .onOpenURL { url in
-                // Deep link: app.noborders.healthcare/activate/{token}
+                // Deep link: {APP_BASE_URL}/activate/{token}  — host from AppConfig (never hardcoded)
                 // Token is UUID v4 — never log, never store after use.
-                guard url.host == "app.noborders.healthcare",
+                guard url.host == AppConfig.appHost,
                       url.path.hasPrefix("/activate/")
                 else { return }
                 let token = String(url.path.dropFirst("/activate/".count))

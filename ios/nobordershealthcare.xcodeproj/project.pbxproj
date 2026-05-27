@@ -33,6 +33,7 @@
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
 		7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */; };
 		80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56A573DBC9BE53097E791F51 /* QRGenerator.swift */; };
+		8B6FD6C8B3BA661D1129FB19 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */; };
 		8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */; };
 		9BD2225F1C282A68C940859E /* SupportProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEEA8EC8166D9607512E78D /* SupportProfile.swift */; };
 		A1A273BEC65112CD3F80C289 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */; };
@@ -81,6 +82,7 @@
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
 		3E241D7E7155434C8739A07C /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
+		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
 		56A573DBC9BE53097E791F51 /* QRGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGenerator.swift; sourceTree = "<group>"; };
 		622F23DBC018E3F6C9948C28 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
@@ -164,6 +166,7 @@
 		371E7BC818D058D49B5C3531 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */,
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
 				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
@@ -426,6 +429,7 @@
 			files = (
 				686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */,
 				B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */,
+				8B6FD6C8B3BA661D1129FB19 /* AppConfig.swift in Sources */,
 				AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */,
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
@@ -529,6 +533,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				API_BASE_URL = "https://api.noborders.healthcare";
+				APP_BASE_URL = "https://app.noborders.health";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
@@ -591,6 +596,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				API_BASE_URL = "http://localhost:8080";
+				APP_BASE_URL = "http://localhost:3000";
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";

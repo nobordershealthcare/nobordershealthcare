@@ -15,15 +15,19 @@ settings:
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: 1
     # Service URLs — overridden per build configuration below.
-    # Read in Swift via Bundle.main.infoDictionary["API_BASE_URL"].
+    # Read in Swift via AppConfig (ios/Sources/.../Core/AppConfig.swift).
+    # NEVER hardcode these URLs in source — always use AppConfig.*
     API_BASE_URL: https://api.noborders.healthcare
+    APP_BASE_URL: https://app.noborders.health
     PHYSICIAN_VIEW_URL: https://scan.noborders.healthcare
   configs:
     Debug:
       API_BASE_URL: http://localhost:8080
+      APP_BASE_URL: http://localhost:3000
       PHYSICIAN_VIEW_URL: http://localhost:8083
     Release:
       API_BASE_URL: https://api.noborders.healthcare
+      APP_BASE_URL: https://app.noborders.health
       PHYSICIAN_VIEW_URL: https://scan.noborders.healthcare
 
 targets:
@@ -67,8 +71,9 @@ targets:
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
         # Service URL build variables — resolved at build time per configuration.
-        # Swift: Bundle.main.infoDictionary?["API_BASE_URL"] as? String
+        # Swift: use AppConfig.* — NEVER read these keys directly in source.
         API_BASE_URL: $(API_BASE_URL)
+        APP_BASE_URL: $(APP_BASE_URL)
         PHYSICIAN_VIEW_URL: $(PHYSICIAN_VIEW_URL)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:

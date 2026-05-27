@@ -10,10 +10,14 @@ import (
 	vault "github.com/hashicorp/vault/api"
 )
 
-const (
-	// k8sTokenPath is the service account JWT mounted by the pod runtime.
-	k8sTokenPath = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-)
+// k8sTokenPath returns the Kubernetes service account JWT path.
+// Configurable via K8S_SA_TOKEN_PATH env var; defaults to the standard k8s mount.
+func k8sTokenPath() string {
+	if p := os.Getenv("K8S_SA_TOKEN_PATH"); p != "" {
+		return p
+	}
+	return "/var/run/secrets/kubernetes.io/serviceaccount/token"
+}
 
 // VaultClient wraps the HashiCorp Vault API client with helpers specific to
 // the normalization service. Authenticates via the Kubernetes auth method —
@@ -38,7 +42,7 @@ func NewVaultClient(addr, role string) (*VaultClient, error) {
 	}
 
 	// Read the k8s service account JWT.
-	saToken, err := os.ReadFile(k8sTokenPath)
+	saToken, err := os.ReadFile(k8sTokenPath())
 	if err != nil {
 		return nil, fmt.Errorf("vault: read k8s SA token: %w", err)
 	}

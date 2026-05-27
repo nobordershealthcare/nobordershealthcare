@@ -48,7 +48,7 @@ final class ActivationCoordinator: ObservableObject {
 
     @Published private(set) var state: ActivationState = .idle
 
-    private let validateURL = URL(string: "https://api.noborders.health/activate/validate")!
+    private let validateURL = AppConfig.activateValidateURL
 
     // MARK: - Deep link entry point
 
