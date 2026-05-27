@@ -151,7 +151,8 @@ func (a *App) handleCreateCode(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink := fmt.Sprintf("https://app.noborders.healthcare/r/%s", rc.Code)
+	appBase := envOr("APP_BASE_URL", "https://app.noborders.healthcare")
+	shortLink := fmt.Sprintf("%s/r/%s", appBase, rc.Code)
 	writeJSON(w, http.StatusCreated, map[string]string{
 		"code":       rc.Code,
 		"short_link": shortLink,
@@ -436,7 +437,7 @@ func envOr(key, fallback string) string {
 // grantAPICredits calls the api-gateway sidecar to credit API calls.
 // Fire-and-forget; errors are logged but do not fail the conversion.
 func grantAPICredits(referrerHash string, credits int) {
-	gatewayURL := envOr("API_GATEWAY_URL", "http://api-gateway:8080")
+	gatewayURL := envOr("API_GATEWAY_URL", "http://api-gateway.noborders.svc.cluster.local:8080")
 	url := fmt.Sprintf("%s/internal/credits/grant", gatewayURL)
 	body, _ := json.Marshal(map[string]any{
 		"referrer_hash": referrerHash,

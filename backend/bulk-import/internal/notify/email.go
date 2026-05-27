@@ -89,7 +89,10 @@ func buildEmailContent(msg Message) (subject, html, text string) {
 	if !ok {
 		t = templates["en"]
 	}
-	base := "https://app.noborders.healthcare"
+	base := os.Getenv("APP_BASE_URL")
+	if base == "" {
+		base = "https://app.noborders.healthcare"
+	}
 	return t.subject,
 		fmt.Sprintf(t.html, msg.ActivationURL, base),
 		fmt.Sprintf(t.text, msg.ActivationURL, base)

@@ -49,6 +49,10 @@ spec:
               value: "gatekeeper.noborders.svc.cluster.local:80"
             - name: ANONYMIZER_ADDR
               value: "anonymizer.noborders.svc.cluster.local:80"
+            - name: NORMALIZATION_URL
+              value: "http://normalization.noborders.svc.cluster.local:8083"
+            - name: REDIS_ADDR
+              value: "redis-cluster.noborders.svc.cluster.local:6379"
           envFrom:
             - secretRef:
                 name: api-gateway-secrets

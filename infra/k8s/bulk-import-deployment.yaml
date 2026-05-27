@@ -63,6 +63,8 @@ spec:
           env:
             - name: LISTEN_ADDR
               value: ":8080"
+            - name: APP_BASE_URL
+              value: "https://app.noborders.healthcare"
             - name: SCYLLA_HOSTS
               valueFrom:
                 secretKeyRef:

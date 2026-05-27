@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -55,7 +56,16 @@ type BatchStatus struct {
 
 const maxBatchSize = 10000
 const activationTTL = 7 * 24 * time.Hour
-const activationBaseURL = "https://app.noborders.healthcare/activate/"
+
+// activationBaseURL returns the base URL for activation deep-links.
+// Set APP_BASE_URL in the environment; falls back to the production FQDN.
+// In k8s: injected via Deployment env.
+func activationBaseURL() string {
+	if base := os.Getenv("APP_BASE_URL"); base != "" {
+		return base + "/activate/"
+	}
+	return "https://app.noborders.healthcare/activate/"
+}
 
 // CreateAndDispatch creates PendingProfile records and dispatches notifications.
 // Rate limiting: max 10k per batch; SMS throttled to 1k/min via notifier.
@@ -88,7 +98,7 @@ func CreateAndDispatch(ctx context.Context, rows []ImportRow, csvType string) (*
 			Phone:       row.Phone,
 			Email:       row.Email,
 			Language:    row.Language,
-			ActivationURL: activationBaseURL + tokenStr,
+			ActivationURL: activationBaseURL() + tokenStr,
 			TokenHash:   tokenHash,
 			ExpiresAt:   time.Now().Add(activationTTL),
 			DeliveryStatus: map[string]string{

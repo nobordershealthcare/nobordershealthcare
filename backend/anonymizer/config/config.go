@@ -55,8 +55,8 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	redisAddrs := envCSV("REDIS_ADDRS", "127.0.0.1:6379")
-	scyllaHosts := envCSV("SCYLLA_HOSTS", "127.0.0.1")
+	redisAddrs := envCSV("REDIS_ADDRS", "redis-cluster.noborders.svc.cluster.local:6379")
+	scyllaHosts := envCSV("SCYLLA_HOSTS", "scylladb.noborders.svc.cluster.local")
 
 	return &Config{
 		Port:                    port,
@@ -65,7 +65,7 @@ func Load() (*Config, error) {
 		RedisAddrs:              redisAddrs,
 		ScyllaHosts:             scyllaHosts,
 		ScyllaKeyspace:          envStr("SCYLLA_KEYSPACE", "anonymizer"),
-		MinIOEndpoint:           envStr("MINIO_ENDPOINT", "http://minio:9000"),
+		MinIOEndpoint:           envStr("MINIO_ENDPOINT", "http://minio.noborders.svc.cluster.local:9000"),
 		MinIOBucket:             envStr("MINIO_BUCKET", "health-records"),
 		FabricConnectionProfile: envStr("FABRIC_CONNECTION_PROFILE", "/fabric/connection.yaml"),
 		FabricChannel:           envStr("FABRIC_CHANNEL", "healthchannel"),

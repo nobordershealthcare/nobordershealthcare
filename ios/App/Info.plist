@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>API_BASE_URL</key>
+	<string>$(API_BASE_URL)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -26,6 +28,8 @@
 	<string>Secure vault access</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>P2P health record backup</string>
+	<key>PHYSICIAN_VIEW_URL</key>
+	<string>$(PHYSICIAN_VIEW_URL)</string>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

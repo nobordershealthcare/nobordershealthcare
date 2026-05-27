@@ -22,7 +22,7 @@ import (
 
 func main() {
 	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
-	referralSvc := referralclient.New(envOr("REFERRAL_SVC_URL", "http://referral:8088"))
+	referralSvc := referralclient.New(envOr("REFERRAL_SVC_URL", "http://referral.noborders.svc.cluster.local:8088"))
 
 	r := chi.NewRouter()
 	r.Use(middleware.RealIP)

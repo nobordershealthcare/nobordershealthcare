@@ -14,6 +14,17 @@ settings:
     CODE_SIGN_STYLE: Automatic
     MARKETING_VERSION: "0.1.0"
     CURRENT_PROJECT_VERSION: 1
+    # Service URLs — overridden per build configuration below.
+    # Read in Swift via Bundle.main.infoDictionary["API_BASE_URL"].
+    API_BASE_URL: https://api.noborders.healthcare
+    PHYSICIAN_VIEW_URL: https://scan.noborders.healthcare
+  configs:
+    Debug:
+      API_BASE_URL: http://localhost:8080
+      PHYSICIAN_VIEW_URL: http://localhost:8083
+    Release:
+      API_BASE_URL: https://api.noborders.healthcare
+      PHYSICIAN_VIEW_URL: https://scan.noborders.healthcare
 
 targets:
   nobordershealthcare:
@@ -55,6 +66,10 @@ targets:
         CFBundleDisplayName: "#nobordershealthcare"
         CFBundleShortVersionString: "0.1.0"
         CFBundleVersion: "1"
+        # Service URL build variables — resolved at build time per configuration.
+        # Swift: Bundle.main.infoDictionary?["API_BASE_URL"] as? String
+        API_BASE_URL: $(API_BASE_URL)
+        PHYSICIAN_VIEW_URL: $(PHYSICIAN_VIEW_URL)
         UILaunchScreen: {}
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait

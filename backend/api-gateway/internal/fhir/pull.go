@@ -167,7 +167,7 @@ func (h *PullHandler) forwardRead(
 ) (*http.Response, error) {
 	normURL := os.Getenv("NORMALIZATION_URL")
 	if normURL == "" {
-		normURL = "https://normalization:8083"
+		normURL = "http://normalization.noborders.svc.cluster.local:8083"
 	}
 
 	var upURL string

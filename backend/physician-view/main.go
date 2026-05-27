@@ -63,7 +63,7 @@ func main() {
 
 	// ── Configuration ──────────────────────────────────────────
 	addr        := envOr("LISTEN_ADDR", ":8080")
-	redisAddr   := envOr("REDIS_ADDR", "127.0.0.1:6379")
+	redisAddr   := envOr("REDIS_ADDR", "redis-cluster.noborders.svc.cluster.local:6379")
 	redisPass   := os.Getenv("REDIS_PASSWORD")
 	templateDir := envOr("TEMPLATE_DIR", "templates")
 	// webDir is the compiled HTML5 app directory (web/).

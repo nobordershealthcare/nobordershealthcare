@@ -114,7 +114,7 @@ func main() {
 // Persistence is disabled at the server level (no AOF, no RDB) per security policy.
 func newRedisClient() *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr:         getenv("REDIS_ADDR", "localhost:6379"),
+		Addr:         getenv("REDIS_ADDR", "redis-cluster.noborders.svc.cluster.local:6379"),
 		Password:     os.Getenv("REDIS_PASSWORD"),
 		DB:           0,
 		DialTimeout:  5 * time.Second,

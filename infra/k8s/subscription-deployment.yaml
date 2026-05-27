@@ -45,6 +45,8 @@ spec:
           env:
             - name: LISTEN_ADDR
               value: ":8080"
+            - name: REFERRAL_SVC_URL
+              value: "http://referral.noborders.svc.cluster.local:8088"
           envFrom:
             - secretRef:
                 name: subscription-secrets
