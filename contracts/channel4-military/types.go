@@ -52,13 +52,15 @@ type MilitaryProfileRecord struct {
 
 // BulkRegistrationRecord logs a battalion/corporate/family import event under BULK~tenantHash~batchRef.
 type BulkRegistrationRecord struct {
-	TenantHash     string   `json:"tenant_hash"`     // SHA3-256(unit_admin_id)
-	ProfileHashes  []string `json:"profile_hashes"`  // []SHA3-256(service_number)
-	Authority      string   `json:"authority"`       // AuthorityType value
-	BatchReference string   `json:"batch_reference"` // SHA3-256(admin_id + timestamp)
-	ProfileCount   int      `json:"profile_count"`
-	Timestamp      string   `json:"timestamp"`
-	TxID           string   `json:"tx_id"`
+	TenantHash        string   `json:"tenant_hash"`         // SHA3-256(unit_admin_id)
+	ProfileHashes     []string `json:"profile_hashes"`      // []SHA3-256(service_number)
+	Authority         string   `json:"authority"`           // AuthorityType value
+	BatchReference    string   `json:"batch_reference"`     // SHA3-256(admin_id + timestamp)
+	ProposerAdminHash string   `json:"proposer_admin_hash"` // SHA3-256(proposing admin ID) — must differ from approver
+	ApproverAdminHash string   `json:"approver_admin_hash"` // SHA3-256(approving admin ID) — must differ from proposer
+	ProfileCount      int      `json:"profile_count"`
+	Timestamp         string   `json:"timestamp"`
+	TxID              string   `json:"tx_id"`
 }
 
 // validAuthorities is the set of accepted AuthorityType values.

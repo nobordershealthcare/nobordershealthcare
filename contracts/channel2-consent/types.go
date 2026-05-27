@@ -14,10 +14,18 @@ type ConsentAuditRecord struct {
 }
 
 // validConsentTypes enumerates the consent categories the patient may grant.
+//
+// forensic_dna is a SEPARATE consent type — it must NEVER be bundled with
+// standard medical consent.  DNA data is special-category personal data under
+// GDPR Art.9(1) and requires an independent, granular consent record with its
+// own AdES signature (channel-1) and its own channel-2 lifecycle entry.
+// LED Art.10 further restricts processing to competent law-enforcement
+// authorities; this consent type records that the patient explicitly agreed.
 var validConsentTypes = map[string]bool{
-	"ehr_access":  true, // general access to eHR records
-	"research":    true, // anonymised aggregate research
-	"insurance":   true, // claim-relevant data sharing with insurer
-	"emergency":   true, // emergency QR scope (always limited to IPS subset)
+	"ehr_access":   true, // general access to eHR records
+	"research":     true, // anonymised aggregate research
+	"insurance":    true, // claim-relevant data sharing with insurer
+	"emergency":    true, // emergency QR scope (always limited to IPS subset)
 	"telemedicine": true, // video/SIP session with a clinician
+	"forensic_dna": true, // GDPR Art.9 + LED Art.10 — forensic DNA analysis (separate, granular)
 }

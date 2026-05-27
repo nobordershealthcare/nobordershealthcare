@@ -309,12 +309,20 @@ func (c *MilitaryContract) RecordNOKNotification(
 // Endorsement policy: 2-of-2 peers + admin MSP signature (configured at channel level).
 // profileHashes: each must be SHA3-256(service_number) — 64 lowercase hex chars.
 // batchReference: SHA3-256(admin_id + timestamp) — never the admin's plaintext identity.
+//
+// SECURITY: proposerAdminHash and approverAdminHash MUST be distinct SHA3-256 hashes
+// of two different admin identities. This prevents a single compromised admin account
+// from self-approving a bulk registration of thousands of military profiles.
+// Attack vector without this check: one compromised admin signs both propose and approve,
+// silently enrolling 50,000 soldiers under adversary-controlled identities.
 func (c *MilitaryContract) BulkRegisterProfiles(
 	ctx contractapi.TransactionContextInterface,
 	profileHashes []string,
 	tenantHash string,
 	authority string,
 	batchReference string,
+	proposerAdminHash string,
+	approverAdminHash string,
 ) error {
 	if err := validateHash(tenantHash, "tenantHash"); err != nil {
 		return err
@@ -337,6 +345,19 @@ func (c *MilitaryContract) BulkRegisterProfiles(
 		}
 	}
 
+	// CRITICAL: Two-admin separation — proposer and approver must be distinct identities.
+	// This mirrors the ForceAssemble/ReassignRole pattern and prevents single-admin abuse.
+	if err := validateHash(proposerAdminHash, "proposerAdminHash"); err != nil {
+		return err
+	}
+	if err := validateHash(approverAdminHash, "approverAdminHash"); err != nil {
+		return err
+	}
+	if proposerAdminHash == approverAdminHash {
+		return fmt.Errorf("proposerAdminHash and approverAdminHash must be distinct — " +
+			"two different admins are required to authorise a bulk registration")
+	}
+
 	key, err := ctx.GetStub().CreateCompositeKey("BULK", []string{tenantHash, batchReference})
 	if err != nil {
 		return fmt.Errorf("composite key error: %w", err)
@@ -353,13 +374,15 @@ func (c *MilitaryContract) BulkRegisterProfiles(
 	txID := ctx.GetStub().GetTxID()
 
 	rec := &BulkRegistrationRecord{
-		TenantHash:     tenantHash,
-		ProfileHashes:  profileHashes,
-		Authority:      authority,
-		BatchReference: batchReference,
-		ProfileCount:   len(profileHashes),
-		Timestamp:      fmt.Sprintf("%d", ts.Seconds),
-		TxID:           txID,
+		TenantHash:        tenantHash,
+		ProfileHashes:     profileHashes,
+		Authority:         authority,
+		BatchReference:    batchReference,
+		ProposerAdminHash: proposerAdminHash,
+		ApproverAdminHash: approverAdminHash,
+		ProfileCount:      len(profileHashes),
+		Timestamp:         fmt.Sprintf("%d", ts.Seconds),
+		TxID:              txID,
 	}
 	return putJSON(ctx, key, rec)
 }

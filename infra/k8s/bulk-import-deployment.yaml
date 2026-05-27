@@ -1,0 +1,191 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: bulk-import
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: bulk-import
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bulk-import
+  namespace: noborders
+  labels:
+    app: bulk-import
+    version: "1"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: bulk-import
+  template:
+    metadata:
+      labels:
+        app: bulk-import
+        version: "1"
+      annotations:
+        # Istio mTLS sidecar injection
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      serviceAccountName: bulk-import
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: vault-agent-init
+          image: hashicorp/vault:1.16@sha256:placeholder
+          args: ["agent", "-config=/vault/config/vault-agent.hcl", "-exit-after-auth"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: secrets
+              mountPath: /secrets
+      containers:
+        - name: bulk-import
+          image: ghcr.io/nobordershealthcare/bulk-import:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          env:
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: SCYLLA_HOSTS
+              valueFrom:
+                secretKeyRef:
+                  name: scylladb-credentials
+                  key: hosts
+            - name: REDIS_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: addr
+            - name: FABRIC_GATEWAY_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: fabric-credentials
+                  key: gateway-addr
+          envFrom:
+            - secretRef:
+                name: bulk-import-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: mtls-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-agent-config
+        - name: secrets
+          emptyDir:
+            medium: Memory
+        - name: tmp
+          emptyDir: {}
+        - name: mtls-certs
+          secret:
+            secretName: bulk-import-mtls-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: bulk-import
+  namespace: noborders
+  labels:
+    app: bulk-import
+spec:
+  selector:
+    app: bulk-import
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: bulk-import-netpol
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: bulk-import
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: scylladb
+      ports:
+        - protocol: TCP
+          port: 9042
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Fabric peer communication
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 7051
+    # External messenger APIs (Signal, Telegram, WhatsApp, Viber)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443

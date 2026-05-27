@@ -1,0 +1,156 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-portal
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: admin-portal
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-portal
+  namespace: noborders
+  labels:
+    app: admin-portal
+spec:
+  # Single replica — admin portal is not a high-traffic service.
+  # Horizontal scaling would require session affinity; FIDO2 ops are stateless anyway.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-portal
+  template:
+    metadata:
+      labels:
+        app: admin-portal
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      serviceAccountName: admin-portal
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: admin-portal
+          image: ghcr.io/nobordershealthcare/admin-portal:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8443
+              name: https
+          env:
+            - name: LISTEN_ADDR
+              value: ":8443"
+            # FIDO2/WebAuthn — admin operations require YubiKey (no TOTP, no SMS OTP)
+            - name: FIDO2_RP_ID
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-portal-config
+                  key: fido2_rp_id
+            - name: FIDO2_ORIGIN
+              valueFrom:
+                configMapKeyRef:
+                  name: admin-portal-config
+                  key: fido2_origin
+          envFrom:
+            - secretRef:
+                name: admin-portal-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8443
+              scheme: HTTPS
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: tls-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: tls-certs
+          secret:
+            secretName: admin-portal-tls-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-portal
+  namespace: noborders
+  labels:
+    app: admin-portal
+spec:
+  selector:
+    app: admin-portal
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8443
+  type: ClusterIP
+---
+# Admin portal is accessible ONLY from within the cluster (ClusterIP) and
+# only from explicitly allowlisted source pods. No ingress from the internet.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: admin-portal-netpol
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: admin-portal
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Deny all inbound by default — admin portal is never exposed via ingress gateway.
+    # Access via kubectl port-forward with FIDO2 auth only.
+    []
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: gatekeeper
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: scylladb
+      ports:
+        - protocol: TCP
+          port: 9042
+    # Fabric peer (force-assemble, 2-admin HSM ops)
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 7051

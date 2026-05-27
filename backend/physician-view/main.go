@@ -1,7 +1,8 @@
 // physician-view — emergency QR display + clinician access logging service.
 //
 // HTTP routes:
-//   GET  /scan?token=<patient-jwt>   — verify Ed25519 JWT, render emergency card HTML
+//   GET  /scan                       — serve fragment-reading landing page (JWT stays in URL hash, never logged)
+//   POST /scan                       — verify Ed25519 JWT (from POST body), render emergency card HTML
 //   POST /clinician                  — log clinician license, Ch3 access audit
 //   GET  /proxy/{token}             — one-time proxy document link (Redis NX)
 //   GET  /healthz                    — liveness probe
@@ -99,9 +100,11 @@ func main() {
 
 	srv := &http.Server{
 		Addr: addr,
-		// maxBodyMiddleware caps request bodies at 64 KiB before requestLogger
-		// so the limit fires before any handler reads r.Body.
-		Handler:      requestLogger(maxBodyMiddleware(mux)),
+		// Middleware stack (innermost first):
+		//   1. maxBodyMiddleware — caps request bodies at 64 KiB (DoS guard)
+		//   2. securityHeadersMiddleware — adds CSP, X-Frame-Options, etc. on every response
+		//   3. requestLogger — structured access log (path only, never query string)
+		Handler:      requestLogger(securityHeadersMiddleware(maxBodyMiddleware(mux))),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -128,6 +131,46 @@ func main() {
 		slog.Error("graceful shutdown failed", slog.String("err", err.Error()))
 	}
 	slog.Info("server stopped")
+}
+
+// securityHeadersMiddleware adds defensive HTTP response headers to every response.
+//
+// Content-Security-Policy rationale:
+//   - default-src 'self'             — no external resources permitted
+//   - script-src 'self' 'unsafe-inline' — the landing page uses a small inline script
+//     to read location.hash; this is unavoidable given the QR→fragment→POST design.
+//     The inline script contains no patient data and cannot be replaced with an external
+//     file because the page must work before the JWT is parsed.
+//   - style-src 'self' 'unsafe-inline' — inline styles in the landing page only
+//   - img-src 'self'                 — no external images
+//   - form-action 'self'             — the landing page form only POSTs to /scan (same origin)
+//   - frame-ancestors 'none'         — equivalent to X-Frame-Options: DENY
+//   - base-uri 'self'               — prevent base tag injection
+//
+// X-Frame-Options: DENY — belt-and-suspenders with frame-ancestors 'none' for older browsers.
+// X-Content-Type-Options: nosniff — prevent MIME-type sniffing of HTML/JSON responses.
+// Referrer-Policy: no-referrer — no URL leakage when navigating away.
+// Permissions-Policy: camera=(), microphone=(), geolocation=() — deny sensor access.
+func securityHeadersMiddleware(next http.Handler) http.Handler {
+	const csp = "default-src 'self'; " +
+		"script-src 'self' 'unsafe-inline'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self'; " +
+		"font-src 'self'; " +
+		"form-action 'self'; " +
+		"frame-ancestors 'none'; " +
+		"base-uri 'self'; " +
+		"object-src 'none'"
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h := w.Header()
+		h.Set("Content-Security-Policy", csp)
+		h.Set("X-Frame-Options", "DENY")
+		h.Set("X-Content-Type-Options", "nosniff")
+		h.Set("Referrer-Policy", "no-referrer")
+		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // maxBodyMiddleware caps inbound request bodies at 64 KiB.

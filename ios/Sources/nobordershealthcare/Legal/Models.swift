@@ -157,6 +157,14 @@ enum ConsentType: String, Codable, CaseIterable, Sendable {
     case dataTransferToClinics    // Send medical data to clinics
     case clinicianVerification    // Clinician identity verification logging
     case documentTranslation      // Document translation processing
+
+    // GDPR Art.9 + LED Art.10 — forensic DNA analysis.
+    // MUST be presented and signed separately from all other consent types.
+    // The iOS UI must show a dedicated full-screen consent flow for this case,
+    // with explicit mention of "DNA" and the processing authority.
+    // This consent may NOT be bundled with standard medical or research consent.
+    // Corresponds to channel-2 consent_type = "forensic_dna".
+    case forensicDNA          // Forensic DNA analysis — separate, granular consent required
 }
 
 // MARK: - Legal basis references (eIDAS, GDPR, national law)

@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: referral
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: referral
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: referral
+  namespace: noborders
+  labels:
+    app: referral
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: referral
+  template:
+    metadata:
+      labels:
+        app: referral
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      serviceAccountName: referral
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: referral
+          image: ghcr.io/nobordershealthcare/referral:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: LISTEN_ADDR
+              value: ":8080"
+          envFrom:
+            - secretRef:
+                name: referral-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: mtls-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: mtls-certs
+          secret:
+            secretName: referral-mtls-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: referral
+  namespace: noborders
+  labels:
+    app: referral
+spec:
+  selector:
+    app: referral
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: referral-netpol
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: referral
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: api-gateway
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: scylladb
+      ports:
+        - protocol: TCP
+          port: 9042
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Stripe Connect API
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443

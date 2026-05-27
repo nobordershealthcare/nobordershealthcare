@@ -1,0 +1,189 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: token-bridge
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: token-bridge
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: token-bridge
+  namespace: noborders
+  labels:
+    app: token-bridge
+spec:
+  # Single replica — token-bridge processes Polygon events sequentially.
+  # Running two replicas without distributed locking would cause duplicate
+  # distribution payouts. Scale via Polygon WebSocket sharding if needed.
+  replicas: 1
+  selector:
+    matchLabels:
+      app: token-bridge
+  template:
+    metadata:
+      labels:
+        app: token-bridge
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      serviceAccountName: token-bridge
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: vault-agent-init
+          image: hashicorp/vault:1.16@sha256:placeholder
+          args: ["agent", "-config=/vault/config/vault-agent.hcl", "-exit-after-auth"]
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: vault-config
+              mountPath: /vault/config
+            - name: secrets
+              mountPath: /secrets
+      containers:
+        - name: token-bridge
+          image: ghcr.io/nobordershealthcare/token-bridge:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: POLYGON_RPC_URL
+              valueFrom:
+                secretKeyRef:
+                  name: token-bridge-secrets
+                  key: polygon_rpc_url
+            - name: NBHC_CONTRACT_ADDR
+              valueFrom:
+                configMapKeyRef:
+                  name: token-bridge-config
+                  key: nbhc_contract_addr
+            - name: FABRIC_GATEWAY_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: fabric-credentials
+                  key: gateway-addr
+            - name: REDIS_ADDR
+              valueFrom:
+                secretKeyRef:
+                  name: redis-credentials
+                  key: addr
+            # HOLDER_SALT is fetched from Vault by the init container and
+            # written to /secrets/holder.salt — never an env var.
+          envFrom:
+            - secretRef:
+                name: token-bridge-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            failureThreshold: 3
+          volumeMounts:
+            - name: secrets
+              mountPath: /secrets
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+            - name: mtls-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: vault-config
+          configMap:
+            name: vault-agent-config
+        - name: secrets
+          emptyDir:
+            medium: Memory
+        - name: tmp
+          emptyDir: {}
+        - name: mtls-certs
+          secret:
+            secretName: token-bridge-mtls-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: token-bridge
+  namespace: noborders
+  labels:
+    app: token-bridge
+spec:
+  selector:
+    app: token-bridge
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: token-bridge-netpol
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: token-bridge
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only admin-portal can trigger quarterly distribution runs
+    - from:
+        - podSelector:
+            matchLabels:
+              app: admin-portal
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: redis
+      ports:
+        - protocol: TCP
+          port: 6379
+    # Polygon WebSocket RPC + Fabric peers + Stripe API
+    - to: []
+      ports:
+        - protocol: TCP
+          port: 443
+        # Fabric peer gRPC
+        - protocol: TCP
+          port: 7051

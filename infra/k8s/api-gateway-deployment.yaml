@@ -1,0 +1,171 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: api-gateway
+  namespace: noborders
+  annotations:
+    vault.hashicorp.com/role: api-gateway
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: noborders
+  labels:
+    app: api-gateway
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+      annotations:
+        sidecar.istio.io/inject: "true"
+        proxy.istio.io/config: '{"holdApplicationUntilProxyStarts": true}'
+    spec:
+      serviceAccountName: api-gateway
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api-gateway
+          image: ghcr.io/nobordershealthcare/api-gateway:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: LISTEN_ADDR
+              value: ":8080"
+            - name: GATEKEEPER_ADDR
+              value: "gatekeeper.noborders.svc.cluster.local:80"
+            - name: ANONYMIZER_ADDR
+              value: "anonymizer.noborders.svc.cluster.local:80"
+          envFrom:
+            - secretRef:
+                name: api-gateway-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "1000m"
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: mtls-certs
+              mountPath: /certs
+              readOnly: true
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: mtls-certs
+          secret:
+            secretName: api-gateway-mtls-certs
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: noborders
+  labels:
+    app: api-gateway
+spec:
+  selector:
+    app: api-gateway
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+  type: ClusterIP
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-gateway-netpol
+  namespace: noborders
+spec:
+  podSelector:
+    matchLabels:
+      app: api-gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Accept traffic from the Istio ingress gateway only
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: istio-system
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: gatekeeper
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: anonymizer
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: normalization
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: bulk-import
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: referral
+      ports:
+        - protocol: TCP
+          port: 8080
+    - to:
+        - podSelector:
+            matchLabels:
+              app: subscription
+      ports:
+        - protocol: TCP
+          port: 8080

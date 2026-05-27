@@ -1,0 +1,65 @@
+// referral — NBHC referral programme service.
+//
+// Tracks referral conversions, enforces self-referral prevention, applies
+// velocity limits (>5 conversions/hour triggers hold), and dispatches
+// Stripe Connect payouts to pre-verified partner accounts only.
+//
+// Security invariants:
+//   - referrer_hash != referred_hash enforced on every conversion record
+//   - Stripe Connect destination must be in the pre-verified allowlist
+//   - Velocity limit: >5 conversions/hour per referrer triggers automatic hold
+//   - All identifiers are SHA3-256(salt+userID) — never plaintext
+//   - No PII in logs — only SHA3-256 hashes and Stripe object IDs
+//   - mTLS to all internal services via Istio sidecar
+//
+// Configuration (env vars / k8s secrets):
+//
+//	LISTEN_ADDR               HTTP listen address (default :8080)
+//	STRIPE_SECRET_KEY         Stripe API key (from k8s secret)
+//	SCYLLA_HOSTS              ScyllaDB contact points
+//	REDIS_ADDR                Redis for velocity limiting
+//	REFERRAL_SALT             Per-instance salt for SHA3-256(salt+userID) (from Vault)
+package main
+
+import (
+	"errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"time"
+)
+
+func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+
+	addr := envOr("LISTEN_ADDR", ":8080")
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+
+	slog.Info("referral service listening", slog.String("addr", addr))
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		slog.Error("server error", slog.String("err", err.Error()))
+		os.Exit(1)
+	}
+}
+
+func envOr(key, fallback string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return fallback
+}

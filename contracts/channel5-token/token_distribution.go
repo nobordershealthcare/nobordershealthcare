@@ -159,11 +159,38 @@ func (c *TokenDistributionContract) RecordDistribution(
 		return "", fmt.Errorf("holder %s…has not granted distribution consent (MiCA Art.71)", holderHash[:8])
 	}
 
+	// SECURITY: Duplicate-payment guard — one payout per holder per period.
+	// The DIST composite key includes txID (unique per Fabric tx), so without
+	// this explicit idempotency lock, calling RecordDistribution twice for the
+	// same holderHash+period would succeed and silently double-pay the holder.
+	// Attack vector: admin error, replay, or race condition in the token-bridge.
+	// Fix: write a DIST_LOCK~{holderHash}~{period} key before the DIST record;
+	// reject any subsequent call for the same pair.
+	lockKey, err := ctx.GetStub().CreateCompositeKey("DIST_LOCK", []string{holderHash, period})
+	if err != nil {
+		return "", fmt.Errorf("lock composite key: %w", err)
+	}
+	existingLock, err := ctx.GetStub().GetState(lockKey)
+	if err != nil {
+		return "", fmt.Errorf("lock key read: %w", err)
+	}
+	if existingLock != nil {
+		return "", fmt.Errorf("distribution for holder %s… period %s already recorded — duplicate payment blocked",
+			holderHash[:8], period)
+	}
+
 	ts, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
 		return "", fmt.Errorf("tx timestamp: %w", err)
 	}
 	txID := ctx.GetStub().GetTxID()
+
+	// Write the idempotency lock FIRST so a crash between lock-write and record-write
+	// leaves the lock set. On retry the caller sees ErrDuplicate and can inspect the
+	// Fabric ledger to confirm whether the payment was actually dispatched.
+	if err := ctx.GetStub().PutState(lockKey, []byte(txID)); err != nil {
+		return "", fmt.Errorf("lock key write: %w", err)
+	}
 
 	rec := &DistributionRecord{
 		HolderHash: holderHash,

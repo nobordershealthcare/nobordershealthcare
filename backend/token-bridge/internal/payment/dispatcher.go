@@ -98,6 +98,11 @@ func (d *Dispatcher) dispatchStripe(_ context.Context, req Request) (string, err
 		Currency:    stripe.String("eur"),
 		Destination: stripe.String(req.StripeDestination),
 	}
+	// SECURITY: Idempotency key prevents double-payment if the bridge crashes after
+	// Stripe accepts the transfer but before Fabric records it. Stripe deduplicates
+	// requests with the same key within 24h and returns the original transfer object.
+	// Key = holderHash:period — globally unique per holder per quarter.
+	params.SetIdempotencyKey(req.HolderHash + ":" + req.Period)
 	params.AddMetadata("period", req.Period)
 	params.AddMetadata("holder_hash", req.HolderHash)   // no PII — only the hash
 	params.AddMetadata("source", "nbh-token-bridge")

@@ -108,11 +108,82 @@ func sanitizeIPForKey(remoteAddr string) string {
 	return remoteAddr
 }
 
-// ScanHandler handles GET /scan?token=<jwt>.
+// scanLandingHTML is a minimal HTML page served for GET /scan.
+// The QR code encodes a URL of the form:  https://view.example/scan#<jwt>
+// The fragment (everything after #) is NEVER sent to the server — it is read
+// by this page's inline script, which immediately auto-submits a hidden POST
+// form.  This keeps the full JWT out of every server log, CDN log, nginx
+// access log, and proxy access log.
+//
+// Security properties of this page:
+//   - No external resources (no CDN, no fonts, no tracking pixels).
+//   - history.replaceState removes the fragment before the form submits so
+//     the JWT does not appear in the browser's history or session storage.
+//   - The page itself carries no patient data; only the POST body does.
+//   - Cache-Control: no-store prevents the landing page being served stale.
+const scanLandingHTML = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Loading patient record…</title>
+<style>
+  body{font-family:system-ui,sans-serif;display:flex;align-items:center;
+       justify-content:center;height:100vh;margin:0;background:#f0f4f8}
+  p{color:#444;font-size:1.1rem}
+</style>
+</head>
+<body>
+<p id="msg">Verifying QR code…</p>
+<form id="f" method="POST" action="/scan" style="display:none">
+  <input type="hidden" id="tok" name="token" value="">
+</form>
+<script>
+(function(){
+  var hash = location.hash;
+  if (!hash || hash.length < 2) {
+    document.getElementById('msg').textContent =
+      'Invalid QR code — no token found. Please ask the patient to display the QR again.';
+    return;
+  }
+  var tok = hash.slice(1); // strip leading '#'
+  // Erase the fragment from the URL bar before submitting — prevents the JWT
+  // from appearing in browser history, bookmarks, or referrer headers.
+  history.replaceState(null, '', location.pathname);
+  document.getElementById('tok').value = tok;
+  document.getElementById('f').submit();
+})();
+</script>
+</body>
+</html>`
+
+// ScanHandler handles both legs of the QR-scan flow.
+//
+//	GET  /scan          — serves the fragment-reading landing page (no token in URL)
+//	POST /scan          — verifies the JWT (from POST body) and renders the emergency card
+//
+// The QR code on the patient's phone encodes:
+//
+//	https://<host>/scan#<jwt>
+//
+// The fragment is never transmitted to the server in GET requests, so the JWT
+// never appears in nginx access logs, CDN logs, or any upstream proxy log.
 // rdb is required for rate limiting and consent revocation checks.
 func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
+		switch r.Method {
+		case http.MethodGet:
+			// Serve the landing page. The browser's JS reads location.hash and
+			// re-submits via POST — the JWT never touches a server URL.
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Header().Set("Cache-Control", "no-store, no-cache")
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(scanLandingHTML))
+			return
+		case http.MethodPost:
+			// Fall through to JWT verification below.
+		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
@@ -123,9 +194,13 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 			return
 		}
 
-		tokenStr := strings.TrimSpace(r.URL.Query().Get("token"))
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, "invalid form data", http.StatusBadRequest)
+			return
+		}
+		tokenStr := strings.TrimSpace(r.FormValue("token"))
 		if tokenStr == "" {
-			http.Error(w, "missing token parameter", http.StatusBadRequest)
+			http.Error(w, "missing token", http.StatusBadRequest)
 			return
 		}
 
