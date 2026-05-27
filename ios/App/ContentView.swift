@@ -511,6 +511,12 @@ struct ProfileView: View {
     @State private var supportProfile: SupportProfile? = nil
     @State private var showSupportEdit: Bool = false
 
+    // ── About & Security state ────────────────────────────────────────────────
+    @State private var securityProfile: DeviceSecurityProfile? = nil
+    @State private var analyticsProfile: AnalyticsProfile = AnalyticsConsentStore.load()
+    @State private var showFullBlockchainID: Bool = false
+    @State private var showAnalyticsConsent: Bool = false
+
     var schemeLabel: String {
         switch schemePref {
         case "light": return "☀️ Day"
@@ -579,6 +585,9 @@ struct ProfileView: View {
                 // ── Support & Contact ──────────────────────────────────────
                 supportContactSection
 
+                // ── About & Security ──────────────────────────────────────
+                aboutSection
+
                 // ── Account ───────────────────────────────────────────────
                 Section("Account") {
                     Label("Health Profile", systemImage: "person.fill")
@@ -595,7 +604,11 @@ struct ProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) { NetworkStatusChip() }
             }
-            .onAppear { loadSupportProfile() }
+            .onAppear {
+                loadSupportProfile()
+                loadSecurityProfile()
+                Task { await SecurityProfileManager.shared.checkOnLaunch() }
+            }
             .sheet(isPresented: $showSupportEdit) {
                 SupportProfileEditView(
                     profile: supportProfile,
@@ -603,6 +616,11 @@ struct ProfileView: View {
                         supportProfile = updated
                     }
                 )
+            }
+            .sheet(isPresented: $showAnalyticsConsent) {
+                AnalyticsConsentView { profile in
+                    analyticsProfile = profile
+                }
             }
         }
     }
@@ -647,6 +665,88 @@ struct ProfileView: View {
 
     private func loadSupportProfile() {
         supportProfile = SupportProfileStore.load()
+    }
+
+    private func loadSecurityProfile() {
+        securityProfile = SecurityProfileStore.load()
+        analyticsProfile = AnalyticsConsentStore.load()
+    }
+
+    // ── About & Security section ───────────────────────────────────────────────
+
+    @ViewBuilder
+    private var aboutSection: some View {
+        Section {
+            // App version
+            HStack {
+                Text("App version")
+                Spacer()
+                Text(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "—")
+                    .foregroundStyle(.secondary)
+            }
+
+            // xLM engine
+            HStack {
+                Text("xLM Engine")
+                Spacer()
+                Text("opus-mt CoreML v2.0")
+                    .foregroundStyle(.secondary)
+            }
+
+            // Blockchain ID — first 12 chars; tap to reveal full hash
+            if let sp = securityProfile {
+                Button {
+                    showFullBlockchainID.toggle()
+                } label: {
+                    HStack {
+                        Text("Blockchain ID")
+                            .foregroundStyle(.primary)
+                        Spacer()
+                        Text(showFullBlockchainID
+                             ? sp.deviceFingerprintHash
+                             : String(sp.deviceFingerprintHash.prefix(12)) + "…")
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Blockchain records
+            NavigationLink {
+                BlockchainRecordsView()
+            } label: {
+                Label("My Blockchain Records", systemImage: "link.circle.fill")
+            }
+
+            // Device security badge
+            HStack {
+                Label {
+                    Text("Device Security")
+                } icon: {
+                    Image(systemName: "checkmark.shield.fill")
+                        .foregroundStyle(Color.green)
+                }
+                Spacer()
+                if let sp = securityProfile {
+                    Text(sp.displayID)
+                        .font(.system(.caption2, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            // Privacy & Analytics
+            NavigationLink {
+                PrivacyAnalyticsManagementView()
+            } label: {
+                Label("Privacy & Analytics", systemImage: "hand.raised.fill")
+            }
+
+        } header: {
+            Text("About & Security")
+        } footer: {
+            Text("Blockchain ID is a local device fingerprint hash. It never leaves your device.")
+        }
     }
 
     private func schemeBtn(_ label: String, _ value: String) -> some View {
@@ -1423,6 +1523,115 @@ struct SupportProfileEditView: View {
         onSaved(updated)
         dismiss()
     }
+}
+
+// MARK: - BlockchainRecordsView
+
+/// Shows all on-chain tx hashes this patient has across the three Fabric channels.
+/// Channel 1 = signatures (AdES), Channel 2 = consent-audit, Channel 3 = access-audit.
+/// Data is read from the legal vault (Silo 2) which caches tx references locally.
+struct BlockchainRecordsView: View {
+
+    // Stub data — in production these are loaded from the LegalVaultManager.
+    // Each entry is a Fabric tx hash (hex string) stored locally after a write.
+    private let ch1Records: [BlockchainRecord] = [
+        BlockchainRecord(channel: "Signatures",    type: "Consent signature",  date: Date().addingTimeInterval(-3600 * 24 * 5),  txHash: "a3f9c2e14b7d508f3ca1d9e0b2f847c6e3a19d405b7c2f1e08a3d9c4b5e2f7a1"),
+        BlockchainRecord(channel: "Signatures",    type: "eHR access grant",   date: Date().addingTimeInterval(-3600 * 24 * 12), txHash: "7b2e1a4d9c3f508e1b6a0d2c9f3e7b4a1d8c5e2f0a7b3d9c6e1f4a8b2d5e0c3"),
+    ]
+    private let ch2Records: [BlockchainRecord] = [
+        BlockchainRecord(channel: "Consent audit", type: "Consent granted",    date: Date().addingTimeInterval(-3600 * 24 * 30), txHash: "c5e2a7b4d1f908e3b0a6d2c9f5e7b4a1d8c3e0f2a5b1d7c4e9f6a2b8d3e0c5f"),
+        BlockchainRecord(channel: "Consent audit", type: "Consent revoked",    date: Date().addingTimeInterval(-3600 * 24 * 10), txHash: "2d8f5a1c7e4b0a3d9c6f2e5b8a1d4c7e0f3a6b9d2c5e8f1a4b7d0c3e6f9a2b5"),
+    ]
+    private let ch3Records: [BlockchainRecord] = [
+        BlockchainRecord(channel: "Access audit",  type: "ER doctor access",   date: Date().addingTimeInterval(-3600 * 48),      txHash: "f1a4c7e0b3d6a9c2e5b8f1d4a7c0e3b6d9f2a5c8e1b4d7a0c3e6b9f2a5c8e1b4"),
+        BlockchainRecord(channel: "Access audit",  type: "Patient self-view",  date: Date().addingTimeInterval(-3600 * 2),       txHash: "8b1e4a7d0c3f6b9e2a5d8c1f4b7e0a3d6c9f2b5e8a1d4c7f0b3e6a9d2c5f8b1e"),
+    ]
+
+    @State private var expandedHash: String? = nil
+    @State private var copiedHash:  String? = nil
+
+    var body: some View {
+        List {
+            channelSection("1 — Signatures", records: ch1Records, icon: "signature", tint: .purple)
+            channelSection("2 — Consent audit", records: ch2Records, icon: "checkmark.seal.fill", tint: .blue)
+            channelSection("3 — Access audit", records: ch3Records, icon: "eye.fill", tint: .orange)
+        }
+        .navigationTitle("Blockchain Records")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    @ViewBuilder
+    private func channelSection(_ title: String, records: [BlockchainRecord], icon: String, tint: Color) -> some View {
+        Section {
+            ForEach(records) { record in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 10) {
+                        Image(systemName: icon)
+                            .font(.subheadline)
+                            .foregroundStyle(tint)
+                            .frame(width: 20)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(record.type).font(.subheadline).fontWeight(.medium)
+                            Text(record.date.formatted(date: .abbreviated, time: .shortened))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Button {
+                            withAnimation { expandedHash = expandedHash == record.txHash ? nil : record.txHash }
+                        } label: {
+                            Text(String(record.txHash.prefix(8)) + "…")
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if expandedHash == record.txHash {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(record.txHash)
+                                .font(.system(.caption2, design: .monospaced))
+                                .foregroundStyle(.secondary)
+                                .lineLimit(nil)
+                                .textSelection(.enabled)
+
+                            HStack(spacing: 12) {
+                                Button {
+                                    UIPasteboard.general.string = record.txHash
+                                    copiedHash = record.txHash
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                                        copiedHash = nil
+                                    }
+                                } label: {
+                                    Label(
+                                        copiedHash == record.txHash ? "Copied!" : "Copy hash",
+                                        systemImage: copiedHash == record.txHash ? "checkmark" : "doc.on.doc"
+                                    )
+                                    .font(.caption)
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(copiedHash == record.txHash ? .green : .secondary)
+                            }
+                        }
+                        .padding(.leading, 30)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+        } header: {
+            Label("Channel \(title)", systemImage: "link")
+        }
+    }
+}
+
+// MARK: - BlockchainRecord model
+
+struct BlockchainRecord: Identifiable {
+    let id = UUID()
+    let channel: String
+    let type: String
+    let date: Date
+    let txHash: String // 64-char Fabric tx ID (hex)
 }
 
 // MARK: - Card style modifier (emergency views)

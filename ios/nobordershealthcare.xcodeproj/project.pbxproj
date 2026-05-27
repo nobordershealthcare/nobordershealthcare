@@ -23,6 +23,7 @@
 		4C75DEE1002D08A25449F758 /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC86BB66FE5565C9184E8490 /* CallView.swift */; };
 		4D05CFADA3E8340BEFD35B7D /* KeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622F23DBC018E3F6C9948C28 /* KeyManager.swift */; };
 		57B85DE5DCD54B13D52FA2A7 /* EmergencyCardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */; };
+		59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A784D4C10DF2493288540 /* ReferralView.swift */; };
 		5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B3A142FC41A9153C4D790D /* ScopeManager.swift */; };
 		5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */; };
 		5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6411BE2A63765FA00C6091 /* KyberOperations.swift */; };
@@ -43,11 +44,13 @@
 		AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC1623F564ECBC26952904 /* SignatureButton.swift */; };
 		AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E241D7E7155434C8739A07C /* BiometricLockView.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
+		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
 		B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6194C26F3263738B3825DA8 /* BiometricAuth.swift */; };
 		BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */; };
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
+		C689E012885AE8C7337D6026 /* SecurityProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */; };
 		C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */; };
 		D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62524B8496BE6AD1B7264711 /* UserProfile.swift */; };
 		D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CB4396676A9C48242F3099 /* UserAgreementView.swift */; };
@@ -68,8 +71,10 @@
 		1E5DE46C3D34CF36D4FEAA05 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		25CD1B7A0309E6785A54A966 /* xLMEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = xLMEngine.swift; sourceTree = "<group>"; };
 		27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA3.swift; sourceTree = "<group>"; };
+		289A784D4C10DF2493288540 /* ReferralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferralView.swift; sourceTree = "<group>"; };
 		2A6411BE2A63765FA00C6091 /* KyberOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyberOperations.swift; sourceTree = "<group>"; };
 		2C12AA53CF41B4033407B0CF /* IPFSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFSClient.swift; sourceTree = "<group>"; };
+		2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsent.swift; sourceTree = "<group>"; };
 		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		34EDABFB131AEE01B59471B5 /* BankIDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankIDClient.swift; sourceTree = "<group>"; };
 		39CB4396676A9C48242F3099 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
@@ -83,6 +88,7 @@
 		6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthcareProxyView.swift; sourceTree = "<group>"; };
 		6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalVaultManager.swift; sourceTree = "<group>"; };
 		6D72112E9BDE6DDF792806A3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityProfile.swift; sourceTree = "<group>"; };
 		825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
 		865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentAuditService.swift; sourceTree = "<group>"; };
 		87B3A142FC41A9153C4D790D /* ScopeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeManager.swift; sourceTree = "<group>"; };
@@ -162,6 +168,7 @@
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
 				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
 				825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */,
+				6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */,
 				D343F73610356376EFA4EC1B /* VaultManager.swift */,
 			);
 			path = Core;
@@ -170,6 +177,8 @@
 		37AEB26E64686B0D8F007261 /* Support */ = {
 			isa = PBXGroup;
 			children = (
+				2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */,
+				289A784D4C10DF2493288540 /* ReferralView.swift */,
 				DBEEA8EC8166D9607512E78D /* SupportProfile.swift */,
 			);
 			path = Support;
@@ -416,6 +425,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */,
+				B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */,
 				AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */,
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
@@ -451,11 +461,13 @@
 				B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */,
 				80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */,
 				D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */,
+				59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */,
 				A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */,
 				A1A6525BF19CD02CB185B64B /* SHA3.swift in Sources */,
 				EBA7E953E5DE5ED4FDCD735B /* SIPClient.swift in Sources */,
 				5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */,
 				A1A273BEC65112CD3F80C289 /* SecureEnclaveKey.swift in Sources */,
+				C689E012885AE8C7337D6026 /* SecurityProfile.swift in Sources */,
 				A27716086B07DCD6634C1EA7 /* SentencePieceShim.swift in Sources */,
 				457BF13DF25ED5021E42AFB8 /* ShamirShard.swift in Sources */,
 				AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */,
