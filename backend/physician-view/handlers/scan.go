@@ -108,20 +108,35 @@ func sanitizeIPForKey(remoteAddr string) string {
 	return remoteAddr
 }
 
-// scanLandingHTML is a minimal HTML page served for GET /scan.
+// CSPNonceContextKey is the exported context key used by securityHeadersMiddleware
+// (in main.go) to store the per-request CSP nonce, and by ScanHandler to retrieve it.
+// Exporting the type allows main.go to alias it (type cspNonceKey = handlers.CSPNonceContextKey)
+// so both sides use the same key without an import cycle.
+type CSPNonceContextKey struct{}
+
+// nonceFromCtx extracts the CSP nonce injected by securityHeadersMiddleware.
+// Returns an empty string in tests or when the middleware is not in the chain.
+func nonceFromCtx(ctx context.Context) string {
+	if v := ctx.Value(CSPNonceContextKey{}); v != nil {
+		if s, ok := v.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+// scanLandingTmpl is the Go template for the GET /scan landing page.
 // The QR code encodes a URL of the form:  https://view.example/scan#<jwt>
 // The fragment (everything after #) is NEVER sent to the server — it is read
-// by this page's inline script, which immediately auto-submits a hidden POST
-// form.  This keeps the full JWT out of every server log, CDN log, nginx
-// access log, and proxy access log.
+// by the inline script, which auto-submits a hidden POST form.
 //
-// Security properties of this page:
-//   - No external resources (no CDN, no fonts, no tracking pixels).
-//   - history.replaceState removes the fragment before the form submits so
-//     the JWT does not appear in the browser's history or session storage.
-//   - The page itself carries no patient data; only the POST body does.
-//   - Cache-Control: no-store prevents the landing page being served stale.
-const scanLandingHTML = `<!DOCTYPE html>
+// Security:
+//   - The script tag carries a per-request CSP nonce ({{.Nonce}}) so it
+//     executes under a strict script-src 'nonce-...' policy WITHOUT 'unsafe-inline'.
+//   - history.replaceState removes the fragment before submission — JWT never
+//     appears in browser history, bookmarks, or referrer headers.
+//   - Cache-Control: no-store prevents the page being served stale.
+var scanLandingTmpl = template.Must(template.New("landing").Parse(`<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -138,7 +153,7 @@ const scanLandingHTML = `<!DOCTYPE html>
 <form id="f" method="POST" action="/scan" style="display:none">
   <input type="hidden" id="tok" name="token" value="">
 </form>
-<script>
+<script nonce="{{.Nonce}}">
 (function(){
   var hash = location.hash;
   if (!hash || hash.length < 2) {
@@ -146,20 +161,18 @@ const scanLandingHTML = `<!DOCTYPE html>
       'Invalid QR code — no token found. Please ask the patient to display the QR again.';
     return;
   }
-  var tok = hash.slice(1); // strip leading '#'
-  // Erase the fragment from the URL bar before submitting — prevents the JWT
-  // from appearing in browser history, bookmarks, or referrer headers.
+  var tok = hash.slice(1);
   history.replaceState(null, '', location.pathname);
   document.getElementById('tok').value = tok;
   document.getElementById('f').submit();
 })();
 </script>
 </body>
-</html>`
+</html>`))
 
 // ScanHandler handles both legs of the QR-scan flow.
 //
-//	GET  /scan          — serves the fragment-reading landing page (no token in URL)
+//	GET  /scan          — serves the nonce-protected fragment-reading landing page
 //	POST /scan          — verifies the JWT (from POST body) and renders the emergency card
 //
 // The QR code on the patient's phone encodes:
@@ -173,13 +186,15 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			// Serve the landing page. The browser's JS reads location.hash and
-			// re-submits via POST — the JWT never touches a server URL.
+			// Serve the landing page with the per-request CSP nonce injected.
+			// The nonce is required so the inline script executes under the strict
+			// script-src 'nonce-...' policy without 'unsafe-inline'.
+			nonce := nonceFromCtx(r.Context())
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store, no-cache")
-			w.Header().Set("X-Content-Type-Options", "nosniff")
-			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(scanLandingHTML))
+			if err := scanLandingTmpl.Execute(w, struct{ Nonce string }{nonce}); err != nil {
+				slog.Error("landing page render failed", slog.String("err", err.Error()))
+			}
 			return
 		case http.MethodPost:
 			// Fall through to JWT verification below.

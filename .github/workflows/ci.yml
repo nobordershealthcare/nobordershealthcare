@@ -23,9 +23,15 @@ jobs:
           - backend/anonymizer
           - backend/normalization
           - backend/physician-view
+          - backend/token-bridge
+          - backend/bulk-import
+          - backend/subscription
+          - backend/referral
           - contracts/channel1-signatures
           - contracts/channel2-consent
           - contracts/channel3-access
+          - contracts/channel4-military
+          - contracts/channel5-token
     defaults:
       run:
         working-directory: ${{ matrix.module }}
@@ -54,6 +60,12 @@ jobs:
           - backend/anonymizer
           - backend/normalization
           - backend/physician-view
+          - backend/token-bridge
+          - backend/bulk-import
+          - backend/subscription
+          - backend/referral
+          - contracts/channel4-military
+          - contracts/channel5-token
     steps:
       - uses: actions/checkout@v4
 

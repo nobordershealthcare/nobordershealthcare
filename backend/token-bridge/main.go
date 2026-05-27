@@ -161,13 +161,15 @@ func makeRunHandler(calc *distribution.Calculator) http.HandlerFunc {
 		var body struct {
 			Period string `json:"period"`
 		}
+		// H-02: never return internal error details to client
 		if err := decodeJSON(r, &body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: run handler decode error: %v", err)
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 		if err := calc.RunQuarterlyDistribution(r.Context(), body.Period); err != nil {
 			log.Printf("token-bridge: distribution run error: %v", err)
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, "internal server error", http.StatusInternalServerError)
 			return
 		}
 		w.WriteHeader(http.StatusNoContent)
@@ -178,8 +180,10 @@ func makeHistoryHandler(fab *fabric.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		holderHash := r.PathValue("holderHash")
 		records, err := fab.GetDistributionHistory(holderHash)
+		// H-02: log internal error, return generic message to prevent schema leakage
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: get distribution history error: %v", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 		writeJSON(w, records)
@@ -192,13 +196,16 @@ func makeAllocateHandler(fab *fabric.Client) http.HandlerFunc {
 			Period       string `json:"period"`
 			TotalRevenue string `json:"totalRevenue"` // micro-EURC integer string
 		}
+		// H-02: never return internal error details to client
 		if err := decodeJSON(r, &body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: allocate handler decode error: %v", err)
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 		txID, err := fab.RecordRevenueAllocation(body.Period, body.TotalRevenue)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: record revenue allocation error: %v", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 		writeJSON(w, map[string]string{"txID": txID})
@@ -212,13 +219,16 @@ func makeConsentHandler(fab *fabric.Client) http.HandlerFunc {
 			Granted         bool   `json:"granted"`
 			SignatureTxHash string `json:"signatureTxHash"` // channel-1 AdES txID
 		}
+		// H-02: never return internal error details to client
 		if err := decodeJSON(r, &body); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: consent handler decode error: %v", err)
+			http.Error(w, "invalid request body", http.StatusBadRequest)
 			return
 		}
 		txID, err := fab.RecordHolderConsent(holderHash, body.Granted, body.SignatureTxHash)
 		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+			log.Printf("token-bridge: record holder consent error: %v", err)
+			http.Error(w, "invalid request", http.StatusBadRequest)
 			return
 		}
 		writeJSON(w, map[string]string{"txID": txID})

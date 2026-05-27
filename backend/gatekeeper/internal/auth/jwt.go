@@ -60,6 +60,7 @@ func (s *JWTService) Issue(ctx context.Context, hashedUserID, role string, scope
 		Scope: scope,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Subject:   hashedUserID,
+			Issuer:    "nobordershealthcare/gatekeeper", // H-01: required for issuer validation on Verify
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(exp),
 			ID:        jti,
@@ -101,6 +102,9 @@ func (s *JWTService) Verify(ctx context.Context, tokenStr string) (*Claims, erro
 		jwt.WithExpirationRequired(),
 		jwt.WithIssuedAt(),
 		jwt.WithStrictDecoding(),
+		// H-01: Validate issuer claim — rejects tokens issued by any other service
+		// (e.g., an attacker who obtained a signing key for a different service).
+		jwt.WithIssuer("nobordershealthcare/gatekeeper"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("jwt parse: %w", err)

@@ -2,7 +2,7 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net"
 	"net/http"
 
@@ -63,13 +63,17 @@ func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 
 	rows, parseErr := importer.ParseCSV(file, hdr.Filename, csvType)
 	if parseErr != nil {
-		http.Error(w, fmt.Sprintf("CSV parse error: %v", parseErr), http.StatusBadRequest)
+		// H-03: log internal error, return generic message — CSV parse errors may reveal schema
+		log.Printf("bulk-import: CSV parse error (file=%s type=%s): %v", hdr.Filename, csvType, parseErr)
+		http.Error(w, "invalid CSV format", http.StatusBadRequest)
 		return
 	}
 
 	batch, dispatchErr := importer.CreateAndDispatch(r.Context(), rows, csvType)
 	if dispatchErr != nil {
-		http.Error(w, fmt.Sprintf("dispatch error: %v", dispatchErr), http.StatusInternalServerError)
+		// H-03: log internal error, return generic message
+		log.Printf("bulk-import: dispatch error (type=%s rows=%d): %v", csvType, len(rows), dispatchErr)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -88,7 +92,9 @@ func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 	stats, err := admin.GetBatchStats(r.Context(), batchID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		// H-03: log internal error, return generic message
+		log.Printf("bulk-import: get batch stats (batchID=%s): %v", batchID, err)
+		http.Error(w, "batch not found", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -117,7 +123,9 @@ func (s *server) handleResend(w http.ResponseWriter, r *http.Request) {
 
 	count, err := admin.ResendFailed(r.Context(), batchID, req)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		// H-03: log internal error, return generic message
+		log.Printf("bulk-import: resend failed (batchID=%s): %v", batchID, err)
+		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")

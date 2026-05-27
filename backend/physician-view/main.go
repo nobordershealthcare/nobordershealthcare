@@ -23,6 +23,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"html/template"
 	"log/slog"
@@ -133,43 +135,61 @@ func main() {
 	slog.Info("server stopped")
 }
 
-// securityHeadersMiddleware adds defensive HTTP response headers to every response.
-//
-// Content-Security-Policy rationale:
-//   - default-src 'self'             — no external resources permitted
-//   - script-src 'self' 'unsafe-inline' — the landing page uses a small inline script
-//     to read location.hash; this is unavoidable given the QR→fragment→POST design.
-//     The inline script contains no patient data and cannot be replaced with an external
-//     file because the page must work before the JWT is parsed.
-//   - style-src 'self' 'unsafe-inline' — inline styles in the landing page only
-//   - img-src 'self'                 — no external images
-//   - form-action 'self'             — the landing page form only POSTs to /scan (same origin)
-//   - frame-ancestors 'none'         — equivalent to X-Frame-Options: DENY
-//   - base-uri 'self'               — prevent base tag injection
-//
-// X-Frame-Options: DENY — belt-and-suspenders with frame-ancestors 'none' for older browsers.
-// X-Content-Type-Options: nosniff — prevent MIME-type sniffing of HTML/JSON responses.
-// Referrer-Policy: no-referrer — no URL leakage when navigating away.
-// Permissions-Policy: camera=(), microphone=(), geolocation=() — deny sensor access.
-func securityHeadersMiddleware(next http.Handler) http.Handler {
-	const csp = "default-src 'self'; " +
-		"script-src 'self' 'unsafe-inline'; " +
-		"style-src 'self' 'unsafe-inline'; " +
-		"img-src 'self'; " +
-		"font-src 'self'; " +
-		"form-action 'self'; " +
-		"frame-ancestors 'none'; " +
-		"base-uri 'self'; " +
-		"object-src 'none'"
+// cspNonceKey is the context key used to pass the per-request CSP nonce from
+// securityHeadersMiddleware to handlers that embed inline scripts.
+// The handlers package defines a mirror type (cspNonceCtxKey) — both resolve
+// to the same underlying string value via the handlers.CSPNonceFromCtx helper.
+type cspNonceKey = handlers.CSPNonceContextKey
 
+// securityHeadersMiddleware adds defensive HTTP response headers to every response
+// and injects a cryptographically random per-request nonce into the context.
+//
+// Content-Security-Policy uses a nonce rather than 'unsafe-inline':
+//   - 'unsafe-inline' in script-src COMPLETELY defeats XSS protection — any injected
+//     <script> tag runs, regardless of origin.  A previous fix introduced this mistake
+//     to accommodate the landing page's inline script.  The correct approach is a nonce.
+//   - A fresh 128-bit random nonce is generated for every HTTP response.
+//   - Only <script nonce="..."> tags with the matching nonce execute.
+//   - An attacker who injects HTML cannot guess the nonce (128 bits of entropy).
+//   - The nonce is stored in the request context; the ScanHandler reads it to inject
+//     into the landing page template.
+//
+// X-Frame-Options: DENY — belt-and-suspenders with frame-ancestors 'none'.
+// X-Content-Type-Options: nosniff — prevent MIME-type sniffing.
+// Referrer-Policy: no-referrer — no URL leakage when navigating away.
+// Permissions-Policy — deny sensor/device access.
+func securityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Generate a 128-bit (16-byte) random nonce per request.
+		var nonceBytes [16]byte
+		if _, err := rand.Read(nonceBytes[:]); err != nil {
+			// crypto/rand failure is catastrophic; refuse the request rather than
+			// fall back to 'unsafe-inline'.
+			http.Error(w, "internal error", http.StatusInternalServerError)
+			return
+		}
+		nonce := base64.StdEncoding.EncodeToString(nonceBytes[:])
+
+		csp := "default-src 'self'; " +
+			"script-src 'nonce-" + nonce + "'; " +
+			"style-src 'self' 'unsafe-inline'; " + // inline styles only (no script execution risk)
+			"img-src 'self'; " +
+			"font-src 'self'; " +
+			"form-action 'self'; " +
+			"frame-ancestors 'none'; " +
+			"base-uri 'self'; " +
+			"object-src 'none'"
+
 		h := w.Header()
 		h.Set("Content-Security-Policy", csp)
 		h.Set("X-Frame-Options", "DENY")
 		h.Set("X-Content-Type-Options", "nosniff")
 		h.Set("Referrer-Policy", "no-referrer")
 		h.Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
-		next.ServeHTTP(w, r)
+
+		// Inject nonce into context so handlers can embed it into inline scripts.
+		ctx := context.WithValue(r.Context(), cspNonceKey{}, nonce)
+		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 

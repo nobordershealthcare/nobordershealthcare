@@ -47,11 +47,21 @@ func validatePeriod(p string) error {
 // RecordRevenueAllocation writes the total EURC revenue figure for a quarter.
 // totalRevenue must be a positive integer string in micro-EURC (1 EURC = 1_000_000).
 // Only one allocation per period is permitted — overwrites return an error.
+//
+// C-02: Caller authorization — only identities carrying the ABAC attribute
+// "platform_admin"="true" (issued by the Fabric CA to admin service identities)
+// may record revenue allocations.  Defence-in-depth on top of the 2-of-3
+// endorsement policy: even a compromised peer cannot record revenue alone.
 func (c *TokenDistributionContract) RecordRevenueAllocation(
 	ctx contractapi.TransactionContextInterface,
 	period string,
 	totalRevenue string,
 ) (string, error) {
+	// C-02: Restrict to platform admin identities only.
+	if err := ctx.GetClientIdentity().AssertAttributeValue("platform_admin", "true"); err != nil {
+		return "", fmt.Errorf("RecordRevenueAllocation: caller lacks platform_admin attribute — unauthorized: %w", err)
+	}
+
 	if err := validatePeriod(period); err != nil {
 		return "", err
 	}

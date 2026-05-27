@@ -13,6 +13,7 @@ import (
 	"log"
 	"math/big"
 	"os"
+	"strconv"
 
 	"github.com/ethereum/go-ethereum/common"
 	stripe "github.com/stripe/stripe-go/v76"
@@ -101,8 +102,9 @@ func (d *Dispatcher) dispatchStripe(_ context.Context, req Request) (string, err
 	// SECURITY: Idempotency key prevents double-payment if the bridge crashes after
 	// Stripe accepts the transfer but before Fabric records it. Stripe deduplicates
 	// requests with the same key within 24h and returns the original transfer object.
-	// Key = holderHash:period — globally unique per holder per quarter.
-	params.SetIdempotencyKey(req.HolderHash + ":" + req.Period)
+	// M-01 fix: Key = holderHash:period:cents — includes amount so a recomputed
+	// payout with a different figure generates a distinct key (no silent amount drift).
+	params.SetIdempotencyKey(req.HolderHash + ":" + req.Period + ":" + strconv.FormatInt(cents, 10))
 	params.AddMetadata("period", req.Period)
 	params.AddMetadata("holder_hash", req.HolderHash)   // no PII — only the hash
 	params.AddMetadata("source", "nbh-token-bridge")
