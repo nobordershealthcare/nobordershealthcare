@@ -3,7 +3,9 @@ package auth
 import (
 	"context"
 	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -11,7 +13,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -53,7 +54,13 @@ func NewJWTService(privKeyPath, pubKeyPath string, redisClient *redis.Client) (*
 func (s *JWTService) Issue(ctx context.Context, hashedUserID, role string, scope []string) (string, error) {
 	now := time.Now().UTC()
 	exp := now.Add(jwtMaxAge)
-	jti := uuid.New().String()
+
+	// 256-bit random JTI: stronger than UUID v4 (122-bit) for replay-protection key space.
+	var jtiRaw [32]byte
+	if _, err := rand.Read(jtiRaw[:]); err != nil {
+		return "", fmt.Errorf("jti generation: %w", err)
+	}
+	jti := base64.RawURLEncoding.EncodeToString(jtiRaw[:])
 
 	claims := Claims{
 		Role:  role,

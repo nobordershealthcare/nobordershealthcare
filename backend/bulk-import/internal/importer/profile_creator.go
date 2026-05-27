@@ -2,6 +2,8 @@ package importer
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
@@ -14,8 +16,8 @@ import (
 var ErrTokenAlreadyConsumed = errors.New("activation token already consumed")
 
 // PendingProfile represents a person invited but not yet registered.
-// activation_token is UUID v4 (crypto/rand — never sequential).
-// Only SHA3-256(token) is persisted in ScyllaDB; plaintext token goes in the notification only.
+// activation_token is base64url(32 random bytes) = 256-bit entropy (was UUID v4 / 122-bit).
+// Only SHA3-256(tokenStr) is persisted in ScyllaDB; plaintext token goes in the notification only.
 type PendingProfile struct {
 	ID              string    `json:"id"`               // UUID v4
 	BatchID         string    `json:"batchID"`
@@ -67,10 +69,16 @@ func CreateAndDispatch(ctx context.Context, rows []ImportRow, csvType string) (*
 	profiles := make([]*PendingProfile, 0, len(rows))
 
 	for _, row := range rows {
-		token := uuid.New() // UUID v4 via crypto/rand
-		tokenBytes := []byte(token.String())
+		// Generate 256-bit activation token (was UUID v4, 122-bit).
+		// tokenStr = base64url(32 random bytes) — the value embedded in the activation URL.
+		// tokenHash = SHA3-256(tokenStr) — the ONLY value stored; plaintext never persisted.
+		var rawToken [32]byte
+		if _, err := rand.Read(rawToken[:]); err != nil {
+			return nil, fmt.Errorf("activation token generation: %w", err)
+		}
+		tokenStr := base64.RawURLEncoding.EncodeToString(rawToken[:])
 		h := sha3.New256()
-		h.Write(tokenBytes)
+		h.Write([]byte(tokenStr))
 		tokenHash := fmt.Sprintf("%x", h.Sum(nil))
 
 		profile := &PendingProfile{
@@ -80,7 +88,7 @@ func CreateAndDispatch(ctx context.Context, rows []ImportRow, csvType string) (*
 			Phone:       row.Phone,
 			Email:       row.Email,
 			Language:    row.Language,
-			ActivationURL: activationBaseURL + token.String(),
+			ActivationURL: activationBaseURL + tokenStr,
 			TokenHash:   tokenHash,
 			ExpiresAt:   time.Now().Add(activationTTL),
 			DeliveryStatus: map[string]string{

@@ -39,7 +39,7 @@ func Generate(referrerHash string, rtype models.ReferralType, stripeAccountID st
 		return nil, fmt.Errorf("referrerHash must be 64-char SHA3-256 hex, got %d", len(referrerHash))
 	}
 
-	suffix, err := randomUpperHex(2) // 4 uppercase hex chars
+	suffix, err := randomUpperHex(32) // 64 uppercase hex chars — 256-bit random (was 2 bytes / 16-bit)
 	if err != nil {
 		return nil, err
 	}

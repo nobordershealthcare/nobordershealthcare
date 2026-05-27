@@ -25,7 +25,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -109,7 +108,6 @@ func sanitizeIPForKey(remoteAddr string) string {
 	return remoteAddr
 }
 
-<<<<<<< HEAD
 // CSPNonceContextKey is the exported context key used by securityHeadersMiddleware
 // (in main.go) to store the per-request CSP nonce, and by ScanHandler to retrieve it.
 // Exporting the type allows main.go to alias it (type cspNonceKey = handlers.CSPNonceContextKey)
@@ -183,23 +181,8 @@ var scanLandingTmpl = template.Must(template.New("landing").Parse(`<!DOCTYPE htm
 //
 // The fragment is never transmitted to the server in GET requests, so the JWT
 // never appears in nginx access logs, CDN logs, or any upstream proxy log.
-=======
-// ScanHandler handles GET /scan?token=<jwt>.
-//
-// Content negotiation:
-//   Accept: text/html  → serve a redirect page that moves the token to the
-//                        URL hash (#token=JWT) and navigates to emergency.html.
-//                        The hash is never sent to the server on subsequent loads.
-//   Accept: application/json (or default) → verify JWT and return CardAPIResponse.
-//
-// HTML browsers arriving via an old-format QR link (/scan?token=...) are
-// transparently migrated to the hash-based URL. New QR codes should encode
-// physician.noborders.healthcare/#token=JWT directly.
-//
->>>>>>> feat/referral-system
 // rdb is required for rate limiting and consent revocation checks.
-// webDir is the filesystem path to the compiled web/ directory.
-func ScanHandler(tmpl *template.Template, rdb *redis.Client, webDir string) http.HandlerFunc {
+func ScanHandler(tmpl *template.Template, rdb *redis.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
@@ -226,7 +209,6 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client, webDir string) http
 			return
 		}
 
-<<<<<<< HEAD
 		if err := r.ParseForm(); err != nil {
 			http.Error(w, "invalid form data", http.StatusBadRequest)
 			return
@@ -234,50 +216,6 @@ func ScanHandler(tmpl *template.Template, rdb *redis.Client, webDir string) http
 		tokenStr := strings.TrimSpace(r.FormValue("token"))
 		if tokenStr == "" {
 			http.Error(w, "missing token", http.StatusBadRequest)
-=======
-		accept := r.Header.Get("Accept")
-		wantsHTML := strings.Contains(accept, "text/html")
-
-		tokenStr := strings.TrimSpace(r.URL.Query().Get("token"))
-
-		// ── HTML path ─────────────────────────────────────────
-		// Serve a minimal redirect page that moves the token to the hash,
-		// then navigates to emergency.html. After the redirect, the token
-		// lives only in the URL hash and is not sent to the server.
-		if wantsHTML {
-			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-store")
-			w.Header().Set("X-Content-Type-Options", "nosniff")
-
-			// The JS below runs once on load: moves ?token= to #token= and replaces
-			// the history entry so the query string is not retained in browser history.
-			fmt.Fprintf(w, `<!DOCTYPE html>
-<html><head><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Redirecting…</title>
-</head><body>
-<script>
-(function(){
-  var m = location.search.match(/[?&]token=([^&]+)/);
-  if (m) { location.replace('/emergency.html#token=' + m[1]); }
-  else   { location.replace('/emergency.html'); }
-})();
-</script>
-<noscript>
-  <meta http-equiv="refresh" content="0;url=/emergency.html">
-  <p>Redirecting…</p>
-</noscript>
-</body></html>
-`)
-			return
-		}
-
-		// ── JSON API path ──────────────────────────────────────
-		// Kept for backward-compat with existing API consumers.
-		// New code should call GET /api/card directly.
-		if tokenStr == "" {
-			jsonErr(w, "missing_token", http.StatusBadRequest)
->>>>>>> feat/referral-system
 			return
 		}
 

@@ -114,7 +114,7 @@ func main() {
 	// ── API routes ───────────────────────────────────────────
 	// /scan: legacy QR URL — HTML browsers get a token→hash redirect,
 	//        JSON clients get the card payload directly.
-	mux.HandleFunc("/scan", handlers.ScanHandler(tmpl, rdb, webDir))
+	mux.HandleFunc("/scan", handlers.ScanHandler(tmpl, rdb))
 	// /api/card: primary JSON endpoint consumed by the HTML5 web app.
 	mux.HandleFunc("/api/card", handlers.CardAPIHandler(rdb))
 	mux.HandleFunc("/clinician", handlers.ClinicianHandler(ch3Logger, rdb))
@@ -209,8 +209,9 @@ type cspNonceKey = handlers.CSPNonceContextKey
 // Permissions-Policy — deny sensor/device access.
 func securityHeadersMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Generate a 128-bit (16-byte) random nonce per request.
-		var nonceBytes [16]byte
+		// Generate a 256-bit (32-byte) random nonce per request.
+		// 256-bit per security policy upgrade (was 128-bit).
+		var nonceBytes [32]byte
 		if _, err := rand.Read(nonceBytes[:]); err != nil {
 			// crypto/rand failure is catastrophic; refuse the request rather than
 			// fall back to 'unsafe-inline'.
