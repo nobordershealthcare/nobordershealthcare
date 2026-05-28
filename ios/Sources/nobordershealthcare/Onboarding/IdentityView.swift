@@ -605,7 +605,7 @@ struct IdentityView: View {
 
                         identityRow(
                             label: "РНОКПП",
-                            value: payload.maskedRNOKPP(revealed: showRNOKPP),
+                            value: payload.rnokppMasked,
                             isMasked: true,
                             showValue: $showRNOKPP
                         )
@@ -695,37 +695,25 @@ struct IdentityView: View {
     // MARK: - Diia: commit identity to vault
 
     private func commitDiiaIdentity(country: IdentityCountry, payload: DiiaIdentityPayload) {
-        // Capture RNOKPP then zero immediately after hashing
-        var rnokpp = payload.rnokpp
-        defer { rnokpp.removeAll(keepingCapacity: false) }
+        // rnokppHash is pre-computed by the backend — no local SHA3 needed.
+        let hash = payload.rnokppHash
 
-        let normalized = "UA:\(rnokpp.filter(\.isNumber))"
+        let identity = VerifiedIdentity(
+            id:           UUID(),
+            countryCode:  country.id,
+            countryFlag:  country.flag,
+            countryName:  country.name,
+            providerID:   EIDProvider.diiaUA.rawValue,
+            providerName: "Дія — Diia App Switch",
+            userIdHash:   hash,
+            verifiedAt:   Date(),
+            expiresAt:    nil
+        )
 
-        do {
-            let salt     = try loadOrCreateSalt()
-            let combined = (salt + normalized).data(using: .utf8) ?? Data()
-            let hash     = SHA3_256.hash(data: combined).description
-
-            let identity = VerifiedIdentity(
-                id:           UUID(),
-                countryCode:  country.id,
-                countryFlag:  country.flag,
-                countryName:  country.name,
-                providerID:   EIDProvider.diiaUA.rawValue,
-                providerName: "Дія — Diia App Switch",
-                userIdHash:   hash,
-                verifiedAt:   Date(),
-                expiresAt:    nil
-            )
-
-            VerifiedIdentityStore.upsert(identity)
-            try? DIDWallet.shared.storeUserIdHash_sync(hash, provider: EIDProvider.diiaUA.rawValue)
-            DiiaService.shared.reset()
-            viewState = .success(identity)
-
-        } catch {
-            viewState = .failed(error.localizedDescription)
-        }
+        VerifiedIdentityStore.upsert(identity)
+        try? DIDWallet.shared.storeUserIdHash_sync(hash, provider: EIDProvider.diiaUA.rawValue)
+        DiiaService.shared.reset()
+        viewState = .success(identity)
     }
 
     // MARK: - Error view

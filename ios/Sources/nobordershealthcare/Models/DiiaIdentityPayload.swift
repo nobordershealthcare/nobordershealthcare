@@ -1,15 +1,13 @@
-// DiiaIdentityPayload.swift — Data returned by the Дія (Diia) App Switch.
+// DiiaIdentityPayload.swift — Identity payload returned by the Дія (Diia) backend.
 //
-// Diia sends identity claims either in a JWT callback URL or via a partner
-// API response.  This struct mirrors the JSON payload in both cases.
+// The backend verifies the Diia JWT, extracts identity claims, computes
+// SHA3-256(salt + "UA:" + РНОКПП), and returns only the hash and a
+// pre-masked display string.  The raw РНОКПП never reaches the iOS client.
 //
-// Security note: signature verification is the backend's responsibility.
-// The iOS client only decodes the payload for display — it NEVER persists
-// the plaintext fields.  Only SHA3-256(salt + РНОКПП) enters the vault.
-//
-// Stub mode: DiiaIdentityPayload.stub(requestId:) provides a deterministic
-// test fixture (Тарас Григорович Шевченко) for simulator development until
-// the real Diia partner integration is ready.
+// Security properties:
+//   • rnokppHash   — pre-computed by the backend; stored directly in vault
+//   • rnokppMasked — display-only "••••••7890"; never stored
+//   • firstName / patronymic / lastName — display-only; never stored or logged
 
 import Foundation
 
@@ -18,24 +16,29 @@ import Foundation
 struct DiiaIdentityPayload: Codable, Sendable, Equatable {
 
     // ── Identity claims ─────────────────────────────────────────────────────
+
     /// Ім'я — given name as registered in the State Register of Civil Status
     let firstName: String
 
-    /// По батькові — patronymic (optional in some Diia versions, empty string if absent)
+    /// По батькові — patronymic (empty string if absent in the Diia document)
     let patronymic: String
 
     /// Прізвище — family name
     let lastName: String
 
-    /// РНОКПП — Реєстраційний номер облікової картки платника податків (10 digits)
-    /// NEVER persisted — only its SHA3-256 hash enters the vault.
-    let rnokpp: String
+    /// Pre-masked РНОКПП for display: "••••••7890"
+    /// Show as-is — no client-side masking or transformation.
+    let rnokppMasked: String
 
-    /// requestId — echo of the UUID sent in the deep link; used to bind this
-    /// response to the specific authorization request (replay protection).
+    /// SHA3-256(salt + "UA:" + РНОКПП), hex — computed by the backend.
+    /// This is the only РНОКПП-derived value stored in the vault;
+    /// the raw РНОКПП never arrives on the iOS client.
+    let rnokppHash: String
+
+    /// requestId — echo of the UUID sent in the auth request (replay protection)
     let requestId: String
 
-    // MARK: - Derived helpers (display only)
+    // MARK: - Derived (display only)
 
     /// Full display name in Ukrainian natural order: Прізвище Ім'я По батькові
     var fullName: String {
@@ -44,35 +47,19 @@ struct DiiaIdentityPayload: Codable, Sendable, Equatable {
             .joined(separator: " ")
     }
 
-    /// РНОКПП with middle 6 digits masked: ••••••XXXX
-    /// The last 4 digits are always visible; the rest are hidden by default.
-    func maskedRNOKPP(revealed: Bool) -> String {
-        guard rnokpp.count == 10, !revealed else { return rnokpp }
-        let last4 = String(rnokpp.suffix(4))
-        return "••••••\(last4)"
-    }
-
-    // MARK: - CodingKeys (maps Diia JSON snake_case ↔ Swift camelCase)
-
-    private enum CodingKeys: String, CodingKey {
-        case firstName  = "firstName"
-        case patronymic = "patronymic"
-        case lastName   = "lastName"
-        case rnokpp     = "rnokpp"
-        case requestId  = "requestId"
-    }
-
     // MARK: - Stub fixture
 
-    /// Deterministic test fixture for simulator / stub mode.
+    /// Deterministic test fixture for simulator / DIIA_STUB_MODE = YES.
     /// Named after Тарас Григорович Шевченко — Ukrainian national poet.
+    /// rnokppHash is a fixed SHA3-256 sentinel value used only in tests.
     static func stub(requestId: String = "stub-\(UUID().uuidString)") -> DiiaIdentityPayload {
         DiiaIdentityPayload(
-            firstName:  "Тарас",
-            patronymic: "Григорович",
-            lastName:   "Шевченко",
-            rnokpp:     "1234567890",
-            requestId:  requestId
+            firstName:    "Тарас",
+            patronymic:   "Григорович",
+            lastName:     "Шевченко",
+            rnokppMasked: "••••••7890",
+            rnokppHash:   "530e24b85d45d7c03dbf62757d92ce3b9c6f09cf4843e239c6eec5f05b7f4291",
+            requestId:    requestId
         )
     }
 }

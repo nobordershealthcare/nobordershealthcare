@@ -1,25 +1,28 @@
-// DiiaService.swift — Дія (Diia) App Switch integration.
+// DiiaService.swift — Дія (Diia) App Switch integration with backend polling.
 //
-// Architecture:
+// Architecture (v2 — backend-polling):
 //   1. IdentityView calls requestAuthorization()
-//      → builds diia:// deep link with requestId + returnUrl
-//      → UIApplication.open() switches to the Diia app
-//   2. User authenticates in Diia, Diia calls back:
-//      nobordershealthcare://diia-callback?payload=<JWT>
-//   3. App's .onOpenURL fires → DiiaService.shared.handleCallback(url:)
-//      → decodes payload → state = .received(DiiaIdentityPayload)
-//   4. IdentityView observes state via @ObservedObject, shows confirmation card
+//      → POST $(BACKEND_BASE_URL)/diia/auth/request
+//      → backend returns { requestId, deeplink }
+//      → UIApplication.open(deeplink) switches to the Diia app
+//      → state = .waitingForCallback
+//      → pollTask polls GET /diia/auth/status/{requestId} every 2 s
+//   2. pollStatus loop:
+//      "pending"  → keep waiting (max 90 attempts ≈ 3 min)
+//      "complete" → state = .received(DiiaIdentityPayload)
+//      "expired"  → state = .error("expired")
+//      "failed"   → state = .error(reason)
+//      network error ×3 → state = .error("network")
+//   3. IdentityView observes state via @ObservedObject, shows confirmation card
 //
-// Stub mode (Diia not installed / simulator):
-//   canOpenURL("diia://") → false
-//   → auto-inject DiiaIdentityPayload.stub after 1.5 s
-//   This lets UI development proceed without the real app.
+// Stub mode (DIIA_STUB_MODE = YES in Info.plist / xcconfig):
+//   Skips all network calls; auto-injects DiiaIdentityPayload.stub after 1.5 s.
 //
 // Security:
-//   • JWT signature verification is the backend's responsibility — not done here.
-//   • requestId ties the callback to this specific authorization request.
-//   • If requestId mismatches the pending one, state → .error (replay guard).
-//   • РНОКПП is NEVER written to disk from this service — callers hash it first.
+//   • rnokppHash is computed by the backend — never derived client-side.
+//   • requestId is held in RAM only — never written to Keychain or disk.
+//   • Logged: requestId, HTTP status codes, state transitions.
+//   • Never logged: firstName, patronymic, lastName, rnokppMasked, rnokppHash.
 
 import SwiftUI
 import UIKit
@@ -31,15 +34,23 @@ final class DiiaService: ObservableObject {
 
     // ── Singleton ────────────────────────────────────────────────────────────
     static let shared = DiiaService()
-    private init() {}
+
+    private let session: URLSession
+
+    private init() {
+        let config = URLSessionConfiguration.ephemeral
+        config.timeoutIntervalForRequest  = 10
+        config.timeoutIntervalForResource = 30
+        session = URLSession(configuration: config)
+    }
 
     // MARK: - State
 
     enum State: Equatable {
         case idle
-        case launching                        // UIApplication.open() in flight
-        case waitingForCallback               // Diia is open; waiting for return URL
-        case received(DiiaIdentityPayload)    // payload decoded, ready for user confirmation
+        case launching                        // HTTP request in flight
+        case waitingForCallback               // Diia open; polling for result
+        case received(DiiaIdentityPayload)    // payload ready for confirmation
         case error(String)                    // user-facing error message
 
         static func == (lhs: State, rhs: State) -> Bool {
@@ -60,126 +71,234 @@ final class DiiaService: ObservableObject {
 
     @Published private(set) var state: State = .idle
 
-    // ── Internal tracking ────────────────────────────────────────────────────
+    // ── Internal tracking (RAM-only; never persisted) ─────────────────────────
     private var pendingRequestId: String = ""
-    private var stubTask: Task<Void, Never>? = nil
+    private var authTask: Task<Void, Never>? = nil
+    private var pollTask: Task<Void, Never>? = nil
+
+    // ── Configuration ────────────────────────────────────────────────────────
+    private var backendBaseURL: String {
+        (Bundle.main.object(forInfoDictionaryKey: "BACKEND_BASE_URL") as? String)
+            ?? "https://api.noborders.healthcare"
+    }
+
+    private var isStubMode: Bool {
+        (Bundle.main.object(forInfoDictionaryKey: "DIIA_STUB_MODE") as? String) == "YES"
+    }
+
+    // MARK: - Backend response models
+
+    private struct AuthRequestResponse: Decodable {
+        let requestId: String
+        let deeplink:  String
+    }
+
+    private struct AuthStatusResponse: Decodable {
+        let status:  String
+        let payload: DiiaIdentityPayload?
+        let reason:  String?
+    }
 
     // MARK: - Public API
 
     /// Initiates the Дія App Switch authorization flow.
     ///
-    /// Builds `diia://auth?requestId=<uuid>&returnUrl=nobordershealthcare://diia-callback`,
-    /// opens Diia, then transitions to `.waitingForCallback`.
-    ///
-    /// If Diia is not installed (simulator / device without Diia), enters stub mode:
-    /// auto-injects `DiiaIdentityPayload.stub` after 1.5 s to unblock UI development.
+    /// Synchronous entry point for use from non-async contexts (e.g. IdentityView).
+    /// Cancels any in-flight auth/poll before starting a new one.
     func requestAuthorization() {
-        stubTask?.cancel()
-        stubTask = nil
-
-        let requestId = UUID().uuidString
-        pendingRequestId = requestId
-        state = .launching
-
-        let returnURL = "nobordershealthcare://diia-callback"
-        guard
-            let encodedReturn = returnURL.addingPercentEncoding(
-                withAllowedCharacters: .urlQueryAllowed),
-            let diiaURL = URL(
-                string: "diia://auth?requestId=\(requestId)&returnUrl=\(encodedReturn)")
-        else {
-            state = .error("Не вдалося сформувати URL авторизації Дії")
-            return
-        }
-
-        if UIApplication.shared.canOpenURL(diiaURL) {
-            // ── Real path: Diia is installed ─────────────────────────────────
-            UIApplication.shared.open(diiaURL) { [weak self] success in
-                Task { @MainActor [weak self] in
-                    guard let self else { return }
-                    if success {
-                        self.state = .waitingForCallback
-                    } else {
-                        self.state = .error(
-                            "Не вдалося відкрити Дію. Переконайтеся, що додаток встановлено.")
-                    }
-                }
-            }
-        } else {
-            // ── Stub path: Diia not installed (simulator / dev) ───────────────
-            // Show the waiting UI immediately so the flow is exercisable,
-            // then inject test payload after 1.5 s.
-            state = .waitingForCallback
-            stubTask = Task {
-                try? await Task.sleep(for: .seconds(1.5))
-                guard !Task.isCancelled else { return }
-                self.injectStub(requestId: requestId)
-            }
-        }
+        authTask?.cancel()
+        authTask = nil
+        pollTask?.cancel()
+        pollTask = nil
+        authTask = Task { await startAuth() }
     }
 
     /// Called from the app's `.onOpenURL` handler for every incoming URL.
     ///
-    /// Returns the decoded payload if the URL belongs to the Diia callback scheme;
-    /// returns `nil` and leaves state unchanged for all other URLs.
+    /// In the polling architecture the callback URL only signals that Diia has
+    /// returned to the foreground — the actual identity payload is fetched via
+    /// pollStatus(), not from the URL.  Returns `nil`; kept for API compatibility
+    /// with the `.onOpenURL` gate in NoBordersHealthcareApp.
     @discardableResult
     func handleCallback(url: URL) -> DiiaIdentityPayload? {
         guard url.scheme?.lowercased() == "nobordershealthcare",
               url.host?.lowercased()   == "diia-callback"
         else { return nil }
-
-        stubTask?.cancel()   // cancel any in-flight stub if real callback arrived first
-
-        let components = URLComponents(url: url, resolvingAgainstBaseURL: false)
-
-        // ── Real path: JWT payload in query string ────────────────────────────
-        if let payloadStr = components?.queryItems?
-            .first(where: { $0.name == "payload" })?.value,
-           let payload = decodeJWTPayload(payloadStr) {
-
-            guard payload.requestId == pendingRequestId else {
-                state = .error(
-                    "Ідентифікатор запиту не збігається. Будь ласка, спробуйте ще раз.")
-                return nil
-            }
-            state = .received(payload)
-            return payload
-        }
-
-        // ── Stub path: no (valid) payload — use test fixture ─────────────────
-        let stub = DiiaIdentityPayload.stub(requestId: pendingRequestId)
-        state = .received(stub)
-        return stub
+        // pollStatus() handles the state transition — no further action needed.
+        return nil
     }
 
     /// Resets the service to `.idle`.  Call when IdentityView disappears
     /// or when the user navigates away from the Diia flow.
     func reset() {
-        stubTask?.cancel()
-        stubTask = nil
+        authTask?.cancel()
+        authTask = nil
+        pollTask?.cancel()
+        pollTask = nil
         pendingRequestId = ""
         state = .idle
     }
 
-    // MARK: - Private helpers
+    // MARK: - Private: start auth
 
-    private func injectStub(requestId: String) {
-        state = .received(.stub(requestId: requestId))
+    private func startAuth() async {
+        state = .launching
+
+        // ── Stub mode (simulator / DIIA_STUB_MODE = YES) ──────────────────────
+        if isStubMode {
+            let requestId = "stub-\(UUID().uuidString)"
+            pendingRequestId = requestId
+            state = .waitingForCallback
+            pollTask = Task {
+                try? await Task.sleep(for: .seconds(1.5))
+                guard !Task.isCancelled else { return }
+                self.state = .received(.stub(requestId: requestId))
+            }
+            return
+        }
+
+        // ── Real path: POST /diia/auth/request ────────────────────────────────
+        guard let url = URL(string: "\(backendBaseURL)/diia/auth/request") else {
+            state = .error("Неправильна адреса сервера авторизації")
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data("{}".utf8)
+
+        let data: Data
+        let httpResponse: URLResponse
+        do {
+            (data, httpResponse) = try await session.data(for: request)
+        } catch {
+            guard !Task.isCancelled else { return }
+            state = .error("Помилка мережі: \(error.localizedDescription)")
+            return
+        }
+
+        guard !Task.isCancelled else { return }
+
+        let statusCode = (httpResponse as? HTTPURLResponse)?.statusCode ?? 0
+        guard (200...299).contains(statusCode) else {
+            state = .error("Сервер повернув помилку (\(statusCode))")
+            return
+        }
+
+        let authResp: AuthRequestResponse
+        do {
+            authResp = try JSONDecoder().decode(AuthRequestResponse.self, from: data)
+        } catch {
+            state = .error("Не вдалося обробити відповідь сервера")
+            return
+        }
+
+        pendingRequestId = authResp.requestId
+
+        guard let deeplinkURL = URL(string: authResp.deeplink) else {
+            state = .error("Неправильне посилання Дії від сервера")
+            return
+        }
+
+        // ── Open Diia ─────────────────────────────────────────────────────────
+        let opened = await UIApplication.shared.open(deeplinkURL)
+        guard !Task.isCancelled else { return }
+        guard opened else {
+            state = .error("Не вдалося відкрити Дію. Переконайтеся, що додаток встановлено.")
+            return
+        }
+
+        state = .waitingForCallback
+        let requestId = authResp.requestId
+        pollTask = Task { await pollStatus(requestId: requestId) }
     }
 
-    /// Decodes a JWT payload (middle segment) into `DiiaIdentityPayload`.
-    /// Signature verification is intentionally omitted — the backend verifies
-    /// the signature when IdentityView exchanges the РНОКПП hash.
-    private func decodeJWTPayload(_ token: String) -> DiiaIdentityPayload? {
-        let parts = token.split(separator: ".")
-        guard parts.count == 3 else { return nil }
+    // MARK: - Private: poll for status
 
-        var base64 = String(parts[1])
-            .replacingOccurrences(of: "-", with: "+")
-            .replacingOccurrences(of: "_", with: "/")
-        while base64.count % 4 != 0 { base64.append("=") }
+    private func pollStatus(requestId: String) async {
+        var attempts      = 0
+        var networkErrors = 0
 
-        guard let data = Data(base64Encoded: base64) else { return nil }
-        return try? JSONDecoder().decode(DiiaIdentityPayload.self, from: data)
+        while true {
+            do {
+                try await Task.sleep(for: .seconds(2))
+            } catch {
+                return  // Task was cancelled
+            }
+            guard !Task.isCancelled else { return }
+
+            guard let url = URL(
+                string: "\(backendBaseURL)/diia/auth/status/\(requestId)")
+            else { return }
+
+            let data: Data
+            let httpResponse: URLResponse
+            do {
+                (data, httpResponse) = try await session.data(from: url)
+            } catch {
+                guard !Task.isCancelled else { return }
+                networkErrors += 1
+                if networkErrors >= 3 {
+                    state = .error("Втрачено з'єднання. Спробуйте ще раз.")
+                    return
+                }
+                continue
+            }
+
+            guard !Task.isCancelled else { return }
+
+            let statusCode = (httpResponse as? HTTPURLResponse)?.statusCode ?? 0
+            guard (200...299).contains(statusCode) else {
+                networkErrors += 1
+                if networkErrors >= 3 {
+                    state = .error("Сервер недоступний (\(statusCode)). Спробуйте ще раз.")
+                    return
+                }
+                continue
+            }
+
+            // Reset network-error counter on any successful HTTP exchange
+            networkErrors = 0
+
+            let statusResp: AuthStatusResponse
+            do {
+                statusResp = try JSONDecoder().decode(AuthStatusResponse.self, from: data)
+            } catch {
+                state = .error("Не вдалося обробити відповідь статусу")
+                return
+            }
+
+            switch statusResp.status {
+
+            case "pending":
+                attempts += 1
+                if attempts >= 90 {
+                    state = .error("Час очікування вичерпано. Спробуйте ще раз.")
+                    return
+                }
+                // continue polling
+
+            case "complete":
+                guard let payload = statusResp.payload else {
+                    state = .error("Відповідь сервера не містить даних ідентифікації")
+                    return
+                }
+                state = .received(payload)
+                return
+
+            case "expired":
+                state = .error("Запит авторизації вичерпано. Спробуйте ще раз.")
+                return
+
+            case "failed":
+                state = .error(statusResp.reason ?? "Авторизацію не вдалося. Спробуйте ще раз.")
+                return
+
+            default:
+                state = .error("Невідомий статус від сервера: \(statusResp.status)")
+                return
+            }
+        }
     }
 }

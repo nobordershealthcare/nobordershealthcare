@@ -6,6 +6,10 @@
 	<string>$(API_BASE_URL)</string>
 	<key>APP_BASE_URL</key>
 	<string>$(APP_BASE_URL)</string>
+	<key>BACKEND_BASE_URL</key>
+	<string>$(BACKEND_BASE_URL)</string>
+	<key>DIIA_STUB_MODE</key>
+	<string>$(DIIA_STUB_MODE)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
