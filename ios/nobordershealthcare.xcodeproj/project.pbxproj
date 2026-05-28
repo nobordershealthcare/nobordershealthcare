@@ -48,6 +48,7 @@
 		G2B3C4D5E6F7A8B9C0D1E2F4 /* LinkedIdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */; };
 		S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */; };
 		T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */; };
+		Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
 		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
@@ -89,6 +90,7 @@
 		H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIdentitiesView.swift; sourceTree = "<group>"; };
 		U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaService.swift; sourceTree = "<group>"; };
 		V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaIdentityPayload.swift; sourceTree = "<group>"; };
+		Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalIdentityRecord.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
 		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
@@ -246,6 +248,7 @@
 			isa = PBXGroup;
 			children = (
 				V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */,
+				Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -470,6 +473,7 @@
 				7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */,
 				0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */,
 				T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */,
+				Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */,
 				S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */,
 				BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */,
 				4626547144388318B2B1BFF4 /* DocumentScanner.swift in Sources */,

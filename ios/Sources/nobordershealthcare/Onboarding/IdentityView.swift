@@ -711,6 +711,21 @@ struct IdentityView: View {
         )
 
         VerifiedIdentityStore.upsert(identity)
+
+        // ── Legal Vault: NationalIdentityRecord ──────────────────────────────
+        let record = NationalIdentityRecord(
+            countryCode: "UA",
+            idType:      "rnokpp",
+            idMasked:    payload.rnokppMasked,
+            idHash:      payload.rnokppHash,
+            firstName:   payload.firstName,
+            patronymic:  payload.patronymic.isEmpty ? nil : payload.patronymic,
+            lastName:    payload.lastName,
+            providerID:  "diia",
+            verifiedAt:  Date()
+        )
+        NationalIdentityStore().upsert(record)
+
         try? DIDWallet.shared.storeUserIdHash_sync(hash, provider: EIDProvider.diiaUA.rawValue)
         DiiaService.shared.reset()
         viewState = .success(identity)
