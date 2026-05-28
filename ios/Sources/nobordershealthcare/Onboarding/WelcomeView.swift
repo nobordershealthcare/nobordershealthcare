@@ -4,7 +4,11 @@
 // regardless of language or institutional barriers."
 //
 // Language selection is the ONLY configuration on this screen.
-// No skip, no "later", no demo mode — the only CTA is "Begin Emergency eHR Setup".
+// No skip, no "later", no demo mode — the only CTA is "Get Started".
+//
+// Layout: ScrollView+pinned-button (no NavigationStack — OnboardingFlowView
+// provides the outer container).  Language grid is LazyVGrid 2-col so it
+// scales cleanly to 10+ locales without any scroll issue.
 
 import SwiftUI
 
@@ -15,12 +19,28 @@ struct WelcomeView: View {
     @EnvironmentObject private var coordinator: OnboardingCoordinator
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
+    // ── Language catalogue — add new locales here only ──────────────────────
     private let supportedLanguages: [(code: String, name: String, flag: String)] = [
         ("en", "English",    "🇬🇧"),
         ("uk", "Українська", "🇺🇦"),
         ("de", "Deutsch",    "🇩🇪"),
         ("pt", "Português",  "🇵🇹"),
+        ("fr", "Français",   "🇫🇷"),
+        ("es", "Español",    "🇪🇸"),
+        ("it", "Italiano",   "🇮🇹"),
+        ("pl", "Polski",     "🇵🇱"),
+        ("nl", "Nederlands", "🇳🇱"),
+        ("ro", "Română",     "🇷🇴"),
+        ("cs", "Čeština",    "🇨🇿"),
+        ("sv", "Svenska",    "🇸🇪"),
+        ("no", "Norsk",      "🇳🇴"),
+        ("fi", "Suomi",      "🇫🇮"),
         ("ru", "Русский",    "🇷🇺"),
+    ]
+
+    private let gridColumns = [
+        GridItem(.flexible(), spacing: 10),
+        GridItem(.flexible(), spacing: 10),
     ]
 
     private var continueButtonTitle: String {
@@ -28,49 +48,58 @@ struct WelcomeView: View {
         case "uk": return "Розпочати"
         case "de": return "Loslegen"
         case "pt": return "Começar"
+        case "fr": return "Commencer"
+        case "es": return "Empezar"
+        case "it": return "Inizia"
+        case "pl": return "Rozpocznij"
+        case "nl": return "Starten"
+        case "ro": return "Începe"
+        case "cs": return "Začít"
+        case "sv": return "Börja"
+        case "no": return "Kom i gang"
+        case "fi": return "Aloita"
         case "ru": return "Начать"
         default:   return "Get Started"
         }
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // ── Logo + Brand ───────────────────────────────────────
-                        logoSection
+        // No NavigationStack — OnboardingFlowView is the container
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 0) {
+                    // ── Logo + Brand ───────────────────────────────────────
+                    logoSection
 
-                        // ── Purpose statement ─────────────────────────────────
-                        purposeStatement
-                            .padding(.top, 8)
+                    // ── Purpose statement ─────────────────────────────────
+                    purposeStatement
+                        .padding(.top, 8)
 
-                        // ── Language picker ───────────────────────────────────
-                        languagePicker
-                            .padding(.top, 16)
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
+                    // ── Language grid ─────────────────────────────────────
+                    languageGrid
+                        .padding(.top, 20)
                 }
-
-                // ── CTA — pinned to bottom, always visible ─────────────────
-                Button {
-                    coordinator.advance(from: .welcome)
-                } label: {
-                    Text(continueButtonTitle)
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color(red: 0.18, green: 0.19, blue: 0.48))
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 32)
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
             }
-            .navigationBarHidden(true)
+            .scrollDismissesKeyboard(.interactively)
+
+            // ── CTA — pinned to bottom, always visible ─────────────────
+            Button {
+                coordinator.advance(from: .welcome)
+            } label: {
+                Text(continueButtonTitle)
+                    .font(.headline).fontWeight(.semibold)
+                    .frame(maxWidth: .infinity, minHeight: 52)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.navy)
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 36)
         }
+        .background(Color.appBg.ignoresSafeArea())
     }
 
     // MARK: - Sections
@@ -80,7 +109,7 @@ struct WelcomeView: View {
             Image("NBHC logo")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 180, height: 180)
+                .frame(width: 160, height: 160)
 
             Text("Emergency eHR Wallet")
                 .font(.subheadline)
@@ -117,44 +146,62 @@ struct WelcomeView: View {
         }
     }
 
-    private var languagePicker: some View {
+    // MARK: - Language grid
+
+    private var languageGrid: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Select your language")
                 .font(.subheadline)
                 .fontWeight(.semibold)
 
-            VStack(spacing: 0) {
+            LazyVGrid(columns: gridColumns, spacing: 10) {
                 ForEach(supportedLanguages, id: \.code) { lang in
-                    Button {
-                        appLanguage = lang.code
-                        applyLocale(lang.code)
-                    } label: {
-                        HStack {
-                            Text(lang.flag)
-                                .font(.title2)
-                            Text(lang.name)
-                                .font(.body)
-                                .foregroundStyle(.primary)
-                            Spacer()
-                            if appLanguage == lang.code {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(Color.navy)
-                            }
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-
-                    if lang.code != supportedLanguages.last?.code {
-                        Divider().padding(.leading, 52)
-                    }
+                    languageCell(lang)
                 }
             }
-            .background(.ultraThinMaterial)
-            .clipShape(RoundedRectangle(cornerRadius: 14))
         }
+    }
+
+    private func languageCell(_ lang: (code: String, name: String, flag: String)) -> some View {
+        let selected = appLanguage == lang.code
+        return Button {
+            appLanguage = lang.code
+            applyLocale(lang.code)
+        } label: {
+            HStack(spacing: 8) {
+                Text(lang.flag)
+                    .font(.title3)
+                Text(lang.name)
+                    .font(.subheadline)
+                    .fontWeight(selected ? .semibold : .regular)
+                    .foregroundStyle(selected ? Color.navy : .primary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Spacer(minLength: 0)
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.caption)
+                        .foregroundStyle(Color.navy)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .frame(maxWidth: .infinity)
+            .background(
+                selected
+                    ? Color.navy.opacity(0.10)
+                    : Color(.secondarySystemGroupedBackground)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(
+                RoundedRectangle(cornerRadius: 10)
+                    .strokeBorder(
+                        selected ? Color.navy.opacity(0.4) : Color.clear,
+                        lineWidth: 1.5
+                    )
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Locale application
@@ -163,7 +210,7 @@ struct WelcomeView: View {
     private func applyLocale(_ code: String) {
         UserDefaults.standard.set([code], forKey: "AppleLanguages")
         UserDefaults.standard.synchronize()
-        // Views reading @AppStorage("appLanguage") will re-render immediately.
+        // Views reading @AppStorage("appLanguage") re-render immediately.
         // Full system locale restart happens on next launch for system strings.
     }
 }
