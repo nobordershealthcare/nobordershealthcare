@@ -20,11 +20,16 @@ struct WelcomeView: View {
     @AppStorage("appLanguage") private var appLanguage: String = "en"
 
     // ── Language catalogue — add new locales here only ──────────────────────
+    // Launch-required: en · uk · de · pt · ar
+    // Interface + translation only (not launch-blocking): ru + EU locales
     private let supportedLanguages: [(code: String, name: String, flag: String)] = [
+        // ── Launch languages ───────────────────────────────────────────────
         ("en", "English",    "🇬🇧"),
         ("uk", "Українська", "🇺🇦"),
         ("de", "Deutsch",    "🇩🇪"),
         ("pt", "Português",  "🇵🇹"),
+        ("ar", "العربية",    "🇸🇦"),
+        // ── EU expansion ──────────────────────────────────────────────────
         ("fr", "Français",   "🇫🇷"),
         ("es", "Español",    "🇪🇸"),
         ("it", "Italiano",   "🇮🇹"),
@@ -35,6 +40,7 @@ struct WelcomeView: View {
         ("sv", "Svenska",    "🇸🇪"),
         ("no", "Norsk",      "🇳🇴"),
         ("fi", "Suomi",      "🇫🇮"),
+        // ── Interface + document translation only ─────────────────────────
         ("ru", "Русский",    "🇷🇺"),
     ]
 
@@ -48,6 +54,7 @@ struct WelcomeView: View {
         case "uk": return "Розпочати"
         case "de": return "Loslegen"
         case "pt": return "Começar"
+        case "ar": return "ابدأ"
         case "fr": return "Commencer"
         case "es": return "Empezar"
         case "it": return "Inizia"
@@ -164,24 +171,42 @@ struct WelcomeView: View {
 
     private func languageCell(_ lang: (code: String, name: String, flag: String)) -> some View {
         let selected = appLanguage == lang.code
+        let isRTL    = lang.code == "ar"
         return Button {
             appLanguage = lang.code
             applyLocale(lang.code)
         } label: {
             HStack(spacing: 8) {
-                Text(lang.flag)
-                    .font(.title3)
-                Text(lang.name)
-                    .font(.subheadline)
-                    .fontWeight(selected ? .semibold : .regular)
-                    .foregroundStyle(selected ? Color.navy : .primary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-                Spacer(minLength: 0)
-                if selected {
-                    Image(systemName: "checkmark.circle.fill")
-                        .font(.caption)
-                        .foregroundStyle(Color.navy)
+                // For RTL languages: checkmark leads, then name, then flag
+                if isRTL {
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.navy)
+                    }
+                    Text(lang.name)
+                        .font(.subheadline)
+                        .fontWeight(selected ? .semibold : .regular)
+                        .foregroundStyle(selected ? Color.navy : .primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                        .environment(\.layoutDirection, .rightToLeft)
+                    Spacer(minLength: 0)
+                    Text(lang.flag).font(.title3)
+                } else {
+                    Text(lang.flag).font(.title3)
+                    Text(lang.name)
+                        .font(.subheadline)
+                        .fontWeight(selected ? .semibold : .regular)
+                        .foregroundStyle(selected ? Color.navy : .primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    Spacer(minLength: 0)
+                    if selected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(Color.navy)
+                    }
                 }
             }
             .padding(.horizontal, 12)
