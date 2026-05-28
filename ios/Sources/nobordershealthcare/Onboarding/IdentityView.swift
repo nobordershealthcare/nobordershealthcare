@@ -142,6 +142,10 @@ private enum ViewState: Equatable {
     case selectingCountry
     case selectingProvider(IdentityCountry)
     case authenticating(IdentityCountry, EIDProvider)
+    /// Diia App Switch launched — waiting for the callback URL to return
+    case diiaWaiting(IdentityCountry)
+    /// Diia callback received — showing identity confirmation card
+    case diiaReceived(IdentityCountry, DiiaIdentityPayload)
     case success(VerifiedIdentity)
     case failed(String)
 
@@ -151,6 +155,8 @@ private enum ViewState: Equatable {
         case (.selectingProvider(let a), .selectingProvider(let b)): return a.id == b.id
         case (.authenticating(let a, let p), .authenticating(let b, let q)):
             return a.id == b.id && p == q
+        case (.diiaWaiting(let a), .diiaWaiting(let b)):      return a.id == b.id
+        case (.diiaReceived(let a, _), .diiaReceived(let b, _)): return a.id == b.id
         case (.success, .success): return true
         case (.failed(let a), .failed(let b)): return a == b
         default: return false
@@ -173,26 +179,53 @@ struct IdentityView: View {
 
     @Environment(\.dismiss) private var dismiss
 
+    // ── Diia service ───────────────────────────────────────────────────────
+    @ObservedObject private var diia = DiiaService.shared
+
     // ── State ──────────────────────────────────────────────────────────────
-    @State private var viewState: ViewState = .selectingCountry
-    @State private var searchText: String   = ""
+    @State private var viewState:    ViewState = .selectingCountry
+    @State private var searchText:   String    = ""
+    @State private var showRNOKPP:   Bool      = false   // eye-toggle for РНОКПП
     @State private var webAuthSession: ASWebAuthenticationSession?
 
     var body: some View {
-        let core = coreContent
-        if isSheet {
-            NavigationStack {
-                core
-                    .navigationTitle("Link Identity")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .cancellationAction) {
-                            Button("Cancel") { dismiss() }
+        Group {
+            if isSheet {
+                NavigationStack {
+                    coreContent
+                        .navigationTitle("Link Identity")
+                        .navigationBarTitleDisplayMode(.inline)
+                        .toolbar {
+                            ToolbarItem(placement: .cancellationAction) {
+                                Button("Cancel") {
+                                    DiiaService.shared.reset()
+                                    dismiss()
+                                }
+                            }
                         }
-                    }
+                }
+            } else {
+                coreContent
             }
-        } else {
-            core
+        }
+        // React to Diia App Switch state changes from onOpenURL
+        .onChange(of: diia.state) { _, newState in
+            guard case .diiaWaiting(let country) = viewState else { return }
+            switch newState {
+            case .received(let payload):
+                showRNOKPP = false
+                viewState = .diiaReceived(country, payload)
+            case .error(let msg):
+                viewState = .failed(msg)
+                DiiaService.shared.reset()
+            default:
+                break
+            }
+        }
+        .onDisappear {
+            // Only reset if we were in a Diia flow; leave other flows untouched
+            if case .diiaWaiting  = viewState { DiiaService.shared.reset() }
+            if case .diiaReceived = viewState { DiiaService.shared.reset() }
         }
     }
 
@@ -209,6 +242,12 @@ struct IdentityView: View {
 
         case .authenticating(let country, let provider):
             authInProgressView(country: country, provider: provider)
+
+        case .diiaWaiting(let country):
+            diiaWaitingView(country: country)
+
+        case .diiaReceived(let country, let payload):
+            diiaReceivedView(country: country, payload: payload)
 
         case .success(let identity):
             successView(identity)
@@ -481,6 +520,214 @@ struct IdentityView: View {
         .background(Color.appBg.ignoresSafeArea())
     }
 
+    // MARK: - Diia: waiting for App Switch callback
+
+    private func diiaWaitingView(country: IdentityCountry) -> some View {
+        VStack(spacing: 28) {
+            Spacer()
+
+            // Animated Diia emblem stand-in
+            ZStack {
+                Circle()
+                    .fill(Color.navy.opacity(0.08))
+                    .frame(width: 100, height: 100)
+                Text(country.flag)
+                    .font(.system(size: 48))
+            }
+
+            VStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.large)
+                    .tint(Color.navy)
+
+                Text("Очікуємо підтвердження в Дії…")
+                    .font(.headline).fontWeight(.semibold)
+
+                Text("Підтвердіть свою особу в додатку Дія,\nа потім поверніться сюди.")
+                    .font(.subheadline).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            Button {
+                DiiaService.shared.reset()
+                viewState = .selectingProvider(country)
+            } label: {
+                Text("Скасувати")
+                    .font(.subheadline).foregroundStyle(.secondary)
+            }
+            .buttonStyle(.plain)
+            .padding(.bottom, 36)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, 32)
+        .background(Color.appBg.ignoresSafeArea())
+    }
+
+    // MARK: - Diia: identity confirmation card
+
+    private func diiaReceivedView(country: IdentityCountry, payload: DiiaIdentityPayload) -> some View {
+        VStack(spacing: 0) {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Spacer(minLength: 20)
+
+                    // ── Header ────────────────────────────────────────────
+                    HStack(spacing: 12) {
+                        Text(country.flag).font(.largeTitle)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Дані з Дії отримано")
+                                .font(.title3).fontWeight(.bold)
+                            Text("Перевірте і підтвердіть свою особу")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "checkmark.shield.fill")
+                            .font(.title2).foregroundStyle(.green)
+                    }
+                    .padding(16)
+                    .background(Color.green.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                    // ── Identity card ─────────────────────────────────────
+                    VStack(alignment: .leading, spacing: 14) {
+
+                        identityRow(
+                            label: "Прізвище Ім'я По батькові",
+                            value: payload.fullName,
+                            isMasked: false,
+                            showValue: .constant(true)
+                        )
+
+                        Divider()
+
+                        identityRow(
+                            label: "РНОКПП",
+                            value: payload.maskedRNOKPP(revealed: showRNOKPP),
+                            isMasked: true,
+                            showValue: $showRNOKPP
+                        )
+                    }
+                    .padding(16)
+                    .background(.ultraThinMaterial)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                    // ── GDPR note ─────────────────────────────────────────
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: "lock.shield.fill")
+                            .font(.caption).foregroundStyle(Color.navy)
+                        Text("РНОКПП буде захешований (SHA3-256) і одразу видалений з пам'яті. Ні Дія, ні жоден сервер не отримає ваш ідентифікатор у відкритому вигляді.")
+                            .font(.caption2).foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .background(Color.navy.opacity(0.06))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+
+            // ── Actions ───────────────────────────────────────────────────
+            VStack(spacing: 10) {
+                // Confirm — hash РНОКПП, save VerifiedIdentity, advance
+                Button {
+                    commitDiiaIdentity(country: country, payload: payload)
+                } label: {
+                    Text("Підтвердити")
+                        .font(.headline).fontWeight(.semibold)
+                        .frame(maxWidth: .infinity, minHeight: 52)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.navy)
+
+                Button {
+                    DiiaService.shared.reset()
+                    viewState = .selectingProvider(country)
+                } label: {
+                    Text("Це не я — спробувати ще раз")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 12)
+            .padding(.bottom, 36)
+        }
+        .background(Color.appBg.ignoresSafeArea())
+    }
+
+    /// Renders one row of the identity confirmation card.
+    private func identityRow(
+        label: String,
+        value: String,
+        isMasked: Bool,
+        showValue: Binding<Bool>
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .textCase(.uppercase)
+                .kerning(0.5)
+            HStack {
+                Text(value)
+                    .font(.body)
+                    .fontWeight(.semibold)
+                    .fontDesign(.monospaced)
+                if isMasked {
+                    Spacer()
+                    Button {
+                        showValue.wrappedValue.toggle()
+                    } label: {
+                        Image(systemName: showValue.wrappedValue ? "eye.slash" : "eye")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    // MARK: - Diia: commit identity to vault
+
+    private func commitDiiaIdentity(country: IdentityCountry, payload: DiiaIdentityPayload) {
+        // Capture RNOKPP then zero immediately after hashing
+        var rnokpp = payload.rnokpp
+        defer { rnokpp.removeAll(keepingCapacity: false) }
+
+        let normalized = "UA:\(rnokpp.filter(\.isNumber))"
+
+        do {
+            let salt     = try loadOrCreateSalt()
+            let combined = (salt + normalized).data(using: .utf8) ?? Data()
+            let hash     = SHA3_256.hash(data: combined).description
+
+            let identity = VerifiedIdentity(
+                id:           UUID(),
+                countryCode:  country.id,
+                countryFlag:  country.flag,
+                countryName:  country.name,
+                providerID:   EIDProvider.diiaUA.rawValue,
+                providerName: "Дія — Diia App Switch",
+                userIdHash:   hash,
+                verifiedAt:   Date(),
+                expiresAt:    nil
+            )
+
+            VerifiedIdentityStore.upsert(identity)
+            try? DIDWallet.shared.storeUserIdHash_sync(hash, provider: EIDProvider.diiaUA.rawValue)
+            DiiaService.shared.reset()
+            viewState = .success(identity)
+
+        } catch {
+            viewState = .failed(error.localizedDescription)
+        }
+    }
+
     // MARK: - Error view
 
     private func errorView(_ message: String) -> some View {
@@ -576,6 +823,14 @@ struct IdentityView: View {
     // MARK: - Authentication flow
 
     private func startAuth(country: IdentityCountry, provider: EIDProvider) {
+
+        // ── Diia App Switch — bypasses ASWebAuthenticationSession entirely ──────
+        if provider == .diiaUA {
+            viewState = .diiaWaiting(country)
+            DiiaService.shared.requestAuthorization()
+            return
+        }
+
         guard let url = provider.authorizationURL else {
             viewState = .failed("Authorization URL not available for \(provider.displayName)")
             return
@@ -803,6 +1058,11 @@ enum EIDProvider: String, CaseIterable {
 
 extension DIDWallet {
     func storeUserIdHash(_ hash: String, provider: String) async throws {
+        try storeUserIdHash_sync(hash, provider: provider)
+    }
+
+    /// Synchronous variant — used from non-async contexts (e.g. commitDiiaIdentity).
+    func storeUserIdHash_sync(_ hash: String, provider: String) throws {
         let account  = "com.noborders.identity.useridhash"
         let combined = "\(provider):\(hash)"
         let attrs: [String: Any] = [

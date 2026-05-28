@@ -32,6 +32,21 @@
 	<string>P2P health record backup</string>
 	<key>PHYSICIAN_VIEW_URL</key>
 	<string>$(PHYSICIAN_VIEW_URL)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.noborders.diia-callback</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>nobordershealthcare</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>diia</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UISupportedInterfaceOrientations</key>

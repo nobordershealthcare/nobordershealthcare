@@ -61,7 +61,14 @@ struct NoBordersHealthcareApp: App {
                 }
             }
             .onOpenURL { url in
-                // Deep link: {APP_BASE_URL}/activate/{token}  — host from AppConfig (never hardcoded)
+                // ── Diia App Switch callback ──────────────────────────────────────
+                // nobordershealthcare://diia-callback?payload=<JWT>
+                // DiiaService handles it and updates its @Published state;
+                // IdentityView observes that change via @ObservedObject.
+                if DiiaService.shared.handleCallback(url: url) != nil { return }
+
+                // ── Activation deep link ──────────────────────────────────────────
+                // Deep link: {APP_BASE_URL}/activate/{token} — host from AppConfig (never hardcoded)
                 // Token is UUID v4 — never log, never store after use.
                 guard url.host == AppConfig.appHost,
                       url.path.hasPrefix("/activate/")
