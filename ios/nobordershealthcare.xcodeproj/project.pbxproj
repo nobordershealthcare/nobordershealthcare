@@ -44,6 +44,8 @@
 		A7AAB394F54896C7DF219E8F /* IPFSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C12AA53CF41B4033407B0CF /* IPFSClient.swift */; };
 		AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC1623F564ECBC26952904 /* SignatureButton.swift */; };
 		AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E241D7E7155434C8739A07C /* BiometricLockView.swift */; };
+		F1A2B3C4D5E6F7A8B9C0D1E2 /* VerifiedIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */; };
+		G2B3C4D5E6F7A8B9C0D1E2F4 /* LinkedIdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
 		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
@@ -81,6 +83,8 @@
 		39CB4396676A9C48242F3099 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
 		3E241D7E7155434C8739A07C /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
+		A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedIdentity.swift; sourceTree = "<group>"; };
+		H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIdentitiesView.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
 		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
@@ -212,6 +216,7 @@
 				34EDABFB131AEE01B59471B5 /* BankIDClient.swift */,
 				F5600417288BAD034AAC350F /* DIDWallet.swift */,
 				622F23DBC018E3F6C9948C28 /* KeyManager.swift */,
+				A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */,
 			);
 			path = Identity;
 			sourceTree = "<group>";
@@ -334,6 +339,7 @@
 			isa = PBXGroup;
 			children = (
 				62524B8496BE6AD1B7264711 /* UserProfile.swift */,
+				H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -434,6 +440,8 @@
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
 				AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */,
+				F1A2B3C4D5E6F7A8B9C0D1E2 /* VerifiedIdentity.swift in Sources */,
+				G2B3C4D5E6F7A8B9C0D1E2F4 /* LinkedIdentitiesView.swift in Sources */,
 				4C75DEE1002D08A25449F758 /* CallView.swift in Sources */,
 				F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */,
 				FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */,

@@ -588,6 +588,9 @@ struct ProfileView: View {
                 // ── About & Security ──────────────────────────────────────
                 aboutSection
 
+                // ── Verified Identities ───────────────────────────────────
+                LinkedIdentitiesView()
+
                 // ── Account ───────────────────────────────────────────────
                 Section("Account") {
                     Label("Health Profile", systemImage: "person.fill")
