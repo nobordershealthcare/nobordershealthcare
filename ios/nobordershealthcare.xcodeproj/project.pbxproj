@@ -12,7 +12,7 @@
 		0855F5C4F059D04DBB090ACF /* DocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04BF4200C2337B15544CBDC /* DocumentStore.swift */; };
 		0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */; };
 		1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */; };
-		11450AFA62CF73FA482F3998 /* VaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D343F73610356376EFA4EC1B /* VaultManager.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* IdentityVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */; };
 		1629F9F5071A91E802799FF6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D72112E9BDE6DDF792806A3 /* Models.swift */; };
 		1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EDABFB131AEE01B59471B5 /* BankIDClient.swift */; };
 		352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */; };
@@ -27,7 +27,7 @@
 		5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B3A142FC41A9153C4D790D /* ScopeManager.swift */; };
 		5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */; };
 		5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6411BE2A63765FA00C6091 /* KyberOperations.swift */; };
-		64DE2C7E17763878BAFADAF7 /* LegalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */; };
+		B2C3D4E5F6A7B8C9D0E1F2A3 /* MedicalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */; };
 		686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */; };
 		7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEDC1416C64BDAF416257DAA /* ContentView.swift */; };
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
@@ -49,6 +49,7 @@
 		S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */; };
 		T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */; };
 		Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */; };
+		E5F6A7B8C9D0E1F2A3B4C5D6 /* DiiaVerificationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
 		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
@@ -91,6 +92,7 @@
 		U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaService.swift; sourceTree = "<group>"; };
 		V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaIdentityPayload.swift; sourceTree = "<group>"; };
 		Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalIdentityRecord.swift; sourceTree = "<group>"; };
+		F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaVerificationRecord.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
 		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
@@ -98,7 +100,8 @@
 		622F23DBC018E3F6C9948C28 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		62524B8496BE6AD1B7264711 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthcareProxyView.swift; sourceTree = "<group>"; };
-		6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LegalVaultManager.swift; sourceTree = "<group>"; };
+		C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVaultManager.swift; sourceTree = "<group>"; };
+		D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalVaultManager.swift; sourceTree = "<group>"; };
 		6D72112E9BDE6DDF792806A3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityProfile.swift; sourceTree = "<group>"; };
 		825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
@@ -120,7 +123,6 @@
 		C49CA8B193143B17EBD08578 /* DocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentView.swift; sourceTree = "<group>"; };
 		CA091911DC16BA81A2BDDB90 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardService.swift; sourceTree = "<group>"; };
-		D343F73610356376EFA4EC1B /* VaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VaultManager.swift; sourceTree = "<group>"; };
 		D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminologyMapper.swift; sourceTree = "<group>"; };
 		DBEEA8EC8166D9607512E78D /* SupportProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportProfile.swift; sourceTree = "<group>"; };
 		DFED60BDDE94483E29635A6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -180,9 +182,10 @@
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
 				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
+				C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */,
+				D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */,
 				825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */,
 				6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */,
-				D343F73610356376EFA4EC1B /* VaultManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -249,6 +252,7 @@
 			children = (
 				V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */,
 				Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */,
+				F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -304,7 +308,6 @@
 			isa = PBXGroup;
 			children = (
 				865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */,
-				6C6AFBE53A03B011AEEA625F /* LegalVaultManager.swift */,
 				6D72112E9BDE6DDF792806A3 /* Models.swift */,
 				ACDC1623F564ECBC26952904 /* SignatureButton.swift */,
 			);
@@ -474,6 +477,7 @@
 				0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */,
 				T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */,
 				Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */,
+				E5F6A7B8C9D0E1F2A3B4C5D6 /* DiiaVerificationRecord.swift in Sources */,
 				S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */,
 				BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */,
 				4626547144388318B2B1BFF4 /* DocumentScanner.swift in Sources */,
@@ -492,7 +496,7 @@
 				3F07C943F14296AB63C8D56D /* IdentityView.swift in Sources */,
 				4D05CFADA3E8340BEFD35B7D /* KeyManager.swift in Sources */,
 				5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */,
-				64DE2C7E17763878BAFADAF7 /* LegalVaultManager.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* IdentityVaultManager.swift in Sources */,
 				068BF8009EB37F7CA78A7BDF /* LocalOCR.swift in Sources */,
 				1629F9F5071A91E802799FF6 /* Models.swift in Sources */,
 				352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */,
@@ -515,7 +519,7 @@
 				BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */,
 				D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */,
 				D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */,
-				11450AFA62CF73FA482F3998 /* VaultManager.swift in Sources */,
+				B2C3D4E5F6A7B8C9D0E1F2A3 /* MedicalVaultManager.swift in Sources */,
 				7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */,
 				EA9257C5986D3EB4CA43A7E1 /* xLMEngine.swift in Sources */,
 			);

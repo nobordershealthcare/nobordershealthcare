@@ -2,9 +2,9 @@
 //
 // Signing pipeline (must execute in this order):
 //   Step 1: Ed25519 sign via Secure Enclave → SignatureRecord
-//   Step 2: LegalVaultManager.sealSignatureRecord()     ← Silo 2, local gate (authoritative)
+//   Step 2: IdentityVaultManager.sealSignatureRecord()     ← Silo 2, local gate (authoritative)
 //   Step 3: FabricClient.channel1.recordAdESSignature() ← async, offline-tolerant
-//   Step 4: if consentItems set → LegalVaultManager.sealConsent() + Ch2 broadcast
+//   Step 4: if consentItems set → IdentityVaultManager.sealConsent() + Ch2 broadcast
 //   Step 5: blockchainTxHash updated in vault once confirmed on-chain
 //
 // LOCAL IS AUTHORITATIVE: the signed record is valid from Step 2 onwards.
@@ -29,7 +29,7 @@ enum SigningState: Equatable {
     case idle
     case authenticating           // biometric step-up in progress
     case signing                  // Ed25519 in Secure Enclave
-    case sealingLocally           // writing to LegalVaultManager (Silo 2)
+    case sealingLocally           // writing to IdentityVaultManager (Silo 2)
     case broadcastingToChain      // submitting to Fabric channels (non-blocking)
     case complete(blockchainPending: Bool)
     case failed(String)
@@ -163,7 +163,7 @@ struct SignatureButton: View {
 
             // ── Step 2: Seal locally in Legal vault (Silo 2) ─────────────────
             state = .sealingLocally
-            try await LegalVaultManager.shared.sealSignatureRecord(sigRecord)
+            try await IdentityVaultManager.shared.sealSignatureRecord(sigRecord)
 
             // Build consent record if consent items were provided.
             var consentRecord: ConsentRecord? = nil
@@ -184,7 +184,7 @@ struct SignatureButton: View {
                     legalBasis:           legalBasis,
                     jurisdictions:        jurisdictions
                 )
-                try await LegalVaultManager.shared.sealConsent(cr)
+                try await IdentityVaultManager.shared.sealConsent(cr)
                 consentRecord = cr
             }
 
@@ -225,7 +225,7 @@ struct SignatureButton: View {
                 documentType:       sigRecord.documentType.rawValue,
                 jurisdictions:      sigRecord.jurisdictions
             )
-            try await LegalVaultManager.shared.updateSignatureTxHash(id: sigRecord.id, txHash: sigTxHash)
+            try await IdentityVaultManager.shared.updateSignatureTxHash(id: sigRecord.id, txHash: sigTxHash)
 
             // Step 4: Channel 2 — RecordConsentGrant
             if let cr = consentRecord {
@@ -237,7 +237,7 @@ struct SignatureButton: View {
                     grantedTypes:      cr.items.filter { $0.granted }.map { $0.type.rawValue },
                     signatureTxHash:   sigTxHash
                 )
-                try await LegalVaultManager.shared.updateConsentTxHash(id: cr.id, txHash: consentTxHash)
+                try await IdentityVaultManager.shared.updateConsentTxHash(id: cr.id, txHash: consentTxHash)
             }
         } catch {
             // Offline or transient — ConsentAuditService will retry.

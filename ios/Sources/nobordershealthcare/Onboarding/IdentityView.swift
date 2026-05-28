@@ -698,6 +698,14 @@ struct IdentityView: View {
         // rnokppHash is pre-computed by the backend — no local SHA3 needed.
         let hash = payload.rnokppHash
 
+        // V-07: Compute log correlation key — NEVER log firstName+lastName together.
+        // Only this 8-char prefix is safe to include in diagnostic output.
+        let correlationKey = String(
+            SHA3_256.hash(data: Data((payload.firstName + payload.lastName).utf8))
+                .description.prefix(8)
+        )
+        _ = correlationKey  // available for os_log / structured logging calls below
+
         let identity = VerifiedIdentity(
             id:           UUID(),
             countryCode:  country.id,
@@ -712,7 +720,7 @@ struct IdentityView: View {
 
         VerifiedIdentityStore.upsert(identity)
 
-        // ── Legal Vault: NationalIdentityRecord ──────────────────────────────
+        // ── Identity Vault: NationalIdentityRecord ────────────────────────────
         let record = NationalIdentityRecord(
             countryCode: "UA",
             idType:      "rnokpp",
@@ -725,6 +733,18 @@ struct IdentityView: View {
             verifiedAt:  Date()
         )
         NationalIdentityStore().upsert(record)
+
+        // ── Identity Vault: DiiaVerificationRecord (V-05) ────────────────────
+        let vaultRecord = DiiaVerificationRecord(
+            firstName:    payload.firstName,
+            patronymic:   payload.patronymic.isEmpty ? nil : payload.patronymic,
+            lastName:     payload.lastName,
+            rnokppMasked: payload.rnokppMasked,
+            rnokppHash:   payload.rnokppHash,
+            requestId:    payload.requestId,
+            verifiedAt:   Date()
+        )
+        Task { try? await IdentityVaultManager.shared.seal(vaultRecord, for: .diiaVerification) }
 
         try? DIDWallet.shared.storeUserIdHash_sync(hash, provider: EIDProvider.diiaUA.rawValue)
         DiiaService.shared.reset()

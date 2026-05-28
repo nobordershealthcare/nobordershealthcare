@@ -1,11 +1,11 @@
 // DocumentStore.swift — Encrypted document vault: domain types and storage manager.
 //
-// Documents live in Silo 1 (eHR vault, VaultManager) as AES-256-GCM blobs:
+// Documents live in Silo 2 (eHR vault, MedicalVaultManager) as AES-256-GCM blobs:
 //   index.enc          — encrypted [VaultDocument] metadata list
 //   {uuid}-pages.enc   — encrypted [PageData] per document
 //   {uuid}-thumb.enc   — encrypted JPEG thumbnail (first page, 120 px)
 //
-// All data passes through VaultManager.seal() / open() — the same key as the eHR vault.
+// All data passes through MedicalVaultManager.seal() / open() — the same key as the eHR vault.
 // Raw scan images and OCR text are NEVER written to disk unencrypted.
 // DocumentTranslator calls xLMEngine.translateMedical() — NEVER translateUI().
 
@@ -91,8 +91,8 @@ final class DocumentStore: ObservableObject {
         guard FileManager.default.fileExists(atPath: indexURL.path) else { return }
         do {
             let encData = try Data(contentsOf: indexURL)
-            let sealed  = try JSONDecoder().decode(VaultManager.SealedVault.self, from: encData)
-            let plain   = try await VaultManager.shared.open(sealed)
+            let sealed  = try JSONDecoder().decode(MedicalVaultManager.SealedVault.self, from: encData)
+            let plain   = try await MedicalVaultManager.shared.open(sealed)
             let decoder = JSONDecoder()
             decoder.dateDecodingStrategy = .iso8601
             documents = try decoder.decode([VaultDocument].self, from: plain)
@@ -118,8 +118,8 @@ final class DocumentStore: ObservableObject {
         let url = thumbURL(for: id)
         guard FileManager.default.fileExists(atPath: url.path),
               let encData  = try? Data(contentsOf: url),
-              let sealed   = try? JSONDecoder().decode(VaultManager.SealedVault.self, from: encData),
-              let jpegData = try? await VaultManager.shared.open(sealed) else { return nil }
+              let sealed   = try? JSONDecoder().decode(MedicalVaultManager.SealedVault.self, from: encData),
+              let jpegData = try? await MedicalVaultManager.shared.open(sealed) else { return nil }
         return UIImage(data: jpegData)
     }
 
@@ -128,8 +128,8 @@ final class DocumentStore: ObservableObject {
     func loadPages(for documentID: UUID) async throws -> [PageData] {
         let url     = pagesURL(for: documentID)
         let encData = try Data(contentsOf: url)
-        let sealed  = try JSONDecoder().decode(VaultManager.SealedVault.self, from: encData)
-        let plain   = try await VaultManager.shared.open(sealed)
+        let sealed  = try JSONDecoder().decode(MedicalVaultManager.SealedVault.self, from: encData)
+        let plain   = try await MedicalVaultManager.shared.open(sealed)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         return try decoder.decode([PageData].self, from: plain)
@@ -240,7 +240,7 @@ final class DocumentStore: ObservableObject {
 
     @discardableResult
     private func encryptAndSave(_ data: Data, to url: URL) async throws -> URL {
-        let sealed  = try await VaultManager.shared.seal(data)
+        let sealed  = try await MedicalVaultManager.shared.seal(data)
         let encData = try JSONEncoder().encode(sealed)
         try encData.write(to: url, options: .atomic)
         return url

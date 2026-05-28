@@ -11,7 +11,7 @@
 // SignatureButton signs the full DataProcessingAuthorization with:
 //   legalBasis: [.gdprArt7, .gdprArt9, .eidasArt25, .uaLaw2017]
 //
-// After sign: LegalVaultManager.sealDataProcessingAuth() → Ch1 → Ch2.
+// After sign: IdentityVaultManager.sealDataProcessingAuth() → Ch1 → Ch2.
 
 import SwiftUI
 
@@ -356,7 +356,7 @@ struct DataAuthorizationView: View {
                 signature:           result.signatureRecord.signature,
                 blockchainTxHash:    nil
             )
-            try await LegalVaultManager.shared.sealDataProcessingAuth(auth)
+            try await IdentityVaultManager.shared.sealDataProcessingAuth(auth)
         } catch {
             // Sealed locally in SignatureButton; non-fatal if this call fails
         }

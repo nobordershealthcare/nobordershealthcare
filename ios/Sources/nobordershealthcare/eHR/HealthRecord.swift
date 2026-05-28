@@ -14,7 +14,7 @@ struct Composition: Sendable, Codable, Identifiable {
     let composer: String            // SHA3-256(userID)
     let dateCreated: Date
     var sections: [EHRSection]
-    var sealedBlob: VaultManager.SealedVault?  // nil if not yet persisted
+    var sealedBlob: MedicalVaultManager.SealedVault?  // nil if not yet persisted
 }
 
 struct EHRSection: Sendable, Codable, Identifiable {

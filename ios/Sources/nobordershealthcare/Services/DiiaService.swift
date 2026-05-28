@@ -26,6 +26,63 @@
 
 import SwiftUI
 import UIKit
+import CryptoKit
+
+// MARK: - DiiaPinningDelegate (V-03)
+// Certificate pinning via public-key SHA-256 hash.
+// Replace PLACEHOLDER_SPKI_SHA256_REPLACE_BEFORE_PRODUCTION with the real base64-encoded
+// SHA-256 hash of the Diia API server's public key DER bytes before the Hospital da Luz pilot.
+//
+// How to obtain the hash:
+//   openssl s_client -connect api.diia.gov.ua:443 2>/dev/null | openssl x509 -pubkey -noout \
+//     | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | base64
+
+private final class DiiaPinningDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
+
+    /// SHA-256 of the server's public key DER (base64 encoded).
+    /// PLACEHOLDER — replace with real value from Diia API certificate before production.
+    private static let pinnedKeyHashB64 = "PLACEHOLDER_SPKI_SHA256_REPLACE_BEFORE_PRODUCTION"
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard
+            challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+            let serverTrust = challenge.protectionSpace.serverTrust
+        else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        guard
+            let chain  = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
+            let leaf   = chain.first,
+            let pubKey = SecCertificateCopyKey(leaf)
+        else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        var cfErr: Unmanaged<CFError>?
+        guard let keyData = SecKeyCopyExternalRepresentation(pubKey, &cfErr) as Data? else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        // SHA-256 is correct here: certificate/TLS pinning is a protocol-level mechanism,
+        // not a clinical data hashing operation (SHA3-256 rule does not apply).
+        let digest  = SHA256.hash(data: keyData)
+        let hashB64 = Data(digest).base64EncodedString()
+
+        if hashB64 == Self.pinnedKeyHashB64 {
+            completionHandler(.useCredential, URLCredential(trust: serverTrust))
+        } else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+        }
+    }
+}
 
 // MARK: - DiiaService
 
@@ -41,7 +98,10 @@ final class DiiaService: ObservableObject {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest  = 10
         config.timeoutIntervalForResource = 30
-        session = URLSession(configuration: config)
+        // V-03: certificate pinning — DiiaPinningDelegate validates server's public key hash
+        session = URLSession(configuration: config,
+                             delegate: DiiaPinningDelegate(),
+                             delegateQueue: nil)
     }
 
     // MARK: - State
@@ -144,7 +204,8 @@ final class DiiaService: ObservableObject {
     private func startAuth() async {
         state = .launching
 
-        // ── Stub mode (simulator / DIIA_STUB_MODE = YES) ──────────────────────
+        // ── Stub mode: DEBUG builds only (V-02: compiler removes this block in Release) ──
+        #if DEBUG
         if isStubMode {
             let requestId = "stub-\(UUID().uuidString)"
             pendingRequestId = requestId
@@ -156,6 +217,7 @@ final class DiiaService: ObservableObject {
             }
             return
         }
+        #endif
 
         // ── Real path: POST /diia/auth/request ────────────────────────────────
         guard let url = URL(string: "\(backendBaseURL)/diia/auth/request") else {
@@ -201,8 +263,11 @@ final class DiiaService: ObservableObject {
             return
         }
 
-        // ── Open Diia ─────────────────────────────────────────────────────────
-        let opened = await UIApplication.shared.open(deeplinkURL)
+        // ── Open Diia via Universal Link only — no URL scheme fallback (V-01) ──
+        let opened = await UIApplication.shared.open(
+            deeplinkURL,
+            options: [.universalLinksOnly: true]
+        )
         guard !Task.isCancelled else { return }
         guard opened else {
             state = .error("Не вдалося відкрити Дію. Переконайтеся, що додаток встановлено.")

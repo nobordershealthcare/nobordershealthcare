@@ -11,7 +11,7 @@
 // SignatureButton signs the proxy record with:
 //   legalBasis: [.ptLei25, .deBGB1901a, .uaLaw2017, .eidasArt25]
 //
-// After sign: LegalVaultManager.sealProxy() + Ch1 broadcast.
+// After sign: IdentityVaultManager.sealProxy() + Ch1 broadcast.
 // This step is optional in the sense that users may add 0 proxies, but the
 // screen still requires explicit "Continue" to confirm the choice.
 
@@ -428,7 +428,7 @@ private struct ProxyCard: View {
         )
 
         do {
-            try await LegalVaultManager.shared.sealProxyDocument(doc)
+            try await IdentityVaultManager.shared.sealProxyDocument(doc)
             draft.attachedDocument = doc
             // Broadcast proof-of-existence hash to Channel 1
             Task.detached(priority: .background) {
@@ -494,7 +494,7 @@ private struct ProxyCard: View {
                 legalReferences: [.ptLei25, .deBGB1901a, .uaLaw2017, .eidasArt25]
             )
             _ = userIdHash
-            try await LegalVaultManager.shared.sealProxy(proxy)
+            try await IdentityVaultManager.shared.sealProxy(proxy)
             savedProxy = proxy
             draft.proxyRecord = proxy
         } catch {
@@ -514,7 +514,7 @@ private struct ProxyCard: View {
             documentType:       sigRecord.documentType.rawValue,
             jurisdictions:      sigRecord.jurisdictions
         )
-        try await LegalVaultManager.shared.updateProxyTxHash(id: proxy.id, txHash: txHash)
+        try await IdentityVaultManager.shared.updateProxyTxHash(id: proxy.id, txHash: txHash)
     }
 }
 
@@ -645,7 +645,7 @@ struct ShareProxyDocumentView: View {
         )
 
         do {
-            try await LegalVaultManager.shared.sealShareGrant(grant, docId: document.id)
+            try await IdentityVaultManager.shared.sealShareGrant(grant, docId: document.id)
             generatedGrant = grant
             // Log share intent to Ch3
             Task.detached(priority: .background) {

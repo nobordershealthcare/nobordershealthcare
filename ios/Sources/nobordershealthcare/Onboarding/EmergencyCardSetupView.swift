@@ -8,7 +8,7 @@
 //   medications: dynamic list (name + dose + frequency + ATC lookup)
 //
 // On Save:
-//   VaultManager.seal(emergencyCard) → Silo 1
+//   MedicalVaultManager.seal(emergencyCard) → Silo 2
 //   SignatureButton signs with legalBasis [.gdprArt9, .euMDR]
 //   EmergencyCardService.buildAndSign() → first JWT
 //
@@ -397,7 +397,7 @@ struct EmergencyCardSetupView: View {
 
         do {
             let data     = try JSONEncoder().encode(card)
-            let sealed   = try await VaultManager.shared.seal(data)
+            let sealed   = try await MedicalVaultManager.shared.seal(data)
             let sealedJSON = try JSONEncoder().encode(sealed)
             // Store under a well-known key in the eHR vault directory
             let vaultDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
