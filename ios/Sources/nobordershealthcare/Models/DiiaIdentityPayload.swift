@@ -49,7 +49,7 @@ struct DiiaIdentityPayload: Codable, Sendable, Equatable {
 
     // MARK: - Stub fixture
 
-    /// Deterministic test fixture for simulator / DIIA_STUB_MODE = YES.
+    /// Deterministic test fixture for simulator or stub mode testing.
     /// Named after Тарас Григорович Шевченко — Ukrainian national poet.
     /// rnokppHash is a fixed SHA3-256 sentinel value used only in tests.
     static func stub(requestId: String = "stub-\(UUID().uuidString)") -> DiiaIdentityPayload {

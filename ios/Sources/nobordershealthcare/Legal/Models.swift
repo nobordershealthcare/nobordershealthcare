@@ -1,13 +1,13 @@
 // Models.swift — Canonical legal-domain types for the nobordershealthcare iOS wallet.
 //
 // These types are the single source of truth for:
-//   SILO 2 — iOS Legal Vault (LegalVaultManager, key: com.noborders.legal.key)
-//   SILO 3 — Hyperledger Fabric Ch1 (AdES signatures), Ch2 (consent-audit)
+//   SILO 1 — iOS Identity Vault (IdentityVaultManager, key: com.noborders.identity.key)
+//   SILO 4 — Hyperledger Fabric Ch1 (AdES signatures), Ch2 (consent-audit)
 //
 // SILO BOUNDARY RULE:
 //   ConsentRecord, HealthcareProxy, DataProcessingAuthorization, SignatureRecord
-//   → Legal Vault (Silo 2) ONLY. Never touch VaultManager or com.noborders.vault.key.
-//   EmergencyCard → eHR Vault (Silo 1) ONLY.
+//   → Identity Vault (Silo 1) ONLY. Never touch MedicalVaultManager or com.noborders.medical.key.
+//   EmergencyCard → Medical Vault (Silo 2) ONLY.
 //
 // Hashing: SHA3-256 (SHA3Kit) throughout — never SHA-2 family digests.
 // Blockchain writes: hashes only — never content, paths, or URLs.
@@ -15,7 +15,7 @@
 
 import Foundation
 
-// MARK: - Profile classification (single source of truth — also in ProfileTypeStore/VaultManager)
+// MARK: - Profile classification (single source of truth — also in ProfileTypeStore/IdentityVaultManager)
 
 enum ProfileType: String, Codable, Sendable {
     case civilian        // default

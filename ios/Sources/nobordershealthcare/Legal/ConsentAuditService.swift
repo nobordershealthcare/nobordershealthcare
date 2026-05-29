@@ -1,7 +1,7 @@
 // ConsentAuditService.swift — Dual-source consent validation and blockchain sync.
 //
 // Checks BOTH sources of truth for any consent query:
-//   Source 1: LegalVaultManager (local, offline-capable, authoritative for granting)
+//   Source 1: IdentityVaultManager (local, offline-capable, authoritative for granting)
 //   Source 2: Hyperledger Fabric channel 2 (on-chain, authoritative for revocation)
 //
 // Decision rule:
@@ -66,10 +66,10 @@ final class ConsentAuditService: ObservableObject {
 
     /// Returns the effective consent status for the given ConsentType, checking both
     /// local vault and blockchain. This is the SINGLE call site for all access decisions.
-    /// Never check LegalVaultManager or FabricClient directly for consent gating.
+    /// Never check IdentityVaultManager or FabricClient directly for consent gating.
     func status(for consentType: ConsentType) async -> ConsentStatus {
         do {
-            let records = try await LegalVaultManager.shared.openAllConsents()
+            let records = try await IdentityVaultManager.shared.openAllConsents()
             let sorted  = records.sorted { $0.signedAt > $1.signedAt }  // most recent first
 
             for record in sorted {
@@ -97,7 +97,7 @@ final class ConsentAuditService: ObservableObject {
                     // silent failure would leave local vault out of sync without any
                     // diagnostic trace.
                     do {
-                        try await LegalVaultManager.shared.revokeConsentType(consentType, revokedAt: at)
+                        try await IdentityVaultManager.shared.revokeConsentType(consentType, revokedAt: at)
                     } catch {
                         // Log error hash only — no PII in logs (GDPR Art.83).
                         let tag = SHA3_256.hash(data: Data(error.localizedDescription.utf8))
@@ -160,7 +160,7 @@ final class ConsentAuditService: ObservableObject {
         var remainingSigs = pendingSignatureIds
         for sigId in pendingSignatureIds {
             do {
-                let sigs = try await LegalVaultManager.shared.openSignatureRecords()
+                let sigs = try await IdentityVaultManager.shared.openSignatureRecords()
                 guard let sig = sigs.first(where: { $0.id == sigId }) else {
                     remainingSigs.remove(sigId)  // record gone — remove from queue
                     continue
@@ -179,7 +179,7 @@ final class ConsentAuditService: ObservableObject {
                     documentType:       sig.documentType.rawValue,
                     jurisdictions:      sig.jurisdictions
                 )
-                try await LegalVaultManager.shared.updateSignatureTxHash(id: sigId, txHash: txHash)
+                try await IdentityVaultManager.shared.updateSignatureTxHash(id: sigId, txHash: txHash)
                 remainingSigs.remove(sigId)
             } catch {
                 // Still offline or transient — leave in queue
@@ -191,7 +191,7 @@ final class ConsentAuditService: ObservableObject {
         var remainingConsents = pendingConsentIds
         for consentId in pendingConsentIds {
             do {
-                let consents = try await LegalVaultManager.shared.openAllConsents()
+                let consents = try await IdentityVaultManager.shared.openAllConsents()
                 guard let consent = consents.first(where: { $0.id == consentId }) else {
                     remainingConsents.remove(consentId)
                     continue
@@ -201,7 +201,7 @@ final class ConsentAuditService: ObservableObject {
                     continue
                 }
                 // Find an associated SignatureRecord with a confirmed txHash
-                let sigs = try await LegalVaultManager.shared.openSignatureRecords()
+                let sigs = try await IdentityVaultManager.shared.openSignatureRecords()
                 guard let sigRecord = sigs.first(where: {
                     $0.publicKeyHash == consent.publicKeyHash && $0.blockchainTxHash != nil
                 }),
@@ -217,7 +217,7 @@ final class ConsentAuditService: ObservableObject {
                     grantedTypes:      consent.items.filter { $0.granted }.map { $0.type.rawValue },
                     signatureTxHash:   sigTxHash
                 )
-                try await LegalVaultManager.shared.updateConsentTxHash(id: consentId, txHash: consentTxHash)
+                try await IdentityVaultManager.shared.updateConsentTxHash(id: consentId, txHash: consentTxHash)
                 remainingConsents.remove(consentId)
             } catch {
                 // Still offline or transient

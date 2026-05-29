@@ -25,7 +25,7 @@
 //
 // Retention: 90 days from lastSeenTimestamp. Cleared automatically if stale.
 //
-// Storage: Keychain "com.nobords.security.profile" — kSecAttrAccessibleWhenUnlockedThisDeviceOnly.
+// Storage: Keychain "com.noborders.security.profile" — kSecAttrAccessibleWhenUnlockedThisDeviceOnly.
 //   Not part of Silo 1 (eHR vault) or Silo 2 (legal vault).
 //   The AES-256-GCM vault keys are entirely separate from this profile.
 
@@ -75,10 +75,10 @@ struct DeviceSecurityProfile: Codable, Sendable {
 // MARK: - SecurityProfileStore
 
 /// Keychain persistence for DeviceSecurityProfile.
-/// Account key: "com.nobords.security.profile" — not Silo 1 or Silo 2.
+/// Account key: "com.noborders.security.profile" — not Silo 1 or Silo 2.
 enum SecurityProfileStore {
 
-    private static let account = "com.nobords.security.profile"
+    private static let account = "com.noborders.security.profile"
 
     static func save(_ profile: DeviceSecurityProfile) {
         let enc = JSONEncoder()

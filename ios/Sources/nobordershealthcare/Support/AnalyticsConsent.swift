@@ -23,7 +23,7 @@
 // AnalyticsConsentView is shown ONCE after onboarding completes.
 // AppStorage "analyticsConsentShown" gates whether the sheet appears.
 //
-// Storage: UserDefaults "com.nobords.analytics.consent"
+// Storage: UserDefaults "com.noborders.analytics.consent"
 //   Not Keychain — this data is not sensitive (consent flag + anonymised prefs).
 //   Health data always stays in Silo 1 (Keychain/Secure Enclave).
 
@@ -95,10 +95,10 @@ struct AnalyticsProfile: Codable, Sendable {
 // MARK: - AnalyticsConsentStore
 
 /// UserDefaults persistence for AnalyticsProfile.
-/// Key: "com.nobords.analytics.consent" — NOT Keychain (not sensitive).
+/// Key: "com.noborders.analytics.consent" — NOT Keychain (not sensitive).
 enum AnalyticsConsentStore {
 
-    private static let key = "com.nobords.analytics.consent"
+    private static let key = "com.noborders.analytics.consent"
 
     static func save(_ profile: AnalyticsProfile) {
         let enc = JSONEncoder()

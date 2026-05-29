@@ -1,14 +1,14 @@
 // EmergencyCardService.swift — Phase 4: single source of truth for the live emergency JWT.
 //
 // @MainActor ObservableObject — QRGeneratorView binds to @Published tokenState.
-// Reads EmergencyCard from Silo 1 (VaultManager, vault/emergency-card.enc).
+// Reads EmergencyCard from Silo 2 (MedicalVaultManager, vault/emergency-card.enc).
 // JWT signed Ed25519 via KeyManager — biometric gate is enforced by the SE key ACL.
 // Token (raw JWT string) cached in App Group keychain so EmergencyWidget can read it.
 // Countdown runs as a cooperative Task, updating @Published tokenState every second.
 // On revoke: new jti issued, old jti background-POSTed to /auth/revoke on the Gatekeeper.
 //
-// SILO BOUNDARY: reads from Silo 1 only (VaultManager / com.noborders.vault.key).
-//               Does NOT touch LegalVaultManager or com.noborders.legal.key.
+// SILO BOUNDARY: reads from Silo 2 only (MedicalVaultManager / com.noborders.medical.key).
+//               Does NOT touch IdentityVaultManager or com.noborders.identity.key.
 // LOGGING:      Only SHA3-256(userIdHash) in logs — never displayName, DOB, or any PII.
 // MEDICATIONS:  ATC codes carried through from EmergencyCard.medications.atcCode — NEVER RxNorm.
 
@@ -209,8 +209,8 @@ final class EmergencyCardService: ObservableObject {
         guard let sealedData = try? Data(contentsOf: fileURL) else {
             throw ServiceError.noEmergencyCard
         }
-        let sealed = try JSONDecoder().decode(VaultManager.SealedVault.self, from: sealedData)
-        let plaintext = try await VaultManager.shared.open(sealed)
+        let sealed = try JSONDecoder().decode(MedicalVaultManager.SealedVault.self, from: sealedData)
+        let plaintext = try await MedicalVaultManager.shared.open(sealed)
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
         return try dec.decode(EmergencyCard.self, from: plaintext)

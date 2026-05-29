@@ -74,8 +74,9 @@ actor AttestationService {
     }
 
     private func hardLockdown() async {
-        // Wipe vault key — all encrypted data becomes permanently inaccessible.
-        await VaultManager.shared.wipeWrappedKey()
+        // Wipe both vault keys — all encrypted data becomes permanently inaccessible.
+        await IdentityVaultManager.shared.wipeWrappedKey()
+        await MedicalVaultManager.shared.wipeWrappedKey()
 
         // Persist lockdown flag so subsequent launches also hard-stop.
         let flag: [String: Any] = [

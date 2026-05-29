@@ -48,8 +48,7 @@ enum SecureEnclaveKey {
     }
 
     /// Load a Secure Enclave key by an arbitrary tag string.
-    /// Used by LegalVaultManager (legal key) and VaultManager (eHR key)
-    /// to retrieve their respective SE-bound private keys.
+    /// Used by IdentityVaultManager (identity key) and MedicalVaultManager (medical key).
     static func loadNamed(tag tagString: String) throws -> SecKey {
         guard let tagData = tagString.data(using: .utf8) else {
             throw SEKeyError.notFound(errSecParam)
@@ -69,6 +68,43 @@ enum SecureEnclaveKey {
 
     static func loadOrGenerate() throws -> SecKey {
         try ((try? load()) ?? generate())
+    }
+
+    /// Generate a Secure Enclave key with a custom application tag.
+    /// Uses the same ACL as generate(): biometryCurrentSet + .privateKeyUsage.
+    static func generateNamed(tag tagString: String) throws -> SecKey {
+        guard let tagData = tagString.data(using: .utf8) else {
+            throw SEKeyError.notFound(errSecParam)
+        }
+        var cfError: Unmanaged<CFError>?
+        guard let access = SecAccessControlCreateWithFlags(
+            kCFAllocatorDefault,
+            kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+            [.privateKeyUsage, .biometryCurrentSet],
+            &cfError
+        ) else {
+            throw SEKeyError.generationFailed(cfError!.takeRetainedValue())
+        }
+        let attrs: [String: Any] = [
+            kSecAttrKeyType as String:       kSecAttrKeyTypeECSECPrimeRandom,
+            kSecAttrKeySizeInBits as String: 256,
+            kSecAttrTokenID as String:       kSecAttrTokenIDSecureEnclave,
+            kSecPrivateKeyAttrs as String: [
+                kSecAttrIsPermanent as String:    true,
+                kSecAttrApplicationTag as String: tagData,
+                kSecAttrAccessControl as String:  access,
+            ],
+        ]
+        guard let key = SecKeyCreateRandomKey(attrs as CFDictionary, &cfError) else {
+            throw SEKeyError.generationFailed(cfError!.takeRetainedValue())
+        }
+        return key
+    }
+
+    /// Load or generate a named SE key — idempotent, safe to call on every vault init.
+    static func loadOrGenerateNamed(tag tagString: String) throws -> SecKey {
+        if let key = try? loadNamed(tag: tagString) { return key }
+        return try generateNamed(tag: tagString)
     }
 
     static func publicKey(from privateKey: SecKey) throws -> SecKey {

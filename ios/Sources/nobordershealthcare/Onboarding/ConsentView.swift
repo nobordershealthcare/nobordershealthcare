@@ -9,7 +9,7 @@
 //   Art.9: explicit consent for special-category health data
 //   Art.7(3): "You can revoke any consent anytime in Settings"
 //
-// After sign: LegalVaultManager.sealConsent() → Ch1 → Ch2.
+// After sign: IdentityVaultManager.sealConsent() → Ch1 → Ch2.
 
 import SwiftUI
 
