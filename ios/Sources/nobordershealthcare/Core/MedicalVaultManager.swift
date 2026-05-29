@@ -55,7 +55,7 @@ actor MedicalVaultManager {
 
     // ── Key material accounts ─────────────────────────────────────────────────
     private let seTag              = "com.noborders.medical.sekey"
-    private let wrappedKeyAccount  = "com.nobords.medical.aes256-wrapped"
+    private let wrappedKeyAccount  = "com.noborders.medical.aes256-wrapped"
     private let itemAccountPrefix  = "com.noborders.medical.item."
 
     // ── Error type ───────────────────────────────────────────────────────────

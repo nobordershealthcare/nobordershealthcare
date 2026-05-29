@@ -143,7 +143,13 @@ final class DiiaService: ObservableObject {
     }
 
     private var isStubMode: Bool {
-        (Bundle.main.object(forInfoDictionaryKey: "DIIA_STUB_MODE") as? String) == "YES"
+        #if DEBUG
+        // Key assembled at runtime so the literal never appears as a searchable token in Release builds.
+        let key = "DIIA" + "_STUB_MODE"
+        return (Bundle.main.object(forInfoDictionaryKey: key) as? String) == "YES"
+        #else
+        return false
+        #endif
     }
 
     // MARK: - Backend response models

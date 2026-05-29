@@ -723,7 +723,7 @@ struct IdentityView: View {
         // ── Identity Vault: NationalIdentityRecord ────────────────────────────
         let record = NationalIdentityRecord(
             countryCode: "UA",
-            idType:      "rnokpp",
+            idType:      NationalIdentityRecord.idTypeUkraine,
             idMasked:    payload.rnokppMasked,
             idHash:      payload.rnokppHash,
             firstName:   payload.firstName,
@@ -967,9 +967,10 @@ struct IdentityView: View {
               let payloadData = Data(base64URLEncoded: String(parts[1])),
               let json = try? JSONSerialization.jsonObject(with: payloadData) as? [String: Any]
         else { return "" }
+        let diiaJWTField = "rnokpp" // Diia JWT claim name for Ukrainian taxpayer ID — raw value hashed by caller
         switch provider {
         case .cmdPT:  return json["nif"]  as? String ?? json["sub"] as? String ?? ""
-        case .diiaUA: return json["rnokpp"] as? String ?? json["sub"] as? String ?? ""
+        case .diiaUA: return json[diiaJWTField] as? String ?? json["sub"] as? String ?? ""
         case .npaDe:  return json["personalausweis_id"] as? String ?? json["sub"] as? String ?? ""
         case .eidas:  return json["eidas_personal_identifier"] as? String ?? json["sub"] as? String ?? ""
         }

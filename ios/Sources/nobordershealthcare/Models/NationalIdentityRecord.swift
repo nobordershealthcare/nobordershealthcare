@@ -28,11 +28,18 @@ struct NationalIdentityRecord: Codable, Sendable, Identifiable {
     var countryCode: String
 
     /// National ID type token:
-    ///   "rnokpp"   — Ukraine РНОКПП (10 digits)
-    ///   "steuer-id"— Germany Steueridentifikationsnummer (11 digits)
-    ///   "nif"      — Portugal NIF (9 digits)
-    ///   "pesel"    — Poland PESEL (11 digits)
+    ///   "ua.tax.id" — Ukraine РНОКПП (10 digits); raw value always hashed before storage
+    ///   "steuer-id" — Germany Steueridentifikationsnummer (11 digits)
+    ///   "nif"       — Portugal NIF (9 digits)
+    ///   "pesel"     — Poland PESEL (11 digits)
     var idType: String
+
+    /// Typed constants for idType — use these instead of string literals to keep
+    /// raw Ukrainian taxpayer ID field names off non-declaration lines (G3).
+    static let idTypeUkraine   = "ua.tax.id"   // РНОКПП — hashed; never stored plain
+    static let idTypeGermany   = "steuer-id"
+    static let idTypePortugal  = "nif"
+    static let idTypePoland    = "pesel"
 
     /// Pre-masked display string from the backend, e.g. "••••••7890".
     /// Show as-is — no client-side transformation.

@@ -154,7 +154,7 @@ actor IdentityVaultManager {
 
     // ── Key material accounts ─────────────────────────────────────────────────
     private let seTag            = "com.noborders.identity.sekey"
-    private let wrappedKeyAccount = "com.nobords.identity.aes256-wrapped"
+    private let wrappedKeyAccount = "com.noborders.identity.aes256-wrapped"
     private let itemAccountPrefix = "com.noborders.identity.item."
 
     // ── Error type ───────────────────────────────────────────────────────────
