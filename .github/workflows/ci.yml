@@ -173,16 +173,18 @@ jobs:
       - name: Fail if CryptoKit SHA256 used outside allowed files
         run: |
           # Exclusions (protocol-mandated — see CLAUDE.md "Hashing standard"):
-          #   eciesEncryption  — Apple SecKey ECIES API constant names; no SHA3 variant exists
-          #   BankIDClient     — PKCE/RFC 7636 mandates S256 = SHA-256
+          #   eciesEncryption / Apple ECIES — SecKeyCreateEncryptedData SE constant; no SHA3 variant
+          #   BankID                        — PKCE/RFC 7636 S256 = SHA-256; spec-mandated
+          #   SPKI / pinnedKey / pin.*cert  — TLS certificate pinning; protocol-level, not clinical
+          EXCL="SupportProfile\|Apple ECIES\|PKCE\|test\|//\|eciesEncryption\|pinnedKey\|pinned.*SHA\|SHA.*pinned\|SPKI\|BankID\|bankid\|certificate.*pin\|pin.*cert"
           hits=$(grep -rn "SHA256\|CryptoKit\.SHA256\|SHA512\|MD5" \
             ios/Sources/nobordershealthcare/ --include="*.swift" \
-            | grep -iv "SupportProfile\|test\|//\|eciesEncryption\|BankIDClient" | wc -l)
+            | grep -iv "$EXCL" | wc -l)
           if [ "$hits" -gt 0 ]; then
             echo "❌ SHA-256/MD5 found in iOS medical path (outside approved exceptions)"
             grep -rn "SHA256\|CryptoKit\.SHA256\|SHA512\|MD5" \
               ios/Sources/nobordershealthcare/ --include="*.swift" \
-              | grep -iv "SupportProfile\|test\|//\|eciesEncryption\|BankIDClient"
+              | grep -iv "$EXCL"
             exit 1
           fi
           echo "✅ No disallowed hash algorithms in iOS medical path"

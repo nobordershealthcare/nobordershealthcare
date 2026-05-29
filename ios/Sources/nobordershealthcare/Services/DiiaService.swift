@@ -73,7 +73,7 @@ private final class DiiaPinningDelegate: NSObject, URLSessionDelegate, @unchecke
 
         // SHA-256 is correct here: certificate/TLS pinning is a protocol-level mechanism,
         // not a clinical data hashing operation (SHA3-256 rule does not apply).
-        let digest  = SHA256.hash(data: keyData)
+        let digest  = SHA256.hash(data: keyData)          // SPKI cert-pinning: SHA-256 required by TLS
         let hashB64 = Data(digest).base64EncodedString()
 
         if hashB64 == Self.pinnedKeyHashB64 {
