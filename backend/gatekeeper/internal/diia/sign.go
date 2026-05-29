@@ -2,7 +2,7 @@ package diia
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/sha256" // Diia protocol: SHA-256 mandated by Diia hashedFilesSigning spec
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -95,6 +95,6 @@ func (c *Client) RequestSign(ctx context.Context, branchID, offerID string, file
 // in Redis always use SHA3-256 (see store.go). The CI security gate excludes
 // this function from the SHA-256 lint rule.
 func HashFileSHA256(data []byte) string {
-	h := sha256.Sum256(data)
+	h := sha256.Sum256(data) // Diia file verification: SHA-256 per Diia API spec
 	return hex.EncodeToString(h[:])
 }

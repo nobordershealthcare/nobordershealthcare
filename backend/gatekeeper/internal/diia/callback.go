@@ -3,7 +3,7 @@ package diia
 import (
 	"context"
 	"crypto/ecdsa"
-	"crypto/sha256"
+	"crypto/sha256" // Diia protocol: ECDSA+SHA-256 mandated by Diia API spec (CAdES-BES)
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/asn1"

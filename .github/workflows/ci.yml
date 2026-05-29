@@ -89,15 +89,26 @@ jobs:
 
       - name: Fail if crypto/sha256 found in backend or contracts
         run: |
+          # Exclusions — protocol-mandated SHA-256 that cannot be changed:
+          #   backend/gatekeeper/internal/diia/  — Diia.Підпис API requires
+          #     ECDSA+SHA-256 (CAdES-BES) for signature verification and
+          #     SHA-256 file hashes in hashedFilesSigning requests.
+          #     There is no SHA3 variant defined by the Diia acquirer spec.
+          #     Analogous accepted exceptions: PKCE/RFC 7636, Apple ECIES.
+          # The grep-v "//" filter also catches lines with inline // comments.
           hits=$(grep -rn '"crypto/sha256"\|sha256\.Sum256\|sha256\.New\b' \
-            backend/ contracts/ --include="*.go" | grep -v "_test\|//" | wc -l)
+            backend/ contracts/ --include="*.go" \
+            --exclude-dir=diia \
+            | grep -v "_test\|//" | wc -l)
           if [ "$hits" -gt 0 ]; then
             echo "❌ SHA-256 found in backend/contracts — must use SHA3-256"
             grep -rn '"crypto/sha256"\|sha256\.Sum256\|sha256\.New\b' \
-              backend/ contracts/ --include="*.go" | grep -v "_test\|//"
+              backend/ contracts/ --include="*.go" \
+              --exclude-dir=diia \
+              | grep -v "_test\|//"
             exit 1
           fi
-          echo "✅ No SHA-256 in backend/contracts"
+          echo "✅ No SHA-256 in backend/contracts (Diia protocol exclusion applied)"
 
   # ── Go: no InsecureSkipVerify ─────────────────────────────────────────────
   security-gate-tls:
