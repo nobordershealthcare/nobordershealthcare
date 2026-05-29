@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"golang.org/x/crypto/sha3"
 
@@ -13,6 +14,11 @@ import (
 	"github.com/nobordershealthcare/normalization/kafka"
 	"github.com/nobordershealthcare/normalization/lookup"
 )
+
+// reviewEmitTimeout is the maximum time allowed for a fire-and-forget review
+// event emission goroutine. This caps the goroutine lifetime so it cannot
+// block indefinitely (gosec G118).
+const reviewEmitTimeout = 30 * time.Second
 
 // Pipeline reads from the WORM Kafka topic, normalizes each event, and writes
 // to the CDR. Offsets are committed only after a successful CDR write.
@@ -182,7 +188,13 @@ func (p *Pipeline) processFHIRR4(ctx context.Context, event *kafka.RawClinicalEv
 		for _, f := range flags {
 			if f != nil {
 				go func(fl lookup.ReviewFlag) {
-					_ = p.reviewProducer.EmitReview(context.Background(), fl)
+					// Use a detached context with a finite timeout so the goroutine
+					// does not run forever (G118). context.WithoutCancel inherits
+					// values from the parent without inheriting cancellation, so
+					// the review emission can outlive the processing pipeline tick.
+					rCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), reviewEmitTimeout)
+					defer cancel()
+					_ = p.reviewProducer.EmitReview(rCtx, fl)
 				}(*f)
 			}
 		}

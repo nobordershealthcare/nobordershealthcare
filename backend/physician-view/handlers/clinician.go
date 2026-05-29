@@ -180,9 +180,13 @@ func ProxyTokenHandler(logger *ch3log.Logger, rdb *redis.Client) http.HandlerFun
 			return
 		}
 
-		// Ch3 access log (best-effort for proxy — document is already served)
+		// Ch3 access log (best-effort for proxy — document is already served).
+		// context.WithoutCancel detaches from the request context so the goroutine
+		// can outlive the HTTP handler, while the 5s timeout caps its lifetime
+		// to prevent indefinite blocking (gosec G118).
+		reqCtx := r.Context()
 		go func() {
-			logCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			logCtx, cancel := context.WithTimeout(context.WithoutCancel(reqCtx), 5*time.Second)
 			defer cancel()
 			if logErr := logger.LogAccess(logCtx, ch3log.AccessProxyDocument,
 				doc.RecipientHash, doc.RecipientCountry,

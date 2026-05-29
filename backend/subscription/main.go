@@ -36,7 +36,15 @@ func main() {
 
 	addr := envOr("LISTEN_ADDR", ":8089")
 	log.Printf("[subscription] listening on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	// Explicit timeouts prevent Slowloris / resource-exhaustion attacks (gosec G114).
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }

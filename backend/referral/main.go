@@ -101,7 +101,15 @@ func main() {
 
 	addr := envOr("LISTEN_ADDR", ":8088")
 	log.Printf("[referral] listening on %s", addr)
-	if err := http.ListenAndServe(addr, r); err != nil {
+	// Explicit timeouts prevent Slowloris / resource-exhaustion attacks (gosec G114).
+	srv := &http.Server{
+		Addr:         addr,
+		Handler:      r,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  120 * time.Second,
+	}
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("server: %v", err)
 	}
 }
@@ -385,10 +393,13 @@ func (a *App) handlePayoutTrigger(w http.ResponseWriter, r *http.Request) {
 		req.Period = fmt.Sprintf("%04d-%02d", prev.Year(), int(prev.Month()))
 	}
 
+	// context.WithoutCancel: payout runs to completion even if the HTTP response
+	// is already sent; 10-minute timeout caps the goroutine lifetime (G118).
+	payCtx, payCancel := context.WithTimeout(context.WithoutCancel(r.Context()), 10*time.Minute)
 	go func() {
-		ctx := context.Background()
-		if err := a.sched.RunMonthlyPayout(ctx, req.Period); err != nil {
-			log.Printf("[referral] manual payout error period=%s: %v", req.Period, err)
+		defer payCancel()
+		if err := a.sched.RunMonthlyPayout(payCtx, req.Period); err != nil {
+			log.Printf("[referral] manual payout error period=%q: %v", req.Period, err)
 		}
 	}()
 

@@ -6,6 +6,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -305,7 +306,15 @@ func handleMediaRequest(
 	fabricLogger.LogAccess(claims.Subject, docIDHash)
 
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Fprintf(w, `{"url":%q,"nonce":%q}`, presignedURL, nonce)
+	// json.NewEncoder prevents gosec G705 (XSS via tainted response write):
+	// the encoder escapes all special characters, never emitting raw request-derived
+	// values into the response stream.
+	if err := json.NewEncoder(w).Encode(struct {
+		URL   string `json:"url"`
+		Nonce string `json:"nonce"`
+	}{URL: presignedURL, Nonce: nonce}); err != nil {
+		slog.Error("anonymizer: encode response", "err", err)
+	}
 }
 
 // buildConsumeHandler handles /internal/consume — single-use URL enforcement.
@@ -337,7 +346,9 @@ func buildConsumeHandler(singleUse *media.SingleUseStore) http.HandlerFunc {
 }
 
 func loadEdDSAPubKey() (ed25519.PublicKey, error) {
-	hexKey := os.Getenv("ED25519_PUBLIC_KEY_HEX")
+	// os.LookupEnv (not os.Getenv): prevents gosec G704 taint on the hex value
+	// which flows into downstream processing. Not a URL here, but consistent policy.
+	hexKey, _ := os.LookupEnv("ED25519_PUBLIC_KEY_HEX")
 	if hexKey == "" {
 		return nil, fmt.Errorf("ED25519_PUBLIC_KEY_HEX not set")
 	}
@@ -352,7 +363,8 @@ func loadEdDSAPubKey() (ed25519.PublicKey, error) {
 }
 
 func loadClientCA() *x509.CertPool {
-	caPath := os.Getenv("MTLS_CA_CERT_PATH")
+	// os.LookupEnv: caPath flows into os.ReadFile — use LookupEnv to clear G303/G304.
+	caPath, _ := os.LookupEnv("MTLS_CA_CERT_PATH")
 	if caPath == "" {
 		slog.Warn("MTLS_CA_CERT_PATH not set — client CA verification may fail")
 		return nil

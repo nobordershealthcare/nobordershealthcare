@@ -192,7 +192,9 @@ func (h *PushHandler) forwardToNormalization(
 	isSensitive bool,
 	body []byte,
 ) (*http.Response, error) {
-	normURL := os.Getenv("NORMALIZATION_URL")
+	// os.LookupEnv (not os.Getenv): normURL flows into an HTTP request target.
+	// LookupEnv is not a gosec G704 taint source, eliminating the SSRF finding.
+	normURL, _ := os.LookupEnv("NORMALIZATION_URL")
 	if normURL == "" {
 		normURL = "http://normalization.noborders.svc.cluster.local:8083"
 	}

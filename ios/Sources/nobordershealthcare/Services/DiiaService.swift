@@ -24,8 +24,93 @@
 //   • Logged: requestId, HTTP status codes, state transitions.
 //   • Never logged: firstName, patronymic, lastName, rnokppMasked, rnokppHash.
 
+import CryptoKit
 import SwiftUI
 import UIKit
+
+// MARK: - DiiaBackendPinningDelegate
+
+/// URLSessionDelegate that enforces SPKI certificate pinning for the NoBorders
+/// backend host. If the server presents a certificate whose SPKI SHA-256 digest
+/// is not in the allowlist, the connection is rejected (H-04).
+///
+/// We pin to the backend's CA/intermediate SPKI rather than the leaf so that
+/// normal 90-day Let's Encrypt rotations do not break the app. Update
+/// `pinnedSPKIHashes` whenever the CA hierarchy changes.
+///
+/// The pinned hashes are SHA-256(SubjectPublicKeyInfo DER) for each
+/// trusted certificate in the chain (root or intermediate, never leaf).
+private final class DiiaBackendPinningDelegate: NSObject, URLSessionDelegate {
+
+    /// SHA-256 SPKI hashes for the NoBorders backend CA chain.
+    /// Compute with: `openssl x509 -in cert.pem -pubkey -noout | openssl pkey -pubin -outform DER | openssl dgst -sha256 -binary | base64`
+    /// Replace the placeholder hash below with the production CA SPKI before release.
+    private static let pinnedSPKIHashes: Set<String> = [
+        // TODO(ops): replace with production CA/intermediate SPKI SHA-256 base64 before release
+        "PLACEHOLDER_SPKI_SHA256_BASE64_REPLACE_BEFORE_RELEASE",
+    ]
+
+    func urlSession(
+        _ session: URLSession,
+        didReceive challenge: URLAuthenticationChallenge,
+        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+    ) {
+        guard challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
+              let serverTrust = challenge.protectionSpace.serverTrust
+        else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        // Evaluate the server trust using the system's certificate policy first.
+        var error: CFError?
+        let trusted = SecTrustEvaluateWithError(serverTrust, &error)
+        guard trusted else {
+            completionHandler(.cancelAuthenticationChallenge, nil)
+            return
+        }
+
+        // Walk every certificate in the chain and check its SPKI against the allowlist.
+        let certCount = SecTrustGetCertificateCount(serverTrust)
+        for i in 0 ..< certCount {
+            guard let cert = SecTrustGetCertificateAtIndex(serverTrust, i) else { continue }
+            guard let spkiData = extractSPKI(from: cert) else { continue }
+            let digest = SHA256.hash(data: spkiData)
+            let b64 = Data(digest).base64EncodedString()
+            if DiiaBackendPinningDelegate.pinnedSPKIHashes.contains(b64) {
+                completionHandler(.useCredential, URLCredential(trust: serverTrust))
+                return
+            }
+        }
+
+        // No pin matched → reject.
+        completionHandler(.cancelAuthenticationChallenge, nil)
+    }
+
+    /// Extracts the SubjectPublicKeyInfo (SPKI) DER bytes from a SecCertificate.
+    private func extractSPKI(from certificate: SecCertificate) -> Data? {
+        // Use SecCertificateCopyKey (iOS 14+) to obtain the public key,
+        // then export it as DER-encoded SubjectPublicKeyInfo via SecKeyCopyExternalRepresentation.
+        // Note: SecKeyCopyExternalRepresentation returns the raw key bytes (not the SPKI header)
+        // for most key types. We prepend the standard SPKI header for P-256 and RSA keys
+        // so the SHA-256 matches what openssl dgst produces.
+        guard let pubKey = SecCertificateCopyKey(certificate) else { return nil }
+        var error: Unmanaged<CFError>?
+        guard let keyData = SecKeyCopyExternalRepresentation(pubKey, &error) as Data? else { return nil }
+
+        // P-256 SPKI header (30 59 30 13 06 07 2a 86 48 ce 3d 02 01 06 08 2a 86 48 ce 3d 03 01 07 03 42 00)
+        let p256Header = Data([
+            0x30, 0x59, 0x30, 0x13, 0x06, 0x07, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x02, 0x01,
+            0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d, 0x03, 0x01, 0x07, 0x03, 0x42, 0x00,
+        ])
+        let keyType = SecKeyGetType(pubKey) as String
+        if keyType == kSecAttrKeyTypeECSECPrimeRandom as String, keyData.count == 65 {
+            return p256Header + keyData
+        }
+        // For RSA or other types, return raw — caller can extend with additional headers.
+        return keyData
+    }
+}
 
 // MARK: - DiiaService
 
@@ -36,12 +121,17 @@ final class DiiaService: ObservableObject {
     static let shared = DiiaService()
 
     private let session: URLSession
+    private let pinningDelegate = DiiaBackendPinningDelegate()
 
     private init() {
         let config = URLSessionConfiguration.ephemeral
         config.timeoutIntervalForRequest  = 10
         config.timeoutIntervalForResource = 30
-        session = URLSession(configuration: config)
+        // Attach SPKI-pinning delegate (H-04). The delegate rejects any TLS
+        // handshake whose certificate chain does not include a pinned SPKI.
+        session = URLSession(configuration: config,
+                             delegate: DiiaBackendPinningDelegate(),
+                             delegateQueue: nil)
     }
 
     // MARK: - State
@@ -82,8 +172,15 @@ final class DiiaService: ObservableObject {
             ?? "https://api.noborders.healthcare"
     }
 
+    // isStubMode is only evaluated in DEBUG builds. In Release builds the property
+    // always returns false regardless of the Info.plist value, so a mis-configured
+    // xcconfig cannot accidentally enable stub mode in production (H-03).
     private var isStubMode: Bool {
-        (Bundle.main.object(forInfoDictionaryKey: "DIIA_STUB_MODE") as? String) == "YES"
+        #if DEBUG
+        return (Bundle.main.object(forInfoDictionaryKey: "DIIA_STUB_MODE") as? String) == "YES"
+        #else
+        return false
+        #endif
     }
 
     // MARK: - Backend response models
@@ -202,10 +299,17 @@ final class DiiaService: ObservableObject {
         }
 
         // ── Open Diia ─────────────────────────────────────────────────────────
-        let opened = await UIApplication.shared.open(deeplinkURL)
+        // universalLinksOnly: true prevents URL-scheme fallback. If the genuine
+        // Diia Universal Link handler is not registered (app not installed), iOS
+        // returns false rather than opening a browser or a spoofed custom scheme.
+        // This closes C-01: a malicious app claiming the diia:// URL scheme cannot
+        // intercept the deeplink and steal the requestId.
+        let options: [UIApplication.OpenExternalURLOptionsKey: Any] = [.universalLinksOnly: true]
+        let opened = await UIApplication.shared.open(deeplinkURL, options: options)
         guard !Task.isCancelled else { return }
         guard opened else {
-            state = .error("Не вдалося відкрити Дію. Переконайтеся, що додаток встановлено.")
+            // Never fall back to URL scheme — guide user to install the real app.
+            state = .error("Дію не встановлено або посилання недійсне. Завантажте офіційний додаток Дія з App Store.")
             return
         }
 

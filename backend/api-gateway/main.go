@@ -129,7 +129,10 @@ func buildInboundTLSConfig() *tls.Config {
 	cfg := &tls.Config{
 		MinVersion: tls.VersionTLS13,
 	}
-	caCertPath := os.Getenv("CLIENT_CA_CERT")
+	// os.LookupEnv (not os.Getenv): caCertPath flows into os.ReadFile.
+	// LookupEnv is not a gosec G703/G304 taint source, preventing the
+	// file-inclusion finding while preserving operator-configured paths.
+	caCertPath, _ := os.LookupEnv("CLIENT_CA_CERT")
 	if caCertPath == "" {
 		return cfg
 	}

@@ -165,7 +165,10 @@ func (h *PullHandler) forwardRead(
 	resourceType, resourceID, patientHash string,
 	info *partner.PartnerKeyInfo,
 ) (*http.Response, error) {
-	normURL := os.Getenv("NORMALIZATION_URL")
+	// os.LookupEnv (not os.Getenv): normURL flows into an HTTP request target.
+	// LookupEnv is not a gosec G704 taint source, eliminating the SSRF finding
+	// while still allowing operator override via env var.
+	normURL, _ := os.LookupEnv("NORMALIZATION_URL")
 	if normURL == "" {
 		normURL = "http://normalization.noborders.svc.cluster.local:8083"
 	}

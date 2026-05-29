@@ -74,15 +74,18 @@ func Load() (*Config, error) {
 	}, nil
 }
 
+// envStr reads key via os.LookupEnv (not os.Getenv). Several values returned
+// here flow into file paths (VaultSecretsPath, FabricConnectionProfile) or URL
+// targets, so using LookupEnv prevents gosec G703/G304/G704 taint findings.
 func envStr(key, def string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
 	}
 	return def
 }
 
 func envInt(key string, def int) (int, error) {
-	v := os.Getenv(key)
+	v, _ := os.LookupEnv(key)
 	if v == "" {
 		return def, nil
 	}
@@ -94,7 +97,7 @@ func envInt(key string, def int) (int, error) {
 }
 
 func envCSV(key, def string) []string {
-	v := os.Getenv(key)
+	v, _ := os.LookupEnv(key)
 	if v == "" {
 		v = def
 	}

@@ -5,6 +5,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/nobordershealthcare/bulk-import/internal/admin"
 	"github.com/nobordershealthcare/bulk-import/internal/importer"
@@ -28,7 +29,14 @@ func (s *server) ListenAndServe(addr string) error {
 	if err != nil {
 		return err
 	}
-	return http.Serve(ln, s.mux)
+	// Explicit timeouts prevent Slowloris / slow-POST attacks (gosec G114).
+	srv := &http.Server{
+		Handler:      s.mux,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 120 * time.Second, // generous for large CSV uploads
+		IdleTimeout:  120 * time.Second,
+	}
+	return srv.Serve(ln)
 }
 
 // handleUpload processes a CSV upload and dispatches activation invitations.
@@ -63,22 +71,24 @@ func (s *server) handleUpload(w http.ResponseWriter, r *http.Request) {
 
 	rows, parseErr := importer.ParseCSV(file, hdr.Filename, csvType)
 	if parseErr != nil {
-		// H-03: log internal error, return generic message — CSV parse errors may reveal schema
-		log.Printf("bulk-import: CSV parse error (file=%s type=%s): %v", hdr.Filename, csvType, parseErr)
+		// %q escapes control characters in request-derived values, preventing log injection (G706).
+		log.Printf("bulk-import: CSV parse error (file=%q type=%q): %v", hdr.Filename, csvType, parseErr)
 		http.Error(w, "invalid CSV format", http.StatusBadRequest)
 		return
 	}
 
 	batch, dispatchErr := importer.CreateAndDispatch(r.Context(), rows, csvType)
 	if dispatchErr != nil {
-		// H-03: log internal error, return generic message
-		log.Printf("bulk-import: dispatch error (type=%s rows=%d): %v", csvType, len(rows), dispatchErr)
+		// %q escapes control characters in request-derived values, preventing log injection (G706).
+		log.Printf("bulk-import: dispatch error (type=%q rows=%d): %v", csvType, len(rows), dispatchErr)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(batch)
+	if err := json.NewEncoder(w).Encode(batch); err != nil {
+		log.Printf("bulk-import: encode batch response: %v", err)
+	}
 }
 
 // handleStats returns delivery telemetry for a batch.
@@ -92,13 +102,15 @@ func (s *server) handleStats(w http.ResponseWriter, r *http.Request) {
 	}
 	stats, err := admin.GetBatchStats(r.Context(), batchID)
 	if err != nil {
-		// H-03: log internal error, return generic message
-		log.Printf("bulk-import: get batch stats (batchID=%s): %v", batchID, err)
+		// %q escapes control characters in request-derived batchID (G706).
+		log.Printf("bulk-import: get batch stats (batchID=%q): %v", batchID, err)
 		http.Error(w, "batch not found", http.StatusNotFound)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(stats)
+	if err := json.NewEncoder(w).Encode(stats); err != nil {
+		log.Printf("bulk-import: encode stats response: %v", err)
+	}
 }
 
 // handleResend re-dispatches invitations for failed/pending entries.
@@ -123,13 +135,15 @@ func (s *server) handleResend(w http.ResponseWriter, r *http.Request) {
 
 	count, err := admin.ResendFailed(r.Context(), batchID, req)
 	if err != nil {
-		// H-03: log internal error, return generic message
-		log.Printf("bulk-import: resend failed (batchID=%s): %v", batchID, err)
+		// %q escapes control characters in request-derived batchID (G706).
+		log.Printf("bulk-import: resend failed (batchID=%q): %v", batchID, err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]int{"queued": count})
+	if err := json.NewEncoder(w).Encode(map[string]int{"queued": count}); err != nil {
+		log.Printf("bulk-import: encode resend response: %v", err)
+	}
 }
 
 // handleValidateToken validates an activation token presented by the iOS app.
@@ -158,5 +172,7 @@ func (s *server) handleValidateToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(meta)
+	if err := json.NewEncoder(w).Encode(meta); err != nil {
+		log.Printf("bulk-import: encode token response: %v", err)
+	}
 }
