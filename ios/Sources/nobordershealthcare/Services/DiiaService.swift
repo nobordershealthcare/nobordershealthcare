@@ -56,31 +56,48 @@ private final class DiiaPinningDelegate: NSObject, URLSessionDelegate, @unchecke
             return
         }
 
-        guard
-            let chain  = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate],
-            let leaf   = chain.first,
-            let pubKey = SecCertificateCopyKey(leaf)
-        else {
+        // C-03: evaluate the full chain with system policy FIRST — this checks
+        // validity, expiry, and revocation. A revoked or expired cert with the
+        // right key hash must still be rejected.
+        var cfTrustError: CFError?
+        guard SecTrustEvaluateWithError(serverTrust, &cfTrustError) else {
             completionHandler(.cancelAuthenticationChallenge, nil)
             return
         }
 
-        var cfErr: Unmanaged<CFError>?
-        guard let keyData = SecKeyCopyExternalRepresentation(pubKey, &cfErr) as Data? else {
+        // H-01: fail-closed if placeholder was never replaced before release.
+        guard !Self.pinnedKeyHashB64.hasPrefix("PLACEHOLDER") else {
+            assertionFailure("DiiaPinningDelegate: replace pinnedKeyHashB64 before production")
             completionHandler(.cancelAuthenticationChallenge, nil)
             return
         }
 
-        // SHA-256 is correct here: certificate/TLS pinning is a protocol-level mechanism,
-        // not a clinical data hashing operation (SHA3-256 rule does not apply).
-        let digest  = SHA256.hash(data: keyData)          // SPKI cert-pinning: SHA-256 required by TLS
-        let hashB64 = Data(digest).base64EncodedString()
-
-        if hashB64 == Self.pinnedKeyHashB64 {
-            completionHandler(.useCredential, URLCredential(trust: serverTrust))
-        } else {
+        guard let chain = SecTrustCopyCertificateChain(serverTrust) as? [SecCertificate] else {
             completionHandler(.cancelAuthenticationChallenge, nil)
+            return
         }
+
+        // M-02: walk the entire chain (not just the leaf) so operators can pin
+        // to the intermediate CA. Intermediate pinning survives 90-day leaf
+        // rotation (Let's Encrypt) without requiring an app update.
+        for cert in chain {
+            guard let pubKey = SecCertificateCopyKey(cert) else { continue }
+            var cfErr: Unmanaged<CFError>?
+            guard let keyData = SecKeyCopyExternalRepresentation(pubKey, &cfErr) as Data? else { continue }
+
+            // SHA-256 is correct here: certificate/TLS pinning is a protocol-level
+            // mechanism, not a clinical data operation (SHA3-256 rule does not apply).
+            let digest  = SHA256.hash(data: keyData)          // SPKI cert-pinning: SHA-256 required by TLS
+            let hashB64 = Data(digest).base64EncodedString()
+
+            if hashB64 == Self.pinnedKeyHashB64 {
+                completionHandler(.useCredential, URLCredential(trust: serverTrust))
+                return
+            }
+        }
+
+        // No certificate in the chain matched the pin — reject.
+        completionHandler(.cancelAuthenticationChallenge, nil)
     }
 }
 

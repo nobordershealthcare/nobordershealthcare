@@ -62,9 +62,12 @@ type AuthStoreInterface interface {
 	GetAuthRequest(ctx context.Context, requestID string) (*AuthRequestMeta, error)
 	SaveAuthResult(ctx context.Context, result AuthResult) error
 	GetAuthResult(ctx context.Context, requestID string) (*AuthResult, error)
-	// DeleteAuthRequest and DeleteAuthResult implement one-time use semantics:
-	// both keys are deleted the moment a terminal status (complete/failed) is
-	// served, preventing requestId replay within the 10-minute TTL window.
+	// GetAndDeleteAuthResult atomically reads+deletes the result (Redis GETDEL).
+	// This eliminates the TOCTOU race: concurrent polls cannot both receive the
+	// identity payload (C-02). Only one caller wins; all others get (nil, nil).
+	GetAndDeleteAuthResult(ctx context.Context, requestID string) (*AuthResult, error)
+	// DeleteAuthRequest is called after consuming the result to make subsequent
+	// polls return "expired". DeleteAuthResult is kept for edge-case cleanup.
 	DeleteAuthRequest(ctx context.Context, requestID string) error
 	DeleteAuthResult(ctx context.Context, requestID string) error
 }
@@ -151,6 +154,10 @@ func HandleAuthRequest(client ClientInterface, store AuthStoreInterface) http.Ha
 			http.Error(w, "auth not configured", http.StatusServiceUnavailable)
 			return
 		}
+		if client == nil {
+			http.Error(w, "diia client not configured", http.StatusServiceUnavailable)
+			return
+		}
 
 		ctx := r.Context()
 		requestID, deeplink, err := client.RequestAuth(ctx, branchID, offerID)
@@ -211,6 +218,12 @@ func HandleAuthStatus(store AuthStoreInterface) http.HandlerFunc {
 			http.Error(w, "missing requestId", http.StatusBadRequest)
 			return
 		}
+		// H-03: validate UUID format before touching Redis — prevents key injection
+		// and log pollution from arbitrary attacker-controlled strings.
+		if _, err := uuid.Parse(requestID); err != nil {
+			http.Error(w, "invalid requestId", http.StatusBadRequest)
+			return
+		}
 
 		ctx := r.Context()
 		w.Header().Set("Content-Type", "application/json")
@@ -226,14 +239,16 @@ func HandleAuthStatus(store AuthStoreInterface) http.HandlerFunc {
 			return
 		}
 		if reqMeta == nil {
-			// TTL elapsed or never seen.
+			// TTL elapsed, never seen, or already consumed.
 			json.NewEncoder(w).Encode(map[string]string{"status": "expired"}) //nolint:errcheck
 			return
 		}
 
-		result, err := store.GetAuthResult(ctx, requestID)
+		// C-02: atomic GETDEL — only one concurrent caller can receive the payload.
+		// Concurrent polls get (nil, nil) here and return "pending" safely.
+		result, err := store.GetAndDeleteAuthResult(ctx, requestID)
 		if err != nil {
-			slog.Error("diia auth: GetAuthResult failed",
+			slog.Error("diia auth: GetAndDeleteAuthResult failed",
 				slog.String("request_id", requestID),
 				slog.String("err", err.Error()),
 			)
@@ -245,49 +260,29 @@ func HandleAuthStatus(store AuthStoreInterface) http.HandlerFunc {
 			return
 		}
 
+		// Result atomically consumed — now serve it, then delete the request key
+		// so subsequent polls return "expired" rather than "pending".
 		if result.Status == "failed" {
 			json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
 				"status": "failed",
 				"reason": result.FailReason,
 			})
-			// One-time use: delete both keys so the requestId cannot be replayed.
-			if err := store.DeleteAuthResult(ctx, requestID); err != nil {
-				slog.Warn("diia auth: DeleteAuthResult failed after failed response",
-					slog.String("request_id", requestID),
-					slog.String("err", err.Error()),
-				)
-			}
-			if err := store.DeleteAuthRequest(ctx, requestID); err != nil {
-				slog.Warn("diia auth: DeleteAuthRequest failed after failed response",
-					slog.String("request_id", requestID),
-					slog.String("err", err.Error()),
-				)
-			}
-			return
+		} else {
+			// complete — return masked identity + hash; never return plaintext RNOKPP.
+			json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
+				"status": "complete",
+				"payload": map[string]string{
+					"firstName":    result.FirstName,
+					"patronymic":   result.Patronymic,
+					"lastName":     result.LastName,
+					"rnokppMasked": result.RNOKPPMask, // "••••••7890"
+					"rnokppHash":   result.RNOKPPHash,  // SHA3-256("UA:"+rnokpp)
+				},
+			})
 		}
-
-		// complete — return masked identity + hash; never return plaintext RNOKPP.
-		// Both Redis keys are deleted immediately after this response so that
-		// the requestId cannot be replayed within the 10-minute TTL window (C-02).
-		json.NewEncoder(w).Encode(map[string]any{ //nolint:errcheck
-			"status": "complete",
-			"payload": map[string]string{
-				"firstName":    result.FirstName,
-				"patronymic":   result.Patronymic,
-				"lastName":     result.LastName,
-				"rnokppMasked": result.RNOKPPMask, // "••••••7890"
-				"rnokppHash":   result.RNOKPPHash,  // SHA3-256("UA:"+rnokpp)
-			},
-		})
-		// One-time use: delete result first (contains identity), then request.
-		if err := store.DeleteAuthResult(ctx, requestID); err != nil {
-			slog.Warn("diia auth: DeleteAuthResult failed after complete response",
-				slog.String("request_id", requestID),
-				slog.String("err", err.Error()),
-			)
-		}
+		// Delete the request key last — after this, all polls return "expired".
 		if err := store.DeleteAuthRequest(ctx, requestID); err != nil {
-			slog.Warn("diia auth: DeleteAuthRequest failed after complete response",
+			slog.Warn("diia auth: DeleteAuthRequest failed after terminal response",
 				slog.String("request_id", requestID),
 				slog.String("err", err.Error()),
 			)
@@ -333,6 +328,12 @@ func HandleAuthCallback(store AuthStoreInterface) http.HandlerFunc {
 		if cb.RequestID == "" {
 			slog.Warn("diia auth callback: missing requestId")
 			http.Error(w, "missing requestId", http.StatusBadRequest)
+			return
+		}
+		// H-03: validate UUID format — Diia always sends a UUID v4.
+		if _, err := uuid.Parse(cb.RequestID); err != nil {
+			slog.Warn("diia auth callback: invalid requestId format")
+			http.Error(w, "invalid requestId", http.StatusBadRequest)
 			return
 		}
 

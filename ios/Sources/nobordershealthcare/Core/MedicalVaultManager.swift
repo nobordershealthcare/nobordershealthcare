@@ -63,7 +63,7 @@ actor MedicalVaultManager {
     // nil on simulator (no AppIdentifierPrefix) — SecItem calls omit kSecAttrAccessGroup.
     private let keychainGroup: String? = {
         let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? ""
-        return prefix.isEmpty ? nil : "\(prefix)com.nobords.medical.key"
+        return prefix.isEmpty ? nil : "\(prefix)com.noborders.medical.key"
     }()
 
     // Adds kSecAttrAccessGroup only when running on a real device (group is non-nil).

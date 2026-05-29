@@ -225,8 +225,9 @@ func (s *Store) SaveAuthResult(ctx context.Context, result AuthResult) error {
 	return nil
 }
 
-// GetAuthResult retrieves an auth result by requestID.
+// GetAuthResult retrieves an auth result by requestID without deleting it.
 // Returns (nil, nil) if the key does not exist (callback not yet received).
+// Prefer GetAndDeleteAuthResult when consuming a terminal result — it is atomic.
 func (s *Store) GetAuthResult(ctx context.Context, requestID string) (*AuthResult, error) {
 	b, err := s.rdb.Get(ctx, authResultKey(requestID)).Bytes()
 	if err == redis.Nil {
@@ -242,9 +243,31 @@ func (s *Store) GetAuthResult(ctx context.Context, requestID string) (*AuthResul
 	return &result, nil
 }
 
-// DeleteAuthRequest removes the auth request from Redis (one-time use).
-// Called immediately after the iOS client polls a terminal status (complete/failed)
-// so that the requestId cannot be replayed to obtain identity data a second time.
+// GetAndDeleteAuthResult atomically reads and deletes the auth result in a single
+// Redis GETDEL command. This eliminates the TOCTOU race between GET and DEL:
+// under concurrent polls only one caller receives the identity payload; all others
+// get (nil, nil) and return "pending".
+//
+// Returns (nil, nil) when the key does not exist (callback not yet received, or
+// already consumed by a concurrent caller).
+func (s *Store) GetAndDeleteAuthResult(ctx context.Context, requestID string) (*AuthResult, error) {
+	b, err := s.rdb.GetDel(ctx, authResultKey(requestID)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("diia: store GetAndDeleteAuthResult redis: %w", err)
+	}
+	var result AuthResult
+	if err := json.Unmarshal(b, &result); err != nil {
+		return nil, fmt.Errorf("diia: store GetAndDeleteAuthResult unmarshal: %w", err)
+	}
+	return &result, nil
+}
+
+// DeleteAuthRequest removes the auth request from Redis after a terminal result
+// has been atomically consumed via GetAndDeleteAuthResult. Calling this makes
+// subsequent polls return "expired" instead of "pending".
 func (s *Store) DeleteAuthRequest(ctx context.Context, requestID string) error {
 	if err := s.rdb.Del(ctx, authRequestKey(requestID)).Err(); err != nil && err != redis.Nil {
 		return fmt.Errorf("diia: store DeleteAuthRequest redis: %w", err)
@@ -252,8 +275,8 @@ func (s *Store) DeleteAuthRequest(ctx context.Context, requestID string) error {
 	return nil
 }
 
-// DeleteAuthResult removes the auth result from Redis (one-time use).
-// Called together with DeleteAuthRequest when a terminal status is served.
+// DeleteAuthResult removes the auth result from Redis without reading it.
+// Use GetAndDeleteAuthResult instead when the result needs to be consumed.
 func (s *Store) DeleteAuthResult(ctx context.Context, requestID string) error {
 	if err := s.rdb.Del(ctx, authResultKey(requestID)).Err(); err != nil && err != redis.Nil {
 		return fmt.Errorf("diia: store DeleteAuthResult redis: %w", err)

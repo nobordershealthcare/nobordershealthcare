@@ -47,8 +47,12 @@ struct DiiaIdentityPayload: Codable, Sendable, Equatable {
             .joined(separator: " ")
     }
 
-    // MARK: - Stub fixture
+    // MARK: - Stub fixture (DEBUG only)
 
+    // H-02: stub() is excluded from Release builds so that jailbroken devices
+    // cannot call DiiaService.shared.state = .received(.stub()) to bypass real
+    // identity verification. The #if DEBUG guard is compile-time, not runtime.
+    #if DEBUG
     /// Deterministic test fixture for simulator or stub mode testing.
     /// Named after Тарас Григорович Шевченко — Ukrainian national poet.
     /// rnokppHash is a fixed SHA3-256 sentinel value used only in tests.
@@ -62,4 +66,5 @@ struct DiiaIdentityPayload: Codable, Sendable, Equatable {
             requestId:    requestId
         )
     }
+    #endif
 }

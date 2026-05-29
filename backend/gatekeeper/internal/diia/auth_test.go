@@ -130,14 +130,26 @@ func TestHandleAuthRequest_WrongMethod(t *testing.T) {
 	}
 }
 
+// ── test UUIDs (all requests must carry valid UUID v4 per H-03 validation) ──
+
+const (
+	idPending  = "a1111111-0000-4000-a000-000000000001"
+	idComplete = "a2222222-0000-4000-a000-000000000002"
+	idExpired  = "a3333333-0000-4000-a000-000000000003"
+	idFailed   = "a4444444-0000-4000-a000-000000000004"
+	idCallback = "a5555555-0000-4000-a000-000000000005"
+	idDocReq   = "a6666666-0000-4000-a000-000000000006"
+	idGhost    = "a7777777-0000-4000-a000-000000000007"
+)
+
 // ── TestHandleAuthStatus ──────────────────────────────────────────────────
 
 func TestHandleAuthStatus_Pending(t *testing.T) {
 	store := newMockAuthStore()
-	store.requests["known-id"] = &AuthRequestMeta{RequestID: "known-id"}
+	store.requests[idPending] = &AuthRequestMeta{RequestID: idPending}
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/known-id", nil)
-	req.SetPathValue("requestId", "known-id")
+	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/"+idPending, nil)
+	req.SetPathValue("requestId", idPending)
 	rr := httptest.NewRecorder()
 	HandleAuthStatus(store).ServeHTTP(rr, req)
 
@@ -149,8 +161,9 @@ func TestHandleAuthStatus_Pending(t *testing.T) {
 }
 
 func TestHandleAuthStatus_Expired(t *testing.T) {
-	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/no-such-id", nil)
-	req.SetPathValue("requestId", "no-such-id")
+	// idExpired is a valid UUID but has no entry in Redis — simulates TTL expiry.
+	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/"+idExpired, nil)
+	req.SetPathValue("requestId", idExpired)
 	rr := httptest.NewRecorder()
 	HandleAuthStatus(newMockAuthStore()).ServeHTTP(rr, req)
 
@@ -161,11 +174,22 @@ func TestHandleAuthStatus_Expired(t *testing.T) {
 	}
 }
 
+func TestHandleAuthStatus_InvalidUUID(t *testing.T) {
+	// H-03: non-UUID requestId must be rejected before Redis is touched.
+	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/not-a-uuid", nil)
+	req.SetPathValue("requestId", "not-a-uuid")
+	rr := httptest.NewRecorder()
+	HandleAuthStatus(newMockAuthStore()).ServeHTTP(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Errorf("H-03: expected 400 for non-UUID requestId, got %d", rr.Code)
+	}
+}
+
 func TestHandleAuthStatus_Complete(t *testing.T) {
 	store := newMockAuthStore()
-	store.requests["done-id"] = &AuthRequestMeta{RequestID: "done-id"}
-	store.results["done-id"] = &AuthResult{
-		RequestID:  "done-id",
+	store.requests[idComplete] = &AuthRequestMeta{RequestID: idComplete}
+	store.results[idComplete] = &AuthResult{
+		RequestID:  idComplete,
 		Status:     "complete",
 		FirstName:  "Іван",
 		Patronymic: "Петрович",
@@ -174,8 +198,8 @@ func TestHandleAuthStatus_Complete(t *testing.T) {
 		RNOKPPHash: HashRNOKPP("UA:1234567890"),
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/done-id", nil)
-	req.SetPathValue("requestId", "done-id")
+	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/"+idComplete, nil)
+	req.SetPathValue("requestId", idComplete)
 	rr := httptest.NewRecorder()
 	HandleAuthStatus(store).ServeHTTP(rr, req)
 
@@ -198,26 +222,26 @@ func TestHandleAuthStatus_Complete(t *testing.T) {
 	if strings.Contains(rr.Body.String(), "1234567890") {
 		t.Error("plaintext RNOKPP must not appear in response")
 	}
-	// C-02: one-time use — both Redis keys must be deleted after serving "complete".
-	if _, exists := store.requests["done-id"]; exists {
-		t.Error("C-02: auth request key must be deleted after complete response (requestId replay prevention)")
+	// C-02: GETDEL — result consumed atomically, request deleted after response.
+	if _, exists := store.requests[idComplete]; exists {
+		t.Error("C-02: auth request key must be deleted after complete response")
 	}
-	if _, exists := store.results["done-id"]; exists {
-		t.Error("C-02: auth result key must be deleted after complete response (requestId replay prevention)")
+	if _, exists := store.results[idComplete]; exists {
+		t.Error("C-02: auth result key must be absent (consumed by GETDEL)")
 	}
 }
 
 func TestHandleAuthStatus_Failed(t *testing.T) {
 	store := newMockAuthStore()
-	store.requests["fail-id"] = &AuthRequestMeta{RequestID: "fail-id"}
-	store.results["fail-id"] = &AuthResult{
-		RequestID:  "fail-id",
+	store.requests[idFailed] = &AuthRequestMeta{RequestID: idFailed}
+	store.results[idFailed] = &AuthResult{
+		RequestID:  idFailed,
 		Status:     "failed",
 		FailReason: "user cancelled",
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/fail-id", nil)
-	req.SetPathValue("requestId", "fail-id")
+	req := httptest.NewRequest(http.MethodGet, "/v1/diia/auth/status/"+idFailed, nil)
+	req.SetPathValue("requestId", idFailed)
 	rr := httptest.NewRecorder()
 	HandleAuthStatus(store).ServeHTTP(rr, req)
 
@@ -226,12 +250,12 @@ func TestHandleAuthStatus_Failed(t *testing.T) {
 	if resp["status"] != "failed" || resp["reason"] != "user cancelled" {
 		t.Errorf("unexpected response: %v", resp)
 	}
-	// C-02: one-time use — both Redis keys must be deleted after serving "failed".
-	if _, exists := store.requests["fail-id"]; exists {
+	// C-02: both keys deleted atomically after failed response.
+	if _, exists := store.requests[idFailed]; exists {
 		t.Error("C-02: auth request key must be deleted after failed response")
 	}
-	if _, exists := store.results["fail-id"]; exists {
-		t.Error("C-02: auth result key must be deleted after failed response")
+	if _, exists := store.results[idFailed]; exists {
+		t.Error("C-02: auth result key must be absent (consumed by GETDEL)")
 	}
 }
 
@@ -239,10 +263,10 @@ func TestHandleAuthStatus_Failed(t *testing.T) {
 
 func TestHandleAuthCallback_Success(t *testing.T) {
 	store := newMockAuthStore()
-	store.requests["cb-req"] = &AuthRequestMeta{RequestID: "cb-req"}
+	store.requests[idCallback] = &AuthRequestMeta{RequestID: idCallback}
 
 	body, _ := json.Marshal(diiaAuthCallback{
-		RequestID:      "cb-req",
+		RequestID:      idCallback,
 		TaxpayerNumber: "1234567890",
 		FirstName:      "Іван",
 		Patronymic:     "Петрович",
@@ -256,7 +280,7 @@ func TestHandleAuthCallback_Success(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d: %s", rr.Code, rr.Body.String())
 	}
-	result := store.results["cb-req"]
+	result := store.results[idCallback]
 	if result == nil {
 		t.Fatal("result not stored")
 	}
@@ -278,10 +302,10 @@ func TestHandleAuthCallback_Success(t *testing.T) {
 
 func TestHandleAuthCallback_DocumentsFormat(t *testing.T) {
 	store := newMockAuthStore()
-	store.requests["doc-req"] = &AuthRequestMeta{RequestID: "doc-req"}
+	store.requests[idDocReq] = &AuthRequestMeta{RequestID: idDocReq}
 
 	body, _ := json.Marshal(diiaAuthCallback{
-		RequestID: "doc-req",
+		RequestID: idDocReq,
 		Documents: []authDocument{{
 			Type:           "internal-passport",
 			TaxpayerNumber: "9876543210",
@@ -298,7 +322,7 @@ func TestHandleAuthCallback_DocumentsFormat(t *testing.T) {
 	if rr.Code != http.StatusOK {
 		t.Fatalf("expected 200, got %d", rr.Code)
 	}
-	result := store.results["doc-req"]
+	result := store.results[idDocReq]
 	if result == nil {
 		t.Fatal("result not stored")
 	}
@@ -311,7 +335,9 @@ func TestHandleAuthCallback_DocumentsFormat(t *testing.T) {
 }
 
 func TestHandleAuthCallback_UnknownRequestID(t *testing.T) {
-	body, _ := json.Marshal(diiaAuthCallback{RequestID: "ghost-id"})
+	// idGhost is a valid UUID but has no pending request — simulates expired/spoofed.
+	// Handler must return 200 so Diia stops retrying.
+	body, _ := json.Marshal(diiaAuthCallback{RequestID: idGhost})
 	req := httptest.NewRequest(http.MethodPost, "/v1/diia/auth/callback", bytes.NewReader(body))
 	req.Header.Set("Content-Type", "application/json")
 	rr := httptest.NewRecorder()
@@ -364,6 +390,11 @@ func (m *mockAuthStore) SaveAuthResult(_ context.Context, r AuthResult) error {
 }
 func (m *mockAuthStore) GetAuthResult(_ context.Context, id string) (*AuthResult, error) {
 	return m.results[id], nil
+}
+func (m *mockAuthStore) GetAndDeleteAuthResult(_ context.Context, id string) (*AuthResult, error) {
+	r := m.results[id]
+	delete(m.results, id) // atomic in real Redis; simulated atomically here
+	return r, nil
 }
 func (m *mockAuthStore) DeleteAuthRequest(_ context.Context, id string) error {
 	delete(m.requests, id)

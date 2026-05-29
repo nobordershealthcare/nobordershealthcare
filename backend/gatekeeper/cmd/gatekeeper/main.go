@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nobordershealthcare/gatekeeper/internal/config"
+	"github.com/nobordershealthcare/gatekeeper/internal/diia"
 	"github.com/nobordershealthcare/gatekeeper/internal/fabric"
 )
 
@@ -67,8 +68,7 @@ func main() {
 	}()
 
 	// ── HTTP server ───────────────────────────────────────────────────────────
-	_ = redisClient  // used by auth handlers registered below
-	_ = fabricClient // used by auth handlers registered below
+	_ = fabricClient // used indirectly via consent watcher above
 
 	tlsCfg, err := cfg.MutualTLSConfig()
 	if err != nil {
@@ -76,10 +76,37 @@ func main() {
 		os.Exit(1)
 	}
 
+	// ── Diia auth store (Redis-backed) ────────────────────────────────────────
+	diiaStore := diia.NewStore(redisClient)
+
+	// ── Diia API client (optional — gatekeeper starts even without Diia creds) ─
+	// If DIIA_ACQUIRER_TOKEN is unset the /diia/auth/request endpoint returns 503.
+	// All other endpoints (status, callback, sign) remain fully functional.
+	var diiaClientIface diia.ClientInterface // nil interface — safe zero value
+	if rawClient, err := diia.NewFromEnv(nil); err != nil {
+		slog.Warn("diia client not configured — /diia/auth/request will return 503",
+			"err", err,
+		)
+	} else {
+		diiaClientIface = rawClient
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", handleHealthz)
-	// Auth endpoints are registered by the handler layer (not shown here —
-	// each auth flow registers its own route with its own middleware chain).
+
+	// ── Diia.ID authentication endpoints ─────────────────────────────────────
+	// POST /v1/diia/auth/request  — initiate Diia App Switch auth session
+	// GET  /v1/diia/auth/status/{requestId} — poll for identity verification result
+	// POST /v1/diia/auth/callback — Diia server-to-server identity callback
+	// POST /v1/diia/sign/callback — Diia CAdES-BES signature callback
+	mux.HandleFunc("POST /v1/diia/auth/request",
+		diia.HandleAuthRequest(diiaClientIface, diiaStore))
+	mux.HandleFunc("GET /v1/diia/auth/status/{requestId}",
+		diia.HandleAuthStatus(diiaStore))
+	mux.HandleFunc("POST /v1/diia/auth/callback",
+		diia.HandleAuthCallback(diiaStore))
+	mux.HandleFunc("POST /v1/diia/sign/callback",
+		diia.HandleSignCallback(diiaStore))
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,

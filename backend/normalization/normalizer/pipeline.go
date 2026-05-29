@@ -194,7 +194,15 @@ func (p *Pipeline) processFHIRR4(ctx context.Context, event *kafka.RawClinicalEv
 					// the review emission can outlive the processing pipeline tick.
 					rCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), reviewEmitTimeout)
 					defer cancel()
-					_ = p.reviewProducer.EmitReview(rCtx, fl)
+					// M-01: log dropped flags — silent discard of clinical review
+					// events is a patient-safety and EU MDR Class IIa compliance risk.
+					if err := p.reviewProducer.EmitReview(rCtx, fl); err != nil {
+						p.log.Warn("clinical review flag dropped — Kafka emit failed",
+							"code_system", fl.CodeSystem,
+							"unknown_code", fl.UnknownCode,
+							"err", err,
+						)
+					}
 				}(*f)
 			}
 		}
