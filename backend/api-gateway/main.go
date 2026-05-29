@@ -26,8 +26,11 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -77,6 +80,16 @@ func main() {
 	// Billing / usage
 	mux.HandleFunc("GET /v1/billing/usage", meter.UsageHandler)
 	mux.HandleFunc("GET /v1/billing/usage/{partnerID}", meter.PartnerUsageHandler)
+
+	// ── Diia callback + flow proxies → gatekeeper (mTLS) ─────────────────────
+	// v1 callbacks (CAdES-BES server-side verification)
+	mux.HandleFunc("POST /diia/sign/callback", buildDiiaProxy(mtlsClient, "/v1/diia/sign/callback"))
+	mux.HandleFunc("POST /diia/auth/callback", buildDiiaProxy(mtlsClient, "/v1/diia/auth/callback"))
+	// v2 dynamic flow (encodeData → iOS)
+	mux.HandleFunc("POST /diia/sign",                    buildDiiaProxy(mtlsClient, "/v1/diia/sign"))
+	mux.HandleFunc("POST /diia/auth",                    buildDiiaProxy(mtlsClient, "/v1/diia/auth"))
+	mux.HandleFunc("POST /diia/callback",                buildDiiaProxy(mtlsClient, "/v1/diia/callback"))
+	mux.HandleFunc("GET /diia/status/{requestId}",       buildDiiaStatusProxy(mtlsClient))
 
 	srv := &http.Server{
 		Addr:         listenAddr(),
@@ -179,10 +192,63 @@ func buildMTLSHTTPClient() *http.Client {
 	}
 }
 
-func listenAddr() string          { return getenv("PORT", ":8082") }
+func listenAddr() string { return getenv("PORT", ":8082") }
 func getenv(k, fallback string) string {
 	if v := os.Getenv(k); v != "" {
 		return v
 	}
 	return fallback
+}
+
+// buildDiiaProxy returns an mTLS reverse-proxy handler that forwards to
+// the gatekeeper at targetPath. GATEKEEPER_URL is required; 503 if unset.
+func buildDiiaProxy(mtlsClient *http.Client, targetPath string) http.HandlerFunc {
+	gwURL := os.Getenv("GATEKEEPER_URL")
+	if gwURL == "" {
+		log.Printf("api-gateway: WARNING — GATEKEEPER_URL unset; proxy for %s disabled", targetPath)
+		return func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "GATEKEEPER_URL not set", http.StatusServiceUnavailable)
+		}
+	}
+	target, err := url.Parse(gwURL)
+	if err != nil {
+		log.Fatalf("api-gateway: invalid GATEKEEPER_URL %q: %v", gwURL, err)
+	}
+	path := targetPath
+	p := &httputil.ReverseProxy{
+		Transport: mtlsClient.Transport,
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			pr.SetURL(target)
+			pr.Out.URL.Path = path
+			pr.Out.Host = target.Host
+			pr.Out.Header.Del("X-Forwarded-For")
+		},
+	}
+	return p.ServeHTTP
+}
+
+// buildDiiaStatusProxy proxies GET /diia/status/{requestId} preserving the
+// requestId path segment when forwarding to the gatekeeper.
+func buildDiiaStatusProxy(mtlsClient *http.Client) http.HandlerFunc {
+	gwURL := os.Getenv("GATEKEEPER_URL")
+	if gwURL == "" {
+		return func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "GATEKEEPER_URL not set", http.StatusServiceUnavailable)
+		}
+	}
+	target, err := url.Parse(gwURL)
+	if err != nil {
+		log.Fatalf("api-gateway: invalid GATEKEEPER_URL %q: %v", gwURL, err)
+	}
+	p := &httputil.ReverseProxy{
+		Transport: mtlsClient.Transport,
+		Rewrite: func(pr *httputil.ProxyRequest) {
+			rid := pr.In.PathValue("requestId")
+			pr.SetURL(target)
+			pr.Out.URL.Path = fmt.Sprintf("/v1/diia/status/%s", rid)
+			pr.Out.Host = target.Host
+			pr.Out.Header.Del("X-Forwarded-For")
+		},
+	}
+	return p.ServeHTTP
 }

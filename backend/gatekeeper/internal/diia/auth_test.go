@@ -421,3 +421,12 @@ func (m *mockAuthClient) DeleteOffer(_ context.Context, _, _ string) error { ret
 func (m *mockAuthClient) RequestSign(_ context.Context, _, _ string, _ []HashedFile) (string, string, error) {
 	return "", "", errDiiaDown
 }
+func (m *mockAuthClient) GetSigningDeeplink(_ context.Context, _, _, _ string, _ []HashedFile) (string, error) {
+	return "", errDiiaDown
+}
+func (m *mockAuthClient) GetAuthDeeplink(_ context.Context, _, _, _ string) (string, error) {
+	return "", errDiiaDown
+}
+func (m *mockAuthClient) GetStatus(_ context.Context, _, _ string) (string, error) {
+	return "", errDiiaDown
+}

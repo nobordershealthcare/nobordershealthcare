@@ -3,6 +3,7 @@ package diia
 import (
 	"context"
 	"crypto/sha256" // Diia protocol: SHA-256 mandated by Diia hashedFilesSigning spec
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"net/http"
@@ -97,4 +98,23 @@ func (c *Client) RequestSign(ctx context.Context, branchID, offerID string, file
 func HashFileSHA256(data []byte) string {
 	h := sha256.Sum256(data) // Diia file verification: SHA-256 per Diia API spec
 	return hex.EncodeToString(h[:])
+}
+
+// HashFileBase64 computes the SHA-256 digest of data and returns it as a
+// standard base64 string. This is the format required by the Diia v2
+// dynamic offer-request API for the fileHash field.
+//
+// SHA-256 NOTE: same rationale as HashFileSHA256 — protocol-mandated exception.
+func HashFileBase64(data []byte) string {
+	h := sha256.Sum256(data) // Diia API spec requires SHA-256, base64-encoded
+	return base64.StdEncoding.EncodeToString(h[:])
+}
+
+// AuthRequestID generates a requestId for Diia.ID auth sessions.
+// Diia requires the requestId to be base64(SHA-256(uuid)), 44 characters.
+// The raw UUID is returned alongside for Redis correlation tracking.
+func AuthRequestID() (requestID, rawUUID string) {
+	raw := uuid.New().String()
+	h := sha256.Sum256([]byte(raw)) // protocol-mandated format for auth requestId
+	return base64.StdEncoding.EncodeToString(h[:]), raw
 }

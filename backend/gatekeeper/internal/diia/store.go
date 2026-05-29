@@ -260,3 +260,76 @@ func (s *Store) DeleteAuthResult(ctx context.Context, requestID string) error {
 	}
 	return nil
 }
+
+// ── v2 flow storage (FlowStore) ───────────────────────────────────────────
+
+const flowRequestTTL = 10 * time.Minute
+const flowResultTTL  = 10 * time.Minute
+
+func flowRequestKey(id string) string { return "diia:flow:request:" + id }
+func flowResultKey(id string) string  { return "diia:flow:result:" + id }
+
+// Compile-time check: *Store implements FlowStore.
+var _ FlowStore = (*Store)(nil)
+
+// SaveFlowRequest persists a FlowRequest for anti-replay validation in the callback.
+func (s *Store) SaveFlowRequest(ctx context.Context, req FlowRequest) error {
+	b, err := json.Marshal(req)
+	if err != nil {
+		return fmt.Errorf("diia: store SaveFlowRequest marshal: %w", err)
+	}
+	if err := s.rdb.Set(ctx, flowRequestKey(req.RequestID), b, flowRequestTTL).Err(); err != nil {
+		return fmt.Errorf("diia: store SaveFlowRequest redis: %w", err)
+	}
+	return nil
+}
+
+// GetFlowRequest retrieves a pending flow request.
+// Returns (nil, nil) if the key does not exist (expired or unknown).
+func (s *Store) GetFlowRequest(ctx context.Context, requestID string) (*FlowRequest, error) {
+	b, err := s.rdb.Get(ctx, flowRequestKey(requestID)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("diia: store GetFlowRequest redis: %w", err)
+	}
+	var req FlowRequest
+	if err := json.Unmarshal(b, &req); err != nil {
+		return nil, fmt.Errorf("diia: store GetFlowRequest unmarshal: %w", err)
+	}
+	return &req, nil
+}
+
+// SaveFlowResult persists the raw encodeData from Diia's callback.
+func (s *Store) SaveFlowResult(ctx context.Context, res FlowResult) error {
+	b, err := json.Marshal(res)
+	if err != nil {
+		return fmt.Errorf("diia: store SaveFlowResult marshal: %w", err)
+	}
+	if err := s.rdb.Set(ctx, flowResultKey(res.RequestID), b, flowResultTTL).Err(); err != nil {
+		return fmt.Errorf("diia: store SaveFlowResult redis: %w", err)
+	}
+	return nil
+}
+
+// GetAndDeleteFlowResult atomically reads the flow result and removes both the
+// result and the request keys from Redis.  One-time read: a second call for the
+// same requestId returns (nil, nil) and is a no-op.
+func (s *Store) GetAndDeleteFlowResult(ctx context.Context, requestID string) (*FlowResult, error) {
+	b, err := s.rdb.GetDel(ctx, flowResultKey(requestID)).Bytes()
+	if err == redis.Nil {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("diia: store GetAndDeleteFlowResult redis: %w", err)
+	}
+	// Also remove the request key — no further status polls needed.
+	_ = s.rdb.Del(ctx, flowRequestKey(requestID))
+
+	var res FlowResult
+	if err := json.Unmarshal(b, &res); err != nil {
+		return nil, fmt.Errorf("diia: store GetAndDeleteFlowResult unmarshal: %w", err)
+	}
+	return &res, nil
+}

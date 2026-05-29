@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/nobordershealthcare/gatekeeper/internal/config"
+	"github.com/nobordershealthcare/gatekeeper/internal/diia"
 	"github.com/nobordershealthcare/gatekeeper/internal/fabric"
 )
 
@@ -66,9 +67,32 @@ func main() {
 		}
 	}()
 
+	// ── Diia client + bootstrap ──────────────────────────────────────────────
+	// NewFromEnv requires DIIA_ACQUIRER_TOKEN + DIIA_AUTH_ACQUIRER_TOKEN.
+	// Bootstrap lists/creates branches and offers; reuses existing resources.
+	// After first run: set DIIA_BRANCH_ID / DIIA_OFFER_ID_SIGNING / DIIA_OFFER_ID_AUTH
+	// in k8s secrets to skip API calls on restart.
+	diiaStore := diia.NewStore(redisClient)
+
+	diiaClient, err := diia.NewFromEnv(nil)
+	if err != nil {
+		// Non-fatal: gatekeeper runs without Diia if tokens are absent (dev mode).
+		slog.Warn("diia client init failed — Diia endpoints disabled", "err", err)
+	}
+
+	var diiaIDs *diia.IDCache
+	if diiaClient != nil {
+		bootstrapCtx, bootstrapCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer bootstrapCancel()
+		diiaIDs, err = diia.Bootstrap(bootstrapCtx, diiaClient)
+		if err != nil {
+			slog.Error("diia bootstrap failed", "err", err)
+			// Continue — existing endpoints still work without bootstrap.
+		}
+	}
+
 	// ── HTTP server ───────────────────────────────────────────────────────────
-	_ = redisClient  // used by auth handlers registered below
-	_ = fabricClient // used by auth handlers registered below
+	_ = fabricClient // used by future auth handlers
 
 	tlsCfg, err := cfg.MutualTLSConfig()
 	if err != nil {
@@ -78,8 +102,29 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/healthz", handleHealthz)
-	// Auth endpoints are registered by the handler layer (not shown here —
-	// each auth flow registers its own route with its own middleware chain).
+
+	// ── Diia v1: CAdES-BES signing callback ──────────────────────────────────
+	// api-gateway: POST /diia/sign/callback → POST /v1/diia/sign/callback
+	mux.HandleFunc("POST /v1/diia/sign/callback", diia.HandleSignCallback(diiaStore))
+
+	// ── Diia v1: identity auth (RNOKPP + name, server-side extraction) ────────
+	if diiaClient != nil {
+		mux.HandleFunc("POST /v1/diia/auth/request",           diia.HandleAuthRequest(diiaClient, diiaStore))
+		mux.HandleFunc("GET /v1/diia/auth/status/{requestId}", diia.HandleAuthStatus(diiaStore))
+		mux.HandleFunc("POST /v1/diia/auth/callback",          diia.HandleAuthCallback(diiaStore))
+	}
+
+	// ── Diia v2: dynamic offer-request (encodeData → iOS) ────────────────────
+	// Scenario 1: hashedFilesSigning — POST /v1/diia/sign → deeplink
+	// Scenario 2: auth               — POST /v1/diia/auth → deeplink
+	// Callback  : POST /v1/diia/callback (multipart/mixed with encodeData)
+	// Status    : GET  /v1/diia/status/{requestId} (one-time, deletes on read)
+	if diiaIDs != nil {
+		mux.HandleFunc("POST /v1/diia/sign",              diia.HandleDiiaSign(diiaClient, diiaIDs, diiaStore))
+		mux.HandleFunc("POST /v1/diia/auth",              diia.HandleDiiaAuth(diiaClient, diiaIDs, diiaStore))
+		mux.HandleFunc("POST /v1/diia/callback",          diia.HandleDiiaCallback(diiaStore))
+		mux.HandleFunc("GET /v1/diia/status/{requestId}", diia.HandleDiiaStatus(diiaStore))
+	}
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
