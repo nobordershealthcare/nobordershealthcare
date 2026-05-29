@@ -79,7 +79,7 @@ struct NationalIdentityRecord: Codable, Sendable, Identifiable {
 /// Thread-safety: callers serialise mutations through the main actor.
 struct NationalIdentityStore {
 
-    private static let account = "com.nobords.legal.national-ids"
+    private static let account = "com.noborders.legal.national-ids"
 
     // MARK: Read
 

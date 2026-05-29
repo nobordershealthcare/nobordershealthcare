@@ -12,8 +12,9 @@
 		0855F5C4F059D04DBB090ACF /* DocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04BF4200C2337B15544CBDC /* DocumentStore.swift */; };
 		0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */; };
 		1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* IdentityVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */; };
+		156627B3AD2BB29AB82AC680 /* VerifiedIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5AEB69CEFC4E27FA7FEFA2 /* VerifiedIdentity.swift */; };
 		1629F9F5071A91E802799FF6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D72112E9BDE6DDF792806A3 /* Models.swift */; };
+		1ED69D566C9BC311C272C0A8 /* IdentityVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */; };
 		1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EDABFB131AEE01B59471B5 /* BankIDClient.swift */; };
 		352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */; };
 		3F07C943F14296AB63C8D56D /* IdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */; };
@@ -23,19 +24,22 @@
 		4C75DEE1002D08A25449F758 /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC86BB66FE5565C9184E8490 /* CallView.swift */; };
 		4D05CFADA3E8340BEFD35B7D /* KeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622F23DBC018E3F6C9948C28 /* KeyManager.swift */; };
 		57B85DE5DCD54B13D52FA2A7 /* EmergencyCardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */; };
+		58EE0F6D7CBE1F86DF6AD277 /* LinkedIdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0950F711D2FC1BFD2DD724DE /* LinkedIdentitiesView.swift */; };
 		59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A784D4C10DF2493288540 /* ReferralView.swift */; };
 		5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B3A142FC41A9153C4D790D /* ScopeManager.swift */; };
 		5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */; };
 		5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6411BE2A63765FA00C6091 /* KyberOperations.swift */; };
-		B2C3D4E5F6A7B8C9D0E1F2A3 /* MedicalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */; };
 		686D687794AACE33BB0C89E3 /* ActivationCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */; };
+		69D992F6763F95D3655DE980 /* NationalIdentityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FC3973E815E9F16A345C35D /* NationalIdentityRecord.swift */; };
 		7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEDC1416C64BDAF416257DAA /* ContentView.swift */; };
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
 		7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */; };
 		80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56A573DBC9BE53097E791F51 /* QRGenerator.swift */; };
 		8B6FD6C8B3BA661D1129FB19 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */; };
 		8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */; };
+		99152D8879474A09D779D4B4 /* DiiaIdentityPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA55C8B2F46719E7A88DADBF /* DiiaIdentityPayload.swift */; };
 		9BD2225F1C282A68C940859E /* SupportProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBEEA8EC8166D9607512E78D /* SupportProfile.swift */; };
+		A18A8E974A950CFEE9ADEB48 /* DiiaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96EF5A9EC34EDD7843A862AC /* DiiaService.swift */; };
 		A1A273BEC65112CD3F80C289 /* SecureEnclaveKey.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */; };
 		A1A6525BF19CD02CB185B64B /* SHA3.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */; };
 		A27716086B07DCD6634C1EA7 /* SentencePieceShim.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7D55527378C1D8F0F7697F1 /* SentencePieceShim.swift */; };
@@ -44,13 +48,8 @@
 		A7AAB394F54896C7DF219E8F /* IPFSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C12AA53CF41B4033407B0CF /* IPFSClient.swift */; };
 		AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC1623F564ECBC26952904 /* SignatureButton.swift */; };
 		AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E241D7E7155434C8739A07C /* BiometricLockView.swift */; };
-		F1A2B3C4D5E6F7A8B9C0D1E2 /* VerifiedIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */; };
-		G2B3C4D5E6F7A8B9C0D1E2F4 /* LinkedIdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */; };
-		S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */ = {isa = PBXBuildFile; fileRef = U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */; };
-		T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */; };
-		Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */; };
-		E5F6A7B8C9D0E1F2A3B4C5D6 /* DiiaVerificationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
+		AE3EDC4ABABEF690617DF6C5 /* MedicalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */; };
 		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
 		B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6194C26F3263738B3825DA8 /* BiometricAuth.swift */; };
@@ -58,6 +57,7 @@
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
 		C689E012885AE8C7337D6026 /* SecurityProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */; };
+		C743B3A5B5CF33496F6A9918 /* DiiaVerificationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3802DB07BE9A997FA185E194 /* DiiaVerificationRecord.swift */; };
 		C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */; };
 		D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62524B8496BE6AD1B7264711 /* UserProfile.swift */; };
 		D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CB4396676A9C48242F3099 /* UserAgreementView.swift */; };
@@ -72,6 +72,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0950F711D2FC1BFD2DD724DE /* LinkedIdentitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIdentitiesView.swift; sourceTree = "<group>"; };
 		0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FHIRMapper.swift; sourceTree = "<group>"; };
 		1237E8685774F975A3477230 /* OnboardingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinator.swift; sourceTree = "<group>"; };
 		155E0940A4102DEE59FDF511 /* IPS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPS.swift; sourceTree = "<group>"; };
@@ -84,15 +85,10 @@
 		2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsent.swift; sourceTree = "<group>"; };
 		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		34EDABFB131AEE01B59471B5 /* BankIDClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BankIDClient.swift; sourceTree = "<group>"; };
+		3802DB07BE9A997FA185E194 /* DiiaVerificationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaVerificationRecord.swift; sourceTree = "<group>"; };
 		39CB4396676A9C48242F3099 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
 		3E241D7E7155434C8739A07C /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
-		A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedIdentity.swift; sourceTree = "<group>"; };
-		H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIdentitiesView.swift; sourceTree = "<group>"; };
-		U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaService.swift; sourceTree = "<group>"; };
-		V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaIdentityPayload.swift; sourceTree = "<group>"; };
-		Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalIdentityRecord.swift; sourceTree = "<group>"; };
-		F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaVerificationRecord.swift; sourceTree = "<group>"; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
 		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
@@ -100,17 +96,20 @@
 		622F23DBC018E3F6C9948C28 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		62524B8496BE6AD1B7264711 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
 		6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthcareProxyView.swift; sourceTree = "<group>"; };
-		C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVaultManager.swift; sourceTree = "<group>"; };
-		D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalVaultManager.swift; sourceTree = "<group>"; };
 		6D72112E9BDE6DDF792806A3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityProfile.swift; sourceTree = "<group>"; };
+		6E5AEB69CEFC4E27FA7FEFA2 /* VerifiedIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedIdentity.swift; sourceTree = "<group>"; };
 		825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
 		865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentAuditService.swift; sourceTree = "<group>"; };
 		87B3A142FC41A9153C4D790D /* ScopeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeManager.swift; sourceTree = "<group>"; };
 		8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFImporter.swift; sourceTree = "<group>"; };
 		8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityView.swift; sourceTree = "<group>"; };
 		9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentTranslator.swift; sourceTree = "<group>"; };
+		96EF5A9EC34EDD7843A862AC /* DiiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaService.swift; sourceTree = "<group>"; };
+		9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVaultManager.swift; sourceTree = "<group>"; };
+		9FC3973E815E9F16A345C35D /* NationalIdentityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalIdentityRecord.swift; sourceTree = "<group>"; };
 		A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
+		AA55C8B2F46719E7A88DADBF /* DiiaIdentityPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaIdentityPayload.swift; sourceTree = "<group>"; };
 		ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCountryDetector.swift; sourceTree = "<group>"; };
 		ACDC1623F564ECBC26952904 /* SignatureButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureButton.swift; sourceTree = "<group>"; };
 		AFBD308E0C72E134F31C8FF7 /* ShamirShard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShamirShard.swift; sourceTree = "<group>"; };
@@ -137,6 +136,7 @@
 		F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardSetupView.swift; sourceTree = "<group>"; };
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalVaultManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -175,6 +175,14 @@
 			path = Shims;
 			sourceTree = "<group>";
 		};
+		2F284F61E75C2782588DD5ED /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				96EF5A9EC34EDD7843A862AC /* DiiaService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		371E7BC818D058D49B5C3531 /* Core */ = {
 			isa = PBXGroup;
 			children = (
@@ -182,20 +190,12 @@
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
 				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
-				C3D4E5F6A7B8C9D0E1F2A3B4 /* IdentityVaultManager.swift */,
-				D4E5F6A7B8C9D0E1F2A3B4C5 /* MedicalVaultManager.swift */,
+				9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */,
+				FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */,
 				825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */,
 				6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */,
 			);
 			path = Core;
-			sourceTree = "<group>";
-		};
-		W5E6F7A8B9C0D1E2F3A4B5C6 /* Services */ = {
-			isa = PBXGroup;
-			children = (
-				U3C4D5E6F7A8B9C0D1E2F3A4 /* DiiaService.swift */,
-			);
-			path = Services;
 			sourceTree = "<group>";
 		};
 		37AEB26E64686B0D8F007261 /* Support */ = {
@@ -227,13 +227,23 @@
 			path = eHR;
 			sourceTree = "<group>";
 		};
+		6CAB24EE23C9501FE9E1D740 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA55C8B2F46719E7A88DADBF /* DiiaIdentityPayload.swift */,
+				3802DB07BE9A997FA185E194 /* DiiaVerificationRecord.swift */,
+				9FC3973E815E9F16A345C35D /* NationalIdentityRecord.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
 		7C9CDF948617C375CDFC98AA /* Identity */ = {
 			isa = PBXGroup;
 			children = (
 				34EDABFB131AEE01B59471B5 /* BankIDClient.swift */,
 				F5600417288BAD034AAC350F /* DIDWallet.swift */,
 				622F23DBC018E3F6C9948C28 /* KeyManager.swift */,
-				A2B3C4D5E6F7A8B9C0D1E2F3 /* VerifiedIdentity.swift */,
+				6E5AEB69CEFC4E27FA7FEFA2 /* VerifiedIdentity.swift */,
 			);
 			path = Identity;
 			sourceTree = "<group>";
@@ -245,16 +255,6 @@
 				C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */,
 			);
 			path = Telemedicine;
-			sourceTree = "<group>";
-		};
-		X6F7A8B9C0D1E2F3A4B5C6D7 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				V4D5E6F7A8B9C0D1E2F3A4B5 /* DiiaIdentityPayload.swift */,
-				Z8H9I0J1K2L3M4N5O6P7Q8R9 /* NationalIdentityRecord.swift */,
-				F6A7B8C9D0E1F2A3B4C5D6E7 /* DiiaVerificationRecord.swift */,
-			);
-			path = Models;
 			sourceTree = "<group>";
 		};
 		A18EE47162F2B75A353FAD84 /* Onboarding */ = {
@@ -325,11 +325,11 @@
 				7C9CDF948617C375CDFC98AA /* Identity */,
 				C5DC5B80FAEE69F1741090A7 /* Legal */,
 				3A5ADF7F05D3DDEBB4FA4184 /* Location */,
-				X6F7A8B9C0D1E2F3A4B5C6D7 /* Models */,
+				6CAB24EE23C9501FE9E1D740 /* Models */,
 				A18EE47162F2B75A353FAD84 /* Onboarding */,
 				F2ADB786FEFB19E27DD88287 /* Profile */,
 				F31359D560C031FECE62EA16 /* QR */,
-				W5E6F7A8B9C0D1E2F3A4B5C6 /* Services */,
+				2F284F61E75C2782588DD5ED /* Services */,
 				37AEB26E64686B0D8F007261 /* Support */,
 				829F00AEC966B81B80D13A2D /* Telemedicine */,
 				0121EE51E13649C0750715AB /* Translation */,
@@ -366,8 +366,8 @@
 		F2ADB786FEFB19E27DD88287 /* Profile */ = {
 			isa = PBXGroup;
 			children = (
+				0950F711D2FC1BFD2DD724DE /* LinkedIdentitiesView.swift */,
 				62524B8496BE6AD1B7264711 /* UserProfile.swift */,
-				H3C4D5E6F7A8B9C0D1E2F3A4 /* LinkedIdentitiesView.swift */,
 			);
 			path = Profile;
 			sourceTree = "<group>";
@@ -468,18 +468,15 @@
 				1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */,
 				B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */,
 				AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */,
-				F1A2B3C4D5E6F7A8B9C0D1E2 /* VerifiedIdentity.swift in Sources */,
-				G2B3C4D5E6F7A8B9C0D1E2F4 /* LinkedIdentitiesView.swift in Sources */,
 				4C75DEE1002D08A25449F758 /* CallView.swift in Sources */,
 				F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */,
 				FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */,
 				7ABF0FD4A459598E1EFDA613 /* ContentView.swift in Sources */,
 				0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */,
-				T2B3C4D5E6F7A8B9C0D1E2F3 /* DiiaIdentityPayload.swift in Sources */,
-				Y7G8H9I0J1K2L3M4N5O6P7Q8 /* NationalIdentityRecord.swift in Sources */,
-				E5F6A7B8C9D0E1F2A3B4C5D6 /* DiiaVerificationRecord.swift in Sources */,
-				S1A2B3C4D5E6F7A8B9C0D1E2 /* DiiaService.swift in Sources */,
 				BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */,
+				99152D8879474A09D779D4B4 /* DiiaIdentityPayload.swift in Sources */,
+				A18A8E974A950CFEE9ADEB48 /* DiiaService.swift in Sources */,
+				C743B3A5B5CF33496F6A9918 /* DiiaVerificationRecord.swift in Sources */,
 				4626547144388318B2B1BFF4 /* DocumentScanner.swift in Sources */,
 				0855F5C4F059D04DBB090ACF /* DocumentStore.swift in Sources */,
 				C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */,
@@ -493,12 +490,15 @@
 				0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */,
 				A7AAB394F54896C7DF219E8F /* IPFSClient.swift in Sources */,
 				E1E651ABBD800234624285A8 /* IPS.swift in Sources */,
+				1ED69D566C9BC311C272C0A8 /* IdentityVaultManager.swift in Sources */,
 				3F07C943F14296AB63C8D56D /* IdentityView.swift in Sources */,
 				4D05CFADA3E8340BEFD35B7D /* KeyManager.swift in Sources */,
 				5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */,
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* IdentityVaultManager.swift in Sources */,
+				58EE0F6D7CBE1F86DF6AD277 /* LinkedIdentitiesView.swift in Sources */,
 				068BF8009EB37F7CA78A7BDF /* LocalOCR.swift in Sources */,
+				AE3EDC4ABABEF690617DF6C5 /* MedicalVaultManager.swift in Sources */,
 				1629F9F5071A91E802799FF6 /* Models.swift in Sources */,
+				69D992F6763F95D3655DE980 /* NationalIdentityRecord.swift in Sources */,
 				352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */,
 				1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */,
 				496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */,
@@ -519,7 +519,7 @@
 				BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */,
 				D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */,
 				D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */,
-				B2C3D4E5F6A7B8C9D0E1F2A3 /* MedicalVaultManager.swift in Sources */,
+				156627B3AD2BB29AB82AC680 /* VerifiedIdentity.swift in Sources */,
 				7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */,
 				EA9257C5986D3EB4CA43A7E1 /* xLMEngine.swift in Sources */,
 			);

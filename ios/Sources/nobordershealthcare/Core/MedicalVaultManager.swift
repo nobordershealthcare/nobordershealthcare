@@ -2,7 +2,7 @@
 //
 // KEY:        com.noborders.medical.key  (SE-bound, biometryCurrentSet)
 // SEKEY:      com.noborders.medical.sekey
-// WRAPPEDKEY: com.nobords.medical.aes256-wrapped
+// WRAPPEDKEY: com.noborders.medical.aes256-wrapped
 //
 // Contents: HealthRecords, Vitals, Medications, Allergies, Documents, IPS,
 // LabResults, MilitaryMedical, ForensicIdentifiers, TranslationCache.
