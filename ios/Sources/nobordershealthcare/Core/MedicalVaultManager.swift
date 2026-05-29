@@ -58,6 +58,20 @@ actor MedicalVaultManager {
     private let wrappedKeyAccount  = "com.noborders.medical.aes256-wrapped"
     private let itemAccountPrefix  = "com.noborders.medical.item."
 
+    // Keychain access group — resolves AppIdentifierPrefix from Info.plist at runtime.
+    // Must match entitlements: $(AppIdentifierPrefix)com.noborders.medical.key
+    // nil on simulator (no AppIdentifierPrefix) — SecItem calls omit kSecAttrAccessGroup.
+    private let keychainGroup: String? = {
+        let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? ""
+        return prefix.isEmpty ? nil : "\(prefix)com.nobords.medical.key"
+    }()
+
+    // Adds kSecAttrAccessGroup only when running on a real device (group is non-nil).
+    private func withGroup(_ d: [String: Any]) -> [String: Any] {
+        guard let g = keychainGroup else { return d }
+        var m = d; m[kSecAttrAccessGroup as String] = g; return m
+    }
+
     // ── Error type ───────────────────────────────────────────────────────────
     enum VaultError: LocalizedError {
         case randomFailed
@@ -70,8 +84,12 @@ actor MedicalVaultManager {
         var errorDescription: String? {
             switch self {
             case .randomFailed:          return "SecRandomCopyBytes failed"
-            case .keychainRead(let s):   return "Keychain read error: \(s)"
-            case .keychainWrite(let s):  return "Keychain write error: \(s)"
+            case .keychainRead(let s):
+                if s == -34018 { return "Keychain read failed: missing entitlement (errSecMissingEntitlement -34018). Check keychain-access-groups in .entitlements." }
+                return "Keychain read error: OSStatus \(s)"
+            case .keychainWrite(let s):
+                if s == -34018 { return "Keychain write failed: missing entitlement (errSecMissingEntitlement -34018). Check keychain-access-groups in .entitlements." }
+                return "Keychain write error: OSStatus \(s)"
             case .cryptoFailed:          return "AES-GCM operation failed"
             case .notFound:              return "Medical vault item not found"
             case .invalidData:           return "Medical vault data is corrupted"
@@ -140,8 +158,8 @@ actor MedicalVaultManager {
             kSecValueData      as String: sealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemDelete(attrs as CFDictionary)
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
@@ -154,7 +172,7 @@ actor MedicalVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemCopyMatching(withGroup(query) as CFDictionary, &result)
         guard status == errSecSuccess, let sealed = result as? Data else {
             if status == errSecItemNotFound { throw VaultError.notFound }
             throw VaultError.keychainRead(status)
@@ -171,10 +189,10 @@ actor MedicalVaultManager {
     /// Delete an item from the Medical Vault.
     func delete(key: MedicalKey) throws {
         let account = itemAccountPrefix + key.rawValue
-        let status = SecItemDelete([
+        let status = SecItemDelete(withGroup([
             kSecClass       as String: kSecClassGenericPassword,
             kSecAttrAccount as String: account,
-        ] as CFDictionary)
+        ]) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw VaultError.keychainWrite(status)
         }
@@ -184,10 +202,10 @@ actor MedicalVaultManager {
     // Deletes the wrapped AES key, rendering all Medical Vault items permanently inaccessible.
 
     func wipeWrappedKey() {
-        SecItemDelete([
+        SecItemDelete(withGroup([
             kSecClass       as String: kSecClassGenericPassword,
             kSecAttrAccount as String: wrappedKeyAccount,
-        ] as CFDictionary)
+        ]) as CFDictionary)
     }
 
     // MARK: - AES-256-GCM primitives
@@ -200,7 +218,7 @@ actor MedicalVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemCopyMatching(withGroup(query) as CFDictionary, &result)
 
         if status == errSecItemNotFound { return try createMedicalKey() }
         guard status == errSecSuccess, let wrapped = result as? Data else {
@@ -246,7 +264,7 @@ actor MedicalVaultManager {
             kSecValueData      as String: wrapped as Data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
         return SymmetricKey(data: raw)
     }

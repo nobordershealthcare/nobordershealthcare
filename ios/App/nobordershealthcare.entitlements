@@ -6,5 +6,18 @@
 	<array>
 		<string>group.com.noborders.emergency</string>
 	</array>
+	<!-- keychain-access-groups must be provisioned.
+	     First entry = default group for items without explicit kSecAttrAccessGroup.
+	     Identity vault and Medical vault use their own named groups for isolation. -->
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
+		<string>$(AppIdentifierPrefix)com.noborders.identity.key</string>
+		<string>$(AppIdentifierPrefix)com.noborders.medical.key</string>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:physician.noborders.healthcare</string>
+	</array>
 </dict>
 </plist>

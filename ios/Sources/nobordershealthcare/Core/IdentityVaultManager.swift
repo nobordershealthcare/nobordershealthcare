@@ -157,6 +157,21 @@ actor IdentityVaultManager {
     private let wrappedKeyAccount = "com.noborders.identity.aes256-wrapped"
     private let itemAccountPrefix = "com.noborders.identity.item."
 
+    // Keychain access group — resolves AppIdentifierPrefix from Info.plist at runtime.
+    // Must match entitlements: $(AppIdentifierPrefix)com.noborders.identity.key
+    // On simulator the prefix is empty; items fall back to the app’s default group.
+    // nil on simulator (no AppIdentifierPrefix) — SecItem calls omit kSecAttrAccessGroup.
+    private let keychainGroup: String? = {
+        let prefix = Bundle.main.object(forInfoDictionaryKey: "AppIdentifierPrefix") as? String ?? ""
+        return prefix.isEmpty ? nil : "\(prefix)com.noborders.identity.key"
+    }()
+
+    // Adds kSecAttrAccessGroup only when running on a real device (group is non-nil).
+    private func withGroup(_ d: [String: Any]) -> [String: Any] {
+        guard let g = keychainGroup else { return d }
+        var m = d; m[kSecAttrAccessGroup as String] = g; return m
+    }
+
     // ── Error type ───────────────────────────────────────────────────────────
     enum VaultError: LocalizedError {
         case randomFailed
@@ -169,8 +184,12 @@ actor IdentityVaultManager {
         var errorDescription: String? {
             switch self {
             case .randomFailed:          return "SecRandomCopyBytes failed"
-            case .keychainRead(let s):   return "Keychain read error: \(s)"
-            case .keychainWrite(let s):  return "Keychain write error: \(s)"
+            case .keychainRead(let s):
+                if s == -34018 { return "Keychain read failed: missing entitlement (errSecMissingEntitlement -34018). Check keychain-access-groups in .entitlements." }
+                return "Keychain read error: OSStatus \(s)"
+            case .keychainWrite(let s):
+                if s == -34018 { return "Keychain write failed: missing entitlement (errSecMissingEntitlement -34018). Check keychain-access-groups in .entitlements." }
+                return "Keychain write error: OSStatus \(s)"
             case .cryptoFailed:          return "AES-GCM operation failed"
             case .notFound:              return "Identity vault item not found"
             case .invalidData:           return "Identity vault data is corrupted"
@@ -193,8 +212,8 @@ actor IdentityVaultManager {
             kSecValueData   as String: sealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemDelete(attrs as CFDictionary)
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
@@ -207,7 +226,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemCopyMatching(withGroup(query) as CFDictionary, &result)
         guard status == errSecSuccess, let sealed = result as? Data else {
             if status == errSecItemNotFound { throw VaultError.notFound }
             throw VaultError.keychainRead(status)
@@ -224,10 +243,10 @@ actor IdentityVaultManager {
     /// Delete an item from the Identity Vault.
     func delete(key: IdentityKey) throws {
         let account = itemAccountPrefix + key.rawValue
-        let status = SecItemDelete([
+        let status = SecItemDelete(withGroup([
             kSecClass       as String: kSecClassGenericPassword,
             kSecAttrAccount as String: account,
-        ] as CFDictionary)
+        ]) as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw VaultError.keychainWrite(status)
         }
@@ -237,10 +256,10 @@ actor IdentityVaultManager {
     // Deletes the wrapped AES key, rendering all Identity Vault items permanently inaccessible.
 
     func wipeWrappedKey() {
-        SecItemDelete([
+        SecItemDelete(withGroup([
             kSecClass       as String: kSecClassGenericPassword,
             kSecAttrAccount as String: wrappedKeyAccount,
-        ] as CFDictionary)
+        ]) as CFDictionary)
     }
 
     // MARK: - Typed convenience — Consent (LegalVaultManager API compatibility)
@@ -321,8 +340,8 @@ actor IdentityVaultManager {
                 kSecValueData   as String: sealed,
                 kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
             ]
-            SecItemDelete(attrs as CFDictionary)
-            SecItemAdd(attrs as CFDictionary, nil)
+            SecItemDelete(withGroup(attrs) as CFDictionary)
+            SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         }
     }
 
@@ -334,7 +353,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+        guard SecItemCopyMatching(withGroup(query) as CFDictionary, &result) == errSecSuccess,
               let sealed = result as? Data,
               let plain  = try? decrypt(sealed)
         else { return [] }
@@ -351,7 +370,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+        guard SecItemCopyMatching(withGroup(query) as CFDictionary, &result) == errSecSuccess,
               let sealed = result as? Data,
               let plain  = try? decrypt(sealed)
         else { throw VaultError.notFound }
@@ -370,8 +389,8 @@ actor IdentityVaultManager {
             kSecValueData   as String: newSealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemDelete(attrs as CFDictionary)
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
@@ -383,7 +402,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+        guard SecItemCopyMatching(withGroup(query) as CFDictionary, &result) == errSecSuccess,
               let sealed = result as? Data,
               let plain  = try? decrypt(sealed)
         else { throw VaultError.notFound }
@@ -403,8 +422,8 @@ actor IdentityVaultManager {
             kSecValueData   as String: newSealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemDelete(attrs as CFDictionary)
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
@@ -416,7 +435,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+        guard SecItemCopyMatching(withGroup(query) as CFDictionary, &result) == errSecSuccess,
               let sealed = result as? Data,
               let plain  = try? decrypt(sealed)
         else { throw VaultError.notFound }
@@ -438,8 +457,8 @@ actor IdentityVaultManager {
             kSecValueData   as String: newSealed,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        SecItemDelete(attrs as CFDictionary)
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
@@ -501,7 +520,7 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        let status = SecItemCopyMatching(withGroup(query) as CFDictionary, &result)
 
         if status == errSecItemNotFound { return try createIdentityKey() }
         guard status == errSecSuccess, let wrapped = result as? Data else {
@@ -547,7 +566,7 @@ actor IdentityVaultManager {
             kSecValueData   as String: wrapped as Data,
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
-        let status = SecItemAdd(attrs as CFDictionary, nil)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
         guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
         return SymmetricKey(data: raw)
     }
