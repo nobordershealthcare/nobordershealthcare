@@ -197,56 +197,54 @@ struct WelcomeView: View {
     var body: some View {
         // No NavigationStack — OnboardingFlowView is the container
         VStack(spacing: 0) {
-            ZStack(alignment: .bottom) {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // ── Logo + Brand ───────────────────────────────────────
-                        logoSection
+            // ScrollView takes all space above the pinned CTA button.
+            // .overlay keeps sizing intact — ZStack would break scroll bounds.
+            ScrollView {
+                VStack(spacing: 0) {
+                    // ── Logo + Brand ───────────────────────────────────────
+                    logoSection
 
-                        // ── Purpose statement ─────────────────────────────────
-                        purposeStatement
-                            .padding(.top, 8)
+                    // ── Purpose statement ─────────────────────────────────
+                    purposeStatement
+                        .padding(.top, 8)
 
-                        // ── Language grid ─────────────────────────────────────
-                        languageGrid
-                            .padding(.top, 20)
-
-                        // Invisible anchor at the very bottom of scroll content
-                        Color.clear
-                            .frame(height: 1)
-                            .id("bottom")
-                    }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
-                    .padding(.bottom, 16)
-                    .onScrollGeometryChange(for: Bool.self) { geo in
-                        // True when within 32 pt of the bottom edge
-                        geo.contentOffset.y + geo.containerSize.height
-                            >= geo.contentSize.height - 32
-                    } action: { _, atBottom in
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            scrolledToBottom = atBottom
-                        }
-                    }
+                    // ── Language grid ─────────────────────────────────────
+                    languageGrid
+                        .padding(.top, 20)
                 }
-
-                // ── Scroll-more hint: fade + chevron ─────────────────────────
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 24)
+            }
+            .onScrollGeometryChange(for: Bool.self) { geo in
+                geo.contentOffset.y + geo.containerSize.height
+                    >= geo.contentSize.height - 24
+            } action: { _, atBottom in
+                withAnimation(.spring(duration: 0.3)) {
+                    scrolledToBottom = atBottom
+                }
+            }
+            .overlay(alignment: .bottom) {
+                // ── Scroll-more hint: gradient + animated arrow ──────────
                 if !scrolledToBottom {
-                    VStack(spacing: 4) {
+                    VStack(spacing: 0) {
                         LinearGradient(
-                            colors: [Color.appBg.opacity(0), Color.appBg],
+                            colors: [Color.appBg.opacity(0), Color.appBg.opacity(0.98)],
                             startPoint: .top,
                             endPoint: .bottom
                         )
-                        .frame(height: 48)
-                        .allowsHitTesting(false)
+                        .frame(height: 56)
 
-                        Image(systemName: "chevron.compact.down")
-                            .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(Color.secondary.opacity(0.6))
-                            .padding(.bottom, 4)
-                            .allowsHitTesting(false)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 32, height: 32)
+                            .background(Color.navy.opacity(0.85))
+                            .clipShape(Circle())
+                            .padding(.bottom, 8)
+                            .symbolEffect(.bounce.down.byLayer, options: .repeating)
                     }
+                    .allowsHitTesting(false)
                     .transition(.opacity)
                 }
             }
