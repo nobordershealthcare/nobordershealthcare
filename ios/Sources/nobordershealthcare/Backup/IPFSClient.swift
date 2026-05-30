@@ -4,6 +4,11 @@
 // CIDs (content addresses) are stored locally in Keychain; never on-chain.
 //
 // Payload layout on IPFS: aesGCMBlob(nonce||ciphertext||tag) || kyberCiphertext
+//
+// Guarded by #if DEBUG: depends on KyberOperations which requires swift-oqs and is
+// unavailable in Release builds until Kyber-1024 integration is complete.
+
+#if DEBUG
 
 import CryptoKit
 import Foundation
@@ -163,3 +168,5 @@ actor IPFSClient {
         return dict.compactMap { k, v in Int(k).map { ($0, v) } }.sorted { $0.0 < $1.0 }
     }
 }
+
+#endif // DEBUG

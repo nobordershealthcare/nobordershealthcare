@@ -14,12 +14,10 @@
 //   • No post-quantum protection against Harvest Now / Decrypt Later attacks.
 //   • CLAUDE.md invariant "key exchange via Kyber-1024 (NIST ML-KEM)" is violated.
 // ─────────────────────────────────────────────────────────────────────────────
-#warning("SECURITY BLOCKER: KyberOperations is not implemented — IPFS recovery is non-functional and PQC is absent. See inline TODO. Must be resolved before Hospital da Luz pilot.")
 
-// Prevent shipping unimplemented Kyber in non-debug (production) builds.
-#if !DEBUG
-#error("KyberOperations is not implemented. Integrate swift-oqs before building a release. See ios/Sources/KyberKit/KyberOperations.swift for instructions.")
-#endif
+#if DEBUG
+
+#warning("SECURITY BLOCKER: KyberOperations is not implemented — IPFS recovery is non-functional and PQC is absent. See inline TODO. Must be resolved before Hospital da Luz pilot.")
 
 import Foundation
 
@@ -80,3 +78,7 @@ public enum KyberOperations {
         throw KyberError.notImplemented
     }
 }
+
+#else
+#error("KyberOperations requires swift-oqs integration before a Release build. See ios/Sources/KyberKit/KyberOperations.swift for instructions.")
+#endif

@@ -15,6 +15,9 @@
 
 import SwiftUI
 import CryptoKit
+import OSLog
+
+private let fabricLogger = Logger(subsystem: "com.noborders.legal", category: "FabricClient")
 
 // MARK: - Signing result
 
@@ -285,7 +288,9 @@ struct FabricChannel {
         jurisdictions: [String]
     ) async throws -> String {
         // Fabric Gateway gRPC: channel "signatures" → RecordAdESSignature
-        throw URLError(.notConnectedToInternet) // stub — replace with gRPC call
+        // STUB: gRPC integration pending. Caller's ConsentAuditService retry queue handles this error.
+        fabricLogger.warning("FabricClient stub: channel '\(name)' RecordAdESSignature not wired to gRPC — blockchain record NOT written")
+        throw URLError(.notConnectedToInternet)
     }
 
     func recordConsentGrant(
@@ -295,7 +300,9 @@ struct FabricChannel {
         signatureTxHash: String       // Channel 1 txID of accompanying AdES signature
     ) async throws -> String {
         // Fabric Gateway gRPC: channel "consent-audit" → RecordConsentGrant
-        throw URLError(.notConnectedToInternet) // stub
+        // STUB: gRPC integration pending. Caller's ConsentAuditService retry queue handles this error.
+        fabricLogger.warning("FabricClient stub: channel '\(name)' RecordConsentGrant not wired to gRPC — blockchain record NOT written")
+        throw URLError(.notConnectedToInternet)
     }
 
     func recordEHRAccess(
@@ -305,6 +312,8 @@ struct FabricChannel {
         tokenJTI: String
     ) async throws -> String {
         // Fabric Gateway gRPC: channel "access-audit" → RecordEHRAccess
-        throw URLError(.notConnectedToInternet) // stub
+        // STUB: gRPC integration pending. Caller's ConsentAuditService retry queue handles this error.
+        fabricLogger.warning("FabricClient stub: channel '\(name)' RecordEHRAccess not wired to gRPC — blockchain record NOT written")
+        throw URLError(.notConnectedToInternet)
     }
 }

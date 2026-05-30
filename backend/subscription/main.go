@@ -21,7 +21,11 @@ import (
 )
 
 func main() {
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	stripeKey, ok := os.LookupEnv("STRIPE_SECRET_KEY")
+	if !ok || stripeKey == "" {
+		log.Fatalf("[subscription] STRIPE_SECRET_KEY is not set")
+	}
+	stripe.Key = stripeKey
 	referralSvc := referralclient.New(envOr("REFERRAL_SVC_URL", "http://referral.noborders.svc.cluster.local:8088"))
 
 	r := chi.NewRouter()
@@ -50,7 +54,10 @@ func main() {
 }
 
 func makeStripeWebhookHandler(rc *referralclient.Client) http.HandlerFunc {
-	secret := os.Getenv("STRIPE_WEBHOOK_SECRET")
+	secret, ok := os.LookupEnv("STRIPE_WEBHOOK_SECRET")
+	if !ok || secret == "" {
+		log.Fatalf("[subscription] STRIPE_WEBHOOK_SECRET is not set")
+	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		payload := make([]byte, r.ContentLength)
 		if _, err := r.Body.Read(payload); err != nil {
@@ -155,7 +162,7 @@ func handleSubscriptionCancelled(ctx context.Context, rc *referralclient.Client,
 }
 
 func envOr(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
 	}
 	return fallback

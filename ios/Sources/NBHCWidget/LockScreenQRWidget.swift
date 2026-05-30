@@ -4,7 +4,7 @@
 // Displays the static QR on the lock screen — no biometric unlock required.
 // Static QR only: contains physician URL only, no clinical data.
 //
-// PID source: App Group "group.com.nobords.shared" → UserDefaults key "patient_pid"
+// PID source: App Group "group.com.noborders.shared" → UserDefaults key "patient_pid"
 // Written by the main app after registration (see RegistrationView / OnboardingCoordinator).
 //
 // Refresh policy: once per day (static QR never expires, but we refresh for
@@ -17,7 +17,7 @@ import CoreImage
 // MARK: - Inline QR rendering (widget is a separate target; can't import main app)
 
 private func makeStaticQR(pid: String, size: CGSize) -> UIImage? {
-    let base = UserDefaults(suiteName: "group.com.nobords.shared")?
+    let base = UserDefaults(suiteName: "group.com.noborders.shared")?
         .string(forKey: "physician_base_url")
         ?? "https://physician.noborders.healthcare"
     let url  = "\(base)/p/\(pid)"
@@ -67,7 +67,7 @@ struct QRTimelineProvider: TimelineProvider {
     }
 
     private func makeEntry() -> QRWidgetEntry {
-        let pid = UserDefaults(suiteName: "group.com.nobords.shared")?
+        let pid = UserDefaults(suiteName: "group.com.noborders.shared")?
             .string(forKey: "patient_pid") ?? ""
         let image = makeStaticQR(pid: pid, size: CGSize(width: 160, height: 160))
         return QRWidgetEntry(date: .now, pid: pid, qrImage: image)

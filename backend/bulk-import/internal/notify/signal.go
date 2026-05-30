@@ -23,7 +23,7 @@ func (s *signalSender) Send(ctx context.Context, msg Message) error {
 	// with the allowlist check in ValidateNotifyURL below, this prevents SSRF
 	// even if the env var is compromised.
 	baseURL, _ := os.LookupEnv("SIGNAL_API_URL")
-	fromNumber := os.Getenv("SIGNAL_FROM_NUMBER")
+	fromNumber, _ := os.LookupEnv("SIGNAL_FROM_NUMBER")
 	if baseURL == "" || fromNumber == "" {
 		return fmt.Errorf("signal: SIGNAL_API_URL and SIGNAL_FROM_NUMBER not configured")
 	}

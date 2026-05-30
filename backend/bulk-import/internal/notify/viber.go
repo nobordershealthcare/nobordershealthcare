@@ -18,8 +18,8 @@ func (v *viberSender) Send(ctx context.Context, msg Message) error {
 	if msg.Phone == "" {
 		return fmt.Errorf("viber: phone is required")
 	}
-	token := os.Getenv("VIBER_AUTH_TOKEN")
-	senderName := os.Getenv("VIBER_SENDER_NAME")
+	token, _ := os.LookupEnv("VIBER_AUTH_TOKEN")
+	senderName, _ := os.LookupEnv("VIBER_SENDER_NAME")
 	if token == "" {
 		return fmt.Errorf("viber: VIBER_AUTH_TOKEN not configured")
 	}

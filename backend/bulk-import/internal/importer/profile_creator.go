@@ -61,7 +61,7 @@ const activationTTL = 7 * 24 * time.Hour
 // Set APP_BASE_URL in the environment; falls back to the production FQDN.
 // In k8s: injected via Deployment env.
 func activationBaseURL() string {
-	if base := os.Getenv("APP_BASE_URL"); base != "" {
+	if base, ok := os.LookupEnv("APP_BASE_URL"); ok && base != "" {
 		return base + "/activate/"
 	}
 	return "https://app.noborders.healthcare/activate/"
@@ -164,19 +164,19 @@ func persistProfiles(_ context.Context, profiles []*PendingProfile) error {
 	// TODO: INSERT into pending_profiles table (tokenHash as partition key).
 	// NEVER persist the plaintext activation token — only tokenHash.
 	_ = profiles
-	return nil
+	return fmt.Errorf("persistProfiles: ScyllaDB integration not yet implemented — bulk import is non-functional")
 }
 
 func loadProfile(_ context.Context, entryID string) (*PendingProfile, error) {
 	// TODO: SELECT from pending_profiles WHERE id = ?
 	_ = entryID
-	return nil, fmt.Errorf("not implemented")
+	return nil, fmt.Errorf("loadProfile: ScyllaDB integration not yet implemented")
 }
 
 func loadBatchStatus(_ context.Context, batchID string) (*BatchStatus, error) {
 	// TODO: SELECT count(*), status FROM pending_profiles WHERE batch_id = ?
 	_ = batchID
-	return &BatchStatus{BatchID: batchID}, nil
+	return nil, fmt.Errorf("loadBatchStatus: ScyllaDB integration not yet implemented")
 }
 
 // ─── Activation token consumption ────────────────────────────────────────────
@@ -215,10 +215,5 @@ func atomicConsumeToken(_ context.Context, tokenHash string) (*ActivationTokenMe
 	//       Then: SELECT profile_type, operational_role, authority, language, display_name, plan_tier
 	//             FROM pending_profiles WHERE token_hash = tokenHash
 	_ = tokenHash
-	return &ActivationTokenMeta{
-		ProfileType:     "civilian",
-		OperationalRole: "none",
-		Authority:       "ua_civilian",
-		Language:        "en",
-	}, nil
+	return nil, fmt.Errorf("atomicConsumeToken: Redis + ScyllaDB integration not yet implemented")
 }

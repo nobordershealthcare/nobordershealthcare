@@ -65,7 +65,7 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate, @unchecked Se
         // CoreImage is not available on watchOS, so the Watch can't render QR itself.
         // PNG data is read from App Group shared container (written on token refresh).
         var response: [String: Any] = [:]
-        let shared = UserDefaults(suiteName: "group.com.nobords.shared")
+        let shared = UserDefaults(suiteName: "group.com.noborders.shared")
 
         if let pngData = shared?.data(forKey: "emergency_qr_png") {
             // Full data QR — pre-rendered by EmergencyCardService on token refresh

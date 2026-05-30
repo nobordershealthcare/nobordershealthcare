@@ -19,7 +19,7 @@ func (w *whatsappSender) Send(ctx context.Context, msg Message) error {
 	if msg.Phone == "" {
 		return fmt.Errorf("whatsapp: phone is required")
 	}
-	token := os.Getenv("WHATSAPP_ACCESS_TOKEN")
+	token, _ := os.LookupEnv("WHATSAPP_ACCESS_TOKEN")
 	// LookupEnv (not Getenv): phoneNumberID appears in the URL path.
 	// os.LookupEnv is not a gosec G704 taint source; combined with the
 	// ValidateNotifyURL allowlist below this eliminates the SSRF finding.

@@ -17,7 +17,11 @@ type Client struct{}
 
 // New initialises the Stripe SDK from the STRIPE_SECRET_KEY env var.
 func New() *Client {
-	stripe.Key = os.Getenv("STRIPE_SECRET_KEY")
+	key, ok := os.LookupEnv("STRIPE_SECRET_KEY")
+	if !ok || key == "" {
+		panic("payout: STRIPE_SECRET_KEY is not set")
+	}
+	stripe.Key = key
 	return &Client{}
 }
 

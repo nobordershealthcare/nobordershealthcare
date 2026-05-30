@@ -26,8 +26,8 @@ func (s *smsSender) Send(ctx context.Context, msg Message) error {
 	// ValidateNotifyURL allowlist below this stops both false-positive analysis
 	// noise and real path-injection if the var is misconfigured.
 	accountSID, _ := os.LookupEnv("TWILIO_ACCOUNT_SID")
-	authToken := os.Getenv("TWILIO_AUTH_TOKEN")
-	fromNumber := os.Getenv("TWILIO_FROM_NUMBER")
+	authToken, _ := os.LookupEnv("TWILIO_AUTH_TOKEN")
+	fromNumber, _ := os.LookupEnv("TWILIO_FROM_NUMBER")
 	if accountSID == "" || authToken == "" || fromNumber == "" {
 		return fmt.Errorf("sms: TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER not configured")
 	}

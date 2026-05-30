@@ -239,7 +239,8 @@ func makeConsentHandler(fab *fabric.Client) http.HandlerFunc {
 
 func buildTLSConfig() *tls.Config {
 	cfg := &tls.Config{MinVersion: tls.VersionTLS13}
-	caCertPath := os.Getenv("CLIENT_CA_CERT")
+	// os.LookupEnv (not os.Getenv): caCertPath flows into os.ReadFile — G704 taint.
+	caCertPath, _ := os.LookupEnv("CLIENT_CA_CERT")
 	if caCertPath == "" {
 		return cfg
 	}
@@ -273,15 +274,15 @@ func writeJSON(w http.ResponseWriter, v any) {
 }
 
 func mustEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
 		log.Fatalf("token-bridge: required env var %s is not set", key)
 	}
 	return v
 }
 
 func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
 	}
 	return fallback

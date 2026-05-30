@@ -65,7 +65,8 @@ final class ProfileTypeStore: @unchecked Sendable {
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemDelete(q as CFDictionary)
-        SecItemAdd(q as CFDictionary, nil)
+        let status = SecItemAdd(q as CFDictionary, nil)
+        assert(status == errSecSuccess, "ProfileTypeStore: SecItemAdd failed with OSStatus \(status)")
     }
 }
 
@@ -109,7 +110,8 @@ final class OperationalProfileStore: @unchecked Sendable {
             kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
         ]
         SecItemDelete(q as CFDictionary)
-        SecItemAdd(q as CFDictionary, nil)
+        let status = SecItemAdd(q as CFDictionary, nil)
+        assert(status == errSecSuccess, "OperationalProfileStore: SecItemAdd failed with OSStatus \(status)")
     }
 
     func delete() {
@@ -265,14 +267,23 @@ actor IdentityVaultManager {
     // MARK: - Typed convenience — Consent (LegalVaultManager API compatibility)
 
     func sealConsent(_ record: ConsentRecord) throws {
-        var records = (try? open([ConsentRecord].self, for: .consentRecords)) ?? []
+        var records: [ConsentRecord]
+        do {
+            records = try open([ConsentRecord].self, for: .consentRecords)
+        } catch VaultError.notFound {
+            records = []
+        }
         records.removeAll { $0.id == record.id }
         records.append(record)
         try seal(records, for: .consentRecords)
     }
 
     func openAllConsents() throws -> [ConsentRecord] {
-        (try? open([ConsentRecord].self, for: .consentRecords)) ?? []
+        do {
+            return try open([ConsentRecord].self, for: .consentRecords)
+        } catch VaultError.notFound {
+            return []
+        }
     }
 
     func revokeConsentType(_ type: ConsentType, revokedAt: Date = Date()) throws {
@@ -300,14 +311,23 @@ actor IdentityVaultManager {
     // MARK: - Typed convenience — Proxy
 
     func sealProxy(_ proxy: HealthcareProxy) throws {
-        var proxies = (try? open([HealthcareProxy].self, for: .healthcareProxy)) ?? []
+        var proxies: [HealthcareProxy]
+        do {
+            proxies = try open([HealthcareProxy].self, for: .healthcareProxy)
+        } catch VaultError.notFound {
+            proxies = []
+        }
         proxies.removeAll { $0.id == proxy.id }
         proxies.append(proxy)
         try seal(proxies, for: .healthcareProxy)
     }
 
     func openAllProxies() throws -> [HealthcareProxy] {
-        (try? open([HealthcareProxy].self, for: .healthcareProxy)) ?? []
+        do {
+            return try open([HealthcareProxy].self, for: .healthcareProxy)
+        } catch VaultError.notFound {
+            return []
+        }
     }
 
     func updateProxyTxHash(id: UUID, txHash: String) throws {
@@ -324,7 +344,12 @@ actor IdentityVaultManager {
     func sealProxyDocument(_ doc: ProxyDocument) throws {
         // ProxyDocuments are stored as part of the proxy list (keyed by proxyId).
         // We keep a flat list and filter by proxyId on read.
-        var docs = (try? open([ProxyDocument].self, for: .healthcareProxy)) ?? []
+        var docs: [ProxyDocument]
+        do {
+            docs = try open([ProxyDocument].self, for: .healthcareProxy)
+        } catch VaultError.notFound {
+            docs = []
+        }
         docs.removeAll { $0.id == doc.id }
         docs.append(doc)
         // Re-encode as a combined store: proxies + proxy-documents share the key
@@ -332,17 +357,17 @@ actor IdentityVaultManager {
         let subAccount = itemAccountPrefix + "proxy.documents"
         let enc = JSONEncoder()
         enc.dateEncodingStrategy = .iso8601
-        if let plain = try? enc.encode(docs),
-           let sealed = try? encrypt(plain) {
-            let attrs: [String: Any] = [
-                kSecClass       as String: kSecClassGenericPassword,
-                kSecAttrAccount as String: subAccount,
-                kSecValueData   as String: sealed,
-                kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
-            ]
-            SecItemDelete(withGroup(attrs) as CFDictionary)
-            SecItemAdd(withGroup(attrs) as CFDictionary, nil)
-        }
+        guard let plain = try? enc.encode(docs),
+              let sealed = try? encrypt(plain) else { throw VaultError.cryptoFailed }
+        let attrs: [String: Any] = [
+            kSecClass       as String: kSecClassGenericPassword,
+            kSecAttrAccount as String: subAccount,
+            kSecValueData   as String: sealed,
+            kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly,
+        ]
+        SecItemDelete(withGroup(attrs) as CFDictionary)
+        let status = SecItemAdd(withGroup(attrs) as CFDictionary, nil)
+        guard status == errSecSuccess else { throw VaultError.keychainWrite(status) }
     }
 
     func openProxyDocuments(for proxyId: UUID) throws -> [ProxyDocument] {
@@ -353,12 +378,16 @@ actor IdentityVaultManager {
             kSecReturnData  as String: true,
         ]
         var result: AnyObject?
-        guard SecItemCopyMatching(withGroup(query) as CFDictionary, &result) == errSecSuccess,
-              let sealed = result as? Data,
-              let plain  = try? decrypt(sealed)
-        else { return [] }
+        let status = SecItemCopyMatching(withGroup(query) as CFDictionary, &result)
+        if status == errSecItemNotFound { return [] }
+        guard status == errSecSuccess, let sealed = result as? Data else {
+            throw VaultError.keychainRead(status)
+        }
+        let plain = try decrypt(sealed)
         let dec = JSONDecoder(); dec.dateDecodingStrategy = .iso8601
-        let all = (try? dec.decode([ProxyDocument].self, from: plain)) ?? []
+        guard let all = try? dec.decode([ProxyDocument].self, from: plain) else {
+            throw VaultError.invalidData
+        }
         return all.filter { $0.proxyId == proxyId }
     }
 
@@ -465,14 +494,23 @@ actor IdentityVaultManager {
     // MARK: - Typed convenience — Signature
 
     func sealSignatureRecord(_ sig: SignatureRecord) throws {
-        var sigs = (try? open([SignatureRecord].self, for: .signatureRecords)) ?? []
+        var sigs: [SignatureRecord]
+        do {
+            sigs = try open([SignatureRecord].self, for: .signatureRecords)
+        } catch VaultError.notFound {
+            sigs = []
+        }
         sigs.removeAll { $0.id == sig.id }
         sigs.append(sig)
         try seal(sigs, for: .signatureRecords)
     }
 
     func openSignatureRecords() throws -> [SignatureRecord] {
-        (try? open([SignatureRecord].self, for: .signatureRecords)) ?? []
+        do {
+            return try open([SignatureRecord].self, for: .signatureRecords)
+        } catch VaultError.notFound {
+            return []
+        }
     }
 
     func updateSignatureTxHash(id: UUID, txHash: String) throws {

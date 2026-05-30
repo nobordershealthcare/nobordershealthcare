@@ -49,10 +49,14 @@ type Dispatcher struct {
 // New creates a Dispatcher.  stripeKey and eurcContractAddr are read from
 // environment at startup — never hardcoded.
 func New() *Dispatcher {
-	return &Dispatcher{
+	d := &Dispatcher{
 		stripeKey:    mustEnv("STRIPE_API_KEY"),
 		eurcContract: common.HexToAddress(getenv("EURC_CONTRACT_ADDR", "")),
 	}
+	if d.eurcContract == (common.Address{}) {
+		log.Printf("token-bridge/payment: EURC_CONTRACT_ADDR not set — on-chain rail unavailable; only Stripe rail will succeed")
+	}
+	return d
 }
 
 // Dispatch executes the payment for req and returns the external reference string.
@@ -137,15 +141,15 @@ func (d *Dispatcher) dispatchOnChain(_ context.Context, req Request) (string, er
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func mustEnv(key string) string {
-	v := os.Getenv(key)
-	if v == "" {
+	v, ok := os.LookupEnv(key)
+	if !ok || v == "" {
 		panic(fmt.Sprintf("token-bridge/payment: required env var %s is not set", key))
 	}
 	return v
 }
 
 func getenv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
+	if v, ok := os.LookupEnv(key); ok && v != "" {
 		return v
 	}
 	return fallback

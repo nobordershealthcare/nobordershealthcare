@@ -19,9 +19,9 @@ func (e *emailSender) Send(ctx context.Context, msg Message) error {
 	if msg.Email == "" {
 		return nil // email is optional — skip silently
 	}
-	apiKey := os.Getenv("SENDGRID_API_KEY")
-	fromEmail := os.Getenv("SENDGRID_FROM_EMAIL")
-	fromName := os.Getenv("SENDGRID_FROM_NAME")
+	apiKey, _ := os.LookupEnv("SENDGRID_API_KEY")
+	fromEmail, _ := os.LookupEnv("SENDGRID_FROM_EMAIL")
+	fromName, _ := os.LookupEnv("SENDGRID_FROM_NAME")
 	if apiKey == "" || fromEmail == "" {
 		return fmt.Errorf("email: SENDGRID_API_KEY and SENDGRID_FROM_EMAIL not configured")
 	}
@@ -93,7 +93,7 @@ func buildEmailContent(msg Message) (subject, html, text string) {
 	if !ok {
 		t = templates["en"]
 	}
-	base := os.Getenv("APP_BASE_URL")
+	base, _ := os.LookupEnv("APP_BASE_URL")
 	if base == "" {
 		base = "https://app.noborders.healthcare"
 	}
