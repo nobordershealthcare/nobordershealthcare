@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import WatchConnectivity
 
 @main
 struct NoBordersHealthcareApp: App {
@@ -39,6 +40,13 @@ struct NoBordersHealthcareApp: App {
 
     @StateObject private var activationCoordinator = ActivationCoordinator.shared
     @Environment(\.scenePhase) private var scenePhase
+
+    init() {
+        // Start fall detection → auto-show Emergency QR on fall
+        FallDetectionManager.shared.startMonitoring()
+        // Activate WatchConnectivity so Watch requests are served from launch
+        _ = WatchConnectivityManager.shared
+    }
 
     var body: some Scene {
         WindowGroup {

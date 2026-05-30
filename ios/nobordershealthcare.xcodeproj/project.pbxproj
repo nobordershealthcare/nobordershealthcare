@@ -69,6 +69,11 @@
 		EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CA8B193143B17EBD08578 /* DocumentView.swift */; };
 		F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */; };
 		FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA091911DC16BA81A2BDDB90 /* ConsentView.swift */; };
+		AA11BB22CC33DD44EE55FF66 /* QRStalenessChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */; };
+		AB11BC22CD33DE44EF55FA66 /* QRDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */; };
+		BA11CB22DC33ED44FE55AF66 /* EmergencyScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */; };
+		CA11DB22EC33FD44AE55BF66 /* FallDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */; };
+		DA11EB22FC33AD44BE55CF66 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -137,6 +142,11 @@
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalVaultManager.swift; sourceTree = "<group>"; };
+		AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRStalenessChecker.swift; sourceTree = "<group>"; };
+		AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRDisplayView.swift; sourceTree = "<group>"; };
+		BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyScreenView.swift; sourceTree = "<group>"; };
+		CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDetectionManager.swift; sourceTree = "<group>"; };
+		DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -188,6 +198,8 @@
 			children = (
 				4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */,
 				E6A46B21098DBE228CFA150F /* AttestationService.swift */,
+				CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */,
+				DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */,
 				F6194C26F3263738B3825DA8 /* BiometricAuth.swift */,
 				3E241D7E7155434C8739A07C /* BiometricLockView.swift */,
 				9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */,
@@ -318,6 +330,7 @@
 			isa = PBXGroup;
 			children = (
 				02B2F7E18E8A7E8FFB198EBA /* Backup */,
+				FA02BC03CD04DE05EF06FA07 /* Views */,
 				371E7BC818D058D49B5C3531 /* Core */,
 				EF8BE9525689369301943D17 /* Documents */,
 				451F6F2CE47C0A06BF252710 /* eHR */,
@@ -376,6 +389,7 @@
 			isa = PBXGroup;
 			children = (
 				56A573DBC9BE53097E791F51 /* QRGenerator.swift */,
+				AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */,
 				87B3A142FC41A9153C4D790D /* ScopeManager.swift */,
 			);
 			path = QR;
@@ -388,6 +402,15 @@
 			);
 			name = KyberKit;
 			path = Sources/KyberKit;
+			sourceTree = "<group>";
+		};
+		FA02BC03CD04DE05EF06FA07 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */,
+				BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -504,6 +527,12 @@
 				496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */,
 				B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */,
 				80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */,
+				AA11BB22CC33DD44EE55FF66 /* QRStalenessChecker.swift in Sources */,
+				AB11BC22CD33DE44EF55FA66 /* QRDisplayView.swift in Sources */,
+				BA11CB22DC33ED44FE55AF66 /* EmergencyScreenView.swift in Sources */,
+				CA11DB22EC33FD44AE55BF66 /* FallDetectionManager.swift in Sources */,
+				DA11EB22FC33AD44BE55CF66 /* WatchConnectivityManager.swift in Sources */,
+
 				D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */,
 				59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */,
 				A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */,

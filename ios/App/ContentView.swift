@@ -94,7 +94,7 @@ struct ContentView: View {
         }
         .tint(Color.navy)
         .fullScreenCover(isPresented: $showEmergency) {
-            EmergencyView(isPresented: $showEmergency)
+            EmergencyScreenView(isPresented: $showEmergency)
         }
     }
 }

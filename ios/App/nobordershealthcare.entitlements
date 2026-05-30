@@ -5,10 +5,8 @@
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.com.noborders.emergency</string>
+		<string>group.com.nobords.shared</string>
 	</array>
-	<!-- keychain-access-groups must be provisioned.
-	     First entry = default group for items without explicit kSecAttrAccessGroup.
-	     Identity vault and Medical vault use their own named groups for isolation. -->
 	<key>keychain-access-groups</key>
 	<array>
 		<string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
