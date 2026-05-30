@@ -12,6 +12,27 @@
 
 import WidgetKit
 import SwiftUI
+import CoreImage
+
+// MARK: - Inline QR rendering (widget is a separate target; can't import main app)
+
+private func makeStaticQR(pid: String, size: CGSize) -> UIImage? {
+    let base = UserDefaults(suiteName: "group.com.nobords.shared")?
+        .string(forKey: "physician_base_url")
+        ?? "https://physician.noborders.healthcare"
+    let url  = "\(base)/p/\(pid)"
+    guard let data   = url.data(using: .utf8),
+          let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+    filter.setValue(data, forKey: "inputMessage")
+    filter.setValue("H",  forKey: "inputCorrectionLevel")
+    guard let output = filter.outputImage else { return nil }
+    let sx = size.width  / output.extent.width
+    let sy = size.height / output.extent.height
+    let scaled = output.transformed(by: CGAffineTransform(scaleX: sx, y: sy))
+    let ctx = CIContext(options: [.useSoftwareRenderer: false])
+    guard let cg = ctx.createCGImage(scaled, from: scaled.extent) else { return nil }
+    return UIImage(cgImage: cg)
+}
 
 // MARK: - Entry
 
@@ -48,10 +69,7 @@ struct QRTimelineProvider: TimelineProvider {
     private func makeEntry() -> QRWidgetEntry {
         let pid = UserDefaults(suiteName: "group.com.nobords.shared")?
             .string(forKey: "patient_pid") ?? ""
-        let image = QRGenerator.generateStaticQR(
-            pid: pid,
-            size: CGSize(width: 160, height: 160)
-        )
+        let image = makeStaticQR(pid: pid, size: CGSize(width: 160, height: 160))
         return QRWidgetEntry(date: .now, pid: pid, qrImage: image)
     }
 }

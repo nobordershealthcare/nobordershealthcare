@@ -9,23 +9,31 @@
 /* Begin PBXBuildFile section */
 		0198EA9C6836FDC3F65F6767 /* DIDWallet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5600417288BAD034AAC350F /* DIDWallet.swift */; };
 		068BF8009EB37F7CA78A7BDF /* LocalOCR.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC87B71F0505A1931D9A8413 /* LocalOCR.swift */; };
+		06F844681DEA6A3F03CDEF36 /* LockScreenQRWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 503E23C88144ABE31113F46C /* LockScreenQRWidget.swift */; };
 		0855F5C4F059D04DBB090ACF /* DocumentStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04BF4200C2337B15544CBDC /* DocumentStore.swift */; };
 		0E8F89A320814FF876737EA5 /* HealthcareProxyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B63A65DD37B63F386B3E237 /* HealthcareProxyView.swift */; };
 		1101F6D336BDB79477B20AE6 /* NoBordersHealthcareApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */; };
 		156627B3AD2BB29AB82AC680 /* VerifiedIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E5AEB69CEFC4E27FA7FEFA2 /* VerifiedIdentity.swift */; };
 		1629F9F5071A91E802799FF6 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D72112E9BDE6DDF792806A3 /* Models.swift */; };
+		1E66B7648686EC585187519F /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 42FE8C25F6C28A86B4056582 /* Foundation.framework */; };
 		1ED69D566C9BC311C272C0A8 /* IdentityVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */; };
 		1FFCDF1F5DA6AB0AABB75243 /* BankIDClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34EDABFB131AEE01B59471B5 /* BankIDClient.swift */; };
+		32478E266D49A63A1EEEF342 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 066AE9ABA06A7D616BF2372E /* Foundation.framework */; };
 		352A43D020ECB5514AE1CC06 /* NetworkCountryDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */; };
+		375ED576C991CBBD123641B5 /* WatchQRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E44F5649889D79DCE09D756 /* WatchQRGenerator.swift */; };
 		3F07C943F14296AB63C8D56D /* IdentityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */; };
 		457BF13DF25ED5021E42AFB8 /* ShamirShard.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFBD308E0C72E134F31C8FF7 /* ShamirShard.swift */; };
 		4626547144388318B2B1BFF4 /* DocumentScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A3A7266960B2164688FAF72 /* DocumentScanner.swift */; };
+		470B6A03CC6A5650D58BC067 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 83E83F39493661CE758953EB /* WidgetKit.framework */; };
 		496E93D9B6227F2A61995855 /* OnboardingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1237E8685774F975A3477230 /* OnboardingCoordinator.swift */; };
 		4C75DEE1002D08A25449F758 /* CallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC86BB66FE5565C9184E8490 /* CallView.swift */; };
 		4D05CFADA3E8340BEFD35B7D /* KeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 622F23DBC018E3F6C9948C28 /* KeyManager.swift */; };
+		513848E3A7ACF4648A1E2ADE /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5467BDACC73909A38163F4D3 /* SwiftUI.framework */; };
+		524B40F941172FFF34FE9A6D /* NoBordersWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F501F93C4C295213FE518460 /* NoBordersWatchApp.swift */; };
 		57B85DE5DCD54B13D52FA2A7 /* EmergencyCardService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */; };
 		58EE0F6D7CBE1F86DF6AD277 /* LinkedIdentitiesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0950F711D2FC1BFD2DD724DE /* LinkedIdentitiesView.swift */; };
 		59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 289A784D4C10DF2493288540 /* ReferralView.swift */; };
+		5BE8F7A71C9F6A39B64B9809 /* WatchContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9B0D4EBB788A7A3092EEC463 /* WatchContentView.swift */; };
 		5C0D92D6AAE1EAA701F82DEA /* ScopeManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87B3A142FC41A9153C4D790D /* ScopeManager.swift */; };
 		5C9BFB17DC856C06EF3B3C24 /* EmergencyCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */; };
 		5ED81C638074896A10085FF6 /* KyberOperations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A6411BE2A63765FA00C6091 /* KyberOperations.swift */; };
@@ -35,6 +43,7 @@
 		7C4158CCE50DEBDF16467D2C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F465B171728A2EE0DA91643D /* WelcomeView.swift */; };
 		7CF842F91CAFB2E121E7DA2B /* EmergencyContactView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */; };
 		80599D679EF2FA7C741206BA /* QRGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56A573DBC9BE53097E791F51 /* QRGenerator.swift */; };
+		834D6C2D65124A09270F61CD /* WatchConnectivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3E33F59ADE72D059AEF0A080 /* WatchConnectivity.framework */; };
 		8B6FD6C8B3BA661D1129FB19 /* AppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */; };
 		8D51A94B1494C4035FCAB993 /* FHIRMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */; };
 		99152D8879474A09D779D4B4 /* DiiaIdentityPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA55C8B2F46719E7A88DADBF /* DiiaIdentityPayload.swift */; };
@@ -46,22 +55,31 @@
 		A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */; };
 		A5A1492E8D4FE212ABCB1854 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = DFED60BDDE94483E29635A6B /* Assets.xcassets */; };
 		A7AAB394F54896C7DF219E8F /* IPFSClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C12AA53CF41B4033407B0CF /* IPFSClient.swift */; };
+		AA11BB22CC33DD44EE55FF66 /* QRStalenessChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */; };
 		AAA646494ADD4B7944427742 /* SignatureButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACDC1623F564ECBC26952904 /* SignatureButton.swift */; };
 		AACDB6AB27E46D2BB119FA7A /* BiometricLockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E241D7E7155434C8739A07C /* BiometricLockView.swift */; };
+		AB11BC22CD33DE44EF55FA66 /* QRDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */; };
 		AC3E95063D04489544EF0950 /* AttestationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A46B21098DBE228CFA150F /* AttestationService.swift */; };
+		ADE03D4B71087B8994E23069 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CDDCE073F0FF42455BEA3213 /* UIKit.framework */; };
 		AE3EDC4ABABEF690617DF6C5 /* MedicalVaultManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */; };
 		B20CC79630E1146DC16CB32F /* AnalyticsConsent.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */; };
 		B390123F7EE92BDCC4CC8207 /* PDFImporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */; };
 		B689C155F5A8767AFEC9AF7C /* BiometricAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6194C26F3263738B3825DA8 /* BiometricAuth.swift */; };
+		BA11CB22DC33ED44FE55AF66 /* EmergencyScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */; };
 		BD2B681B3637A1CAF31638FF /* TerminologyMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */; };
 		BDF280B0D0853287D93CDEDB /* DataAuthorizationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */; };
 		C30AAA516AEFF4ECF2373ED6 /* HealthRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */; };
+		C413B34F90AE02B554D25F5F /* NBHCWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = A3E037BFF402CE8CD188F9DB /* NBHCWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C689E012885AE8C7337D6026 /* SecurityProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */; };
 		C743B3A5B5CF33496F6A9918 /* DiiaVerificationRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3802DB07BE9A997FA185E194 /* DiiaVerificationRecord.swift */; };
 		C7B37D70CE398B88FA08F0A0 /* DocumentTranslator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */; };
+		C908D20D8560F9E3B8FD3714 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5467BDACC73909A38163F4D3 /* SwiftUI.framework */; };
+		CA11DB22EC33FD44AE55BF66 /* FallDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */; };
+		D322A6E0C1249C8B6CDB9AD8 /* WatchSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CA29F3AE5722CF30EF0A2B8 /* WatchSessionManager.swift */; };
 		D39616AD2E1E0DEE89282431 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62524B8496BE6AD1B7264711 /* UserProfile.swift */; };
 		D572561818CF08235DB531EB /* UserAgreementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39CB4396676A9C48242F3099 /* UserAgreementView.swift */; };
 		D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B15B0D42A99D7F83F5FCC12E /* QRGeneratorView.swift */; };
+		DA11EB22FC33AD44BE55CF66 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */; };
 		E1E651ABBD800234624285A8 /* IPS.swift in Sources */ = {isa = PBXBuildFile; fileRef = 155E0940A4102DEE59FDF511 /* IPS.swift */; };
 		E94E30F03EBACE766A13938B /* EmergencyCardSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */; };
 		EA9257C5986D3EB4CA43A7E1 /* xLMEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CD1B7A0309E6785A54A966 /* xLMEngine.swift */; };
@@ -69,23 +87,46 @@
 		EBF891294C8E72C49B650B0D /* DocumentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C49CA8B193143B17EBD08578 /* DocumentView.swift */; };
 		F32D7CBE4E572ED7AF843FC9 /* ConsentAuditService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */; };
 		FA76155EF64068229D00CA46 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA091911DC16BA81A2BDDB90 /* ConsentView.swift */; };
-		AA11BB22CC33DD44EE55FF66 /* QRStalenessChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */; };
-		AB11BC22CD33DE44EF55FA66 /* QRDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */; };
-		BA11CB22DC33ED44FE55AF66 /* EmergencyScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */; };
-		CA11DB22EC33FD44AE55BF66 /* FallDetectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */; };
-		DA11EB22FC33AD44BE55CF66 /* WatchConnectivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		2501B708A052668D8A5744C5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F26610A563F025680C8B2A66 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = F974925A7B3B24D5679DAEF2;
+			remoteInfo = NBHCWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		3EFD9BBA727072FD1D467199 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				C413B34F90AE02B554D25F5F /* NBHCWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
+		066AE9ABA06A7D616BF2372E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		0950F711D2FC1BFD2DD724DE /* LinkedIdentitiesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkedIdentitiesView.swift; sourceTree = "<group>"; };
+		0E44F5649889D79DCE09D756 /* WatchQRGenerator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchQRGenerator.swift; sourceTree = "<group>"; };
 		0F991FA63CD9663FF83D6055 /* FHIRMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FHIRMapper.swift; sourceTree = "<group>"; };
 		1237E8685774F975A3477230 /* OnboardingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingCoordinator.swift; sourceTree = "<group>"; };
 		155E0940A4102DEE59FDF511 /* IPS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPS.swift; sourceTree = "<group>"; };
 		1E5DE46C3D34CF36D4FEAA05 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		20440B3CA5CB17FAF8C4A8E2 /* nobordershealthcareWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nobordershealthcareWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		25CD1B7A0309E6785A54A966 /* xLMEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = xLMEngine.swift; sourceTree = "<group>"; };
 		27E587E7BD8B1CA8FBC2C3B4 /* SHA3.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SHA3.swift; sourceTree = "<group>"; };
 		289A784D4C10DF2493288540 /* ReferralView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReferralView.swift; sourceTree = "<group>"; };
 		2A6411BE2A63765FA00C6091 /* KyberOperations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KyberOperations.swift; sourceTree = "<group>"; };
+		2ABF57E714E5AF4AC5845A08 /* nobordershealthcareWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = nobordershealthcareWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2C12AA53CF41B4033407B0CF /* IPFSClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IPFSClient.swift; sourceTree = "<group>"; };
 		2FD8E2AFE8F18C6266FB65F3 /* AnalyticsConsent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsConsent.swift; sourceTree = "<group>"; };
 		30E64324D0111DDADE7820A1 /* nobordershealthcare.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = nobordershealthcare.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -94,9 +135,14 @@
 		39CB4396676A9C48242F3099 /* UserAgreementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserAgreementView.swift; sourceTree = "<group>"; };
 		3A3A7266960B2164688FAF72 /* DocumentScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentScanner.swift; sourceTree = "<group>"; };
 		3E241D7E7155434C8739A07C /* BiometricLockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricLockView.swift; sourceTree = "<group>"; };
+		3E33F59ADE72D059AEF0A080 /* WatchConnectivity.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = WatchConnectivity.framework; sourceTree = SDKROOT; };
+		42FE8C25F6C28A86B4056582 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS11.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		4BEDC111584B241ACA578D40 /* DataAuthorizationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataAuthorizationView.swift; sourceTree = "<group>"; };
+		4CA29F3AE5722CF30EF0A2B8 /* WatchSessionManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSessionManager.swift; sourceTree = "<group>"; };
 		4E34F6E56E9AD2F6239DFFDC /* AppConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfig.swift; sourceTree = "<group>"; };
 		4F033DF80A6D0D1E163F229A /* nobordershealthcare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = nobordershealthcare.entitlements; sourceTree = "<group>"; };
+		503E23C88144ABE31113F46C /* LockScreenQRWidget.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LockScreenQRWidget.swift; sourceTree = "<group>"; };
+		5467BDACC73909A38163F4D3 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = SwiftUI.framework; sourceTree = SDKROOT; };
 		56A573DBC9BE53097E791F51 /* QRGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGenerator.swift; sourceTree = "<group>"; };
 		622F23DBC018E3F6C9948C28 /* KeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyManager.swift; sourceTree = "<group>"; };
 		62524B8496BE6AD1B7264711 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
@@ -104,30 +150,44 @@
 		6D72112E9BDE6DDF792806A3 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		6D76B5A888359F58F87A4A8B /* SecurityProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecurityProfile.swift; sourceTree = "<group>"; };
 		6E5AEB69CEFC4E27FA7FEFA2 /* VerifiedIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VerifiedIdentity.swift; sourceTree = "<group>"; };
+		812CB6D165C11A4EAD29BE57 /* nobordershealthcareWatch */ = {isa = PBXFileReference; includeInIndex = 0; path = nobordershealthcareWatch; sourceTree = BUILT_PRODUCTS_DIR; };
 		825AE7AA0FC88A72D8058F28 /* SecureEnclaveKey.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SecureEnclaveKey.swift; sourceTree = "<group>"; };
+		83E83F39493661CE758953EB /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = WidgetKit.framework; sourceTree = SDKROOT; };
 		865B61AB0B20C6D232EDC7D8 /* ConsentAuditService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentAuditService.swift; sourceTree = "<group>"; };
+		86946B2D43302F8B54CDADA4 /* NBHCWidget.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = NBHCWidget.entitlements; sourceTree = "<group>"; };
 		87B3A142FC41A9153C4D790D /* ScopeManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScopeManager.swift; sourceTree = "<group>"; };
 		8EBBA61D16BCCCC4ACCBD1BB /* PDFImporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFImporter.swift; sourceTree = "<group>"; };
 		8FEEB178A3E3D6EAA57C8A7B /* IdentityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityView.swift; sourceTree = "<group>"; };
 		9064723EC2A03C2D38FB0D01 /* DocumentTranslator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentTranslator.swift; sourceTree = "<group>"; };
 		96EF5A9EC34EDD7843A862AC /* DiiaService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaService.swift; sourceTree = "<group>"; };
+		9B0D4EBB788A7A3092EEC463 /* WatchContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchContentView.swift; sourceTree = "<group>"; };
 		9D8C04FB53AAF0A981E654CD /* IdentityVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IdentityVaultManager.swift; sourceTree = "<group>"; };
 		9FC3973E815E9F16A345C35D /* NationalIdentityRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NationalIdentityRecord.swift; sourceTree = "<group>"; };
 		A0D9AA63CD6C7F439DBCBB29 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationView.swift; sourceTree = "<group>"; };
+		A3E037BFF402CE8CD188F9DB /* NBHCWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NBHCWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A9B98F88326434BAF9942703 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRStalenessChecker.swift; sourceTree = "<group>"; };
 		AA55C8B2F46719E7A88DADBF /* DiiaIdentityPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiiaIdentityPayload.swift; sourceTree = "<group>"; };
+		AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRDisplayView.swift; sourceTree = "<group>"; };
 		ABF81B9891F8F397559AD01C /* NetworkCountryDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkCountryDetector.swift; sourceTree = "<group>"; };
 		ACDC1623F564ECBC26952904 /* SignatureButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignatureButton.swift; sourceTree = "<group>"; };
 		AFBD308E0C72E134F31C8FF7 /* ShamirShard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShamirShard.swift; sourceTree = "<group>"; };
 		B15B0D42A99D7F83F5FCC12E /* QRGeneratorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRGeneratorView.swift; sourceTree = "<group>"; };
 		B28DC75D6C62A8C97875943A /* NoBordersHealthcareApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoBordersHealthcareApp.swift; sourceTree = "<group>"; };
 		B7D55527378C1D8F0F7697F1 /* SentencePieceShim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentencePieceShim.swift; sourceTree = "<group>"; };
+		B9265C059F65D20EA087BFEA /* nobordershealthcareWatch.entitlements */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.entitlements; path = nobordershealthcareWatch.entitlements; sourceTree = "<group>"; };
+		BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyScreenView.swift; sourceTree = "<group>"; };
+		BB5ADE630388370FB832C107 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BC87B71F0505A1931D9A8413 /* LocalOCR.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalOCR.swift; sourceTree = "<group>"; };
 		C334EF4A6B52B7C1BECEB8F8 /* SIPClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SIPClient.swift; sourceTree = "<group>"; };
 		C423092F7D2FF1B6FBCB3408 /* ActivationCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivationCoordinator.swift; sourceTree = "<group>"; };
 		C49CA8B193143B17EBD08578 /* DocumentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentView.swift; sourceTree = "<group>"; };
+		CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDetectionManager.swift; sourceTree = "<group>"; };
 		CA091911DC16BA81A2BDDB90 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
+		CDDCE073F0FF42455BEA3213 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = UIKit.framework; sourceTree = SDKROOT; };
 		CE8860F2599C03591CA9F0E5 /* EmergencyCardService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardService.swift; sourceTree = "<group>"; };
 		D6F4278CFA5B5C38B59F1284 /* TerminologyMapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TerminologyMapper.swift; sourceTree = "<group>"; };
+		DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 		DBEEA8EC8166D9607512E78D /* SupportProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportProfile.swift; sourceTree = "<group>"; };
 		DFED60BDDE94483E29635A6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E538FB8FDD8D5D8FB4F3D6F2 /* EmergencyContactView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyContactView.swift; sourceTree = "<group>"; };
@@ -136,18 +196,38 @@
 		F04BF4200C2337B15544CBDC /* DocumentStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DocumentStore.swift; sourceTree = "<group>"; };
 		F465B171728A2EE0DA91643D /* WelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WelcomeView.swift; sourceTree = "<group>"; };
 		F4E0446F6A4A18B61E2099AC /* HealthRecord.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthRecord.swift; sourceTree = "<group>"; };
+		F501F93C4C295213FE518460 /* NoBordersWatchApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = NoBordersWatchApp.swift; sourceTree = "<group>"; };
 		F5600417288BAD034AAC350F /* DIDWallet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DIDWallet.swift; sourceTree = "<group>"; };
 		F6194C26F3263738B3825DA8 /* BiometricAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BiometricAuth.swift; sourceTree = "<group>"; };
 		F725F9D6E215879892D4F091 /* EmergencyCardSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCardSetupView.swift; sourceTree = "<group>"; };
 		FB0FCD2502D7B4641540F248 /* EmergencyCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyCard.swift; sourceTree = "<group>"; };
 		FEDC1416C64BDAF416257DAA /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		FF9FCB1486FCE4CE2F50D217 /* MedicalVaultManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MedicalVaultManager.swift; sourceTree = "<group>"; };
-		AA01BB02CC03DD04EE05FF06 /* QRStalenessChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRStalenessChecker.swift; sourceTree = "<group>"; };
-		AB01BC02CD03DE04EF05FA06 /* QRDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QRDisplayView.swift; sourceTree = "<group>"; };
-		BA01CB02DC03ED04FE05AF06 /* EmergencyScreenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmergencyScreenView.swift; sourceTree = "<group>"; };
-		CA01DB02EC03FD04AE05BF06 /* FallDetectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FallDetectionManager.swift; sourceTree = "<group>"; };
-		DA01EB02FC03AD04BE05CF06 /* WatchConnectivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchConnectivityManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		D484E1630798136FE9A7707C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				32478E266D49A63A1EEEF342 /* Foundation.framework in Frameworks */,
+				470B6A03CC6A5650D58BC067 /* WidgetKit.framework in Frameworks */,
+				C908D20D8560F9E3B8FD3714 /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		D989E71D1F47C688C80DCE96 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1E66B7648686EC585187519F /* Foundation.framework in Frameworks */,
+				834D6C2D65124A09270F61CD /* WatchConnectivity.framework in Frameworks */,
+				ADE03D4B71087B8994E23069 /* UIKit.framework in Frameworks */,
+				513848E3A7ACF4648A1E2ADE /* SwiftUI.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		0121EE51E13649C0750715AB /* Translation */ = {
@@ -300,6 +380,10 @@
 			isa = PBXGroup;
 			children = (
 				30E64324D0111DDADE7820A1 /* nobordershealthcare.app */,
+				A3E037BFF402CE8CD188F9DB /* NBHCWidget.appex */,
+				2ABF57E714E5AF4AC5845A08 /* nobordershealthcareWatch.app */,
+				812CB6D165C11A4EAD29BE57 /* nobordershealthcareWatch */,
+				20440B3CA5CB17FAF8C4A8E2 /* nobordershealthcareWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -324,6 +408,52 @@
 				ACDC1623F564ECBC26952904 /* SignatureButton.swift */,
 			);
 			path = Legal;
+			sourceTree = "<group>";
+		};
+		D11432D88EE4461ACEA68BA9 /* watchOS */ = {
+			isa = PBXGroup;
+			children = (
+				42FE8C25F6C28A86B4056582 /* Foundation.framework */,
+			);
+			name = watchOS;
+			sourceTree = "<group>";
+		};
+		D52D7838B77578DFE11DDE7A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				F3AA5FC83C8E09327BBD8C47 /* iOS */,
+				83E83F39493661CE758953EB /* WidgetKit.framework */,
+				5467BDACC73909A38163F4D3 /* SwiftUI.framework */,
+				D11432D88EE4461ACEA68BA9 /* watchOS */,
+				3E33F59ADE72D059AEF0A080 /* WatchConnectivity.framework */,
+				CDDCE073F0FF42455BEA3213 /* UIKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D7811F12478223004C7D9ACD /* NBHCWidget */ = {
+			isa = PBXGroup;
+			children = (
+				503E23C88144ABE31113F46C /* LockScreenQRWidget.swift */,
+				BB5ADE630388370FB832C107 /* Info.plist */,
+				86946B2D43302F8B54CDADA4 /* NBHCWidget.entitlements */,
+			);
+			name = NBHCWidget;
+			path = Sources/NBHCWidget;
+			sourceTree = "<group>";
+		};
+		D9F4255C6CE8AF3008FCE202 /* WatchApp */ = {
+			isa = PBXGroup;
+			children = (
+				9B0D4EBB788A7A3092EEC463 /* WatchContentView.swift */,
+				0E44F5649889D79DCE09D756 /* WatchQRGenerator.swift */,
+				A9B98F88326434BAF9942703 /* Info.plist */,
+				B9265C059F65D20EA087BFEA /* nobordershealthcareWatch.entitlements */,
+				4CA29F3AE5722CF30EF0A2B8 /* WatchSessionManager.swift */,
+				F501F93C4C295213FE518460 /* NoBordersWatchApp.swift */,
+			);
+			name = WatchApp;
+			path = WatchApp;
 			sourceTree = "<group>";
 		};
 		DA55866E9310F24F77CD28D5 /* nobordershealthcare */ = {
@@ -360,6 +490,9 @@
 				AAD9CA16C2C7675F77AD5927 /* SHA3Kit */,
 				2598CCB9A4A56A0A823C7606 /* Shims */,
 				B2AB090C09C26E77B935A2FD /* Products */,
+				D52D7838B77578DFE11DDE7A /* Frameworks */,
+				D7811F12478223004C7D9ACD /* NBHCWidget */,
+				D9F4255C6CE8AF3008FCE202 /* WatchApp */,
 			);
 			sourceTree = "<group>";
 		};
@@ -395,13 +528,12 @@
 			path = QR;
 			sourceTree = "<group>";
 		};
-		FEA476A25941853892DF8718 /* KyberKit */ = {
+		F3AA5FC83C8E09327BBD8C47 /* iOS */ = {
 			isa = PBXGroup;
 			children = (
-				2A6411BE2A63765FA00C6091 /* KyberOperations.swift */,
+				066AE9ABA06A7D616BF2372E /* Foundation.framework */,
 			);
-			name = KyberKit;
-			path = Sources/KyberKit;
+			name = iOS;
 			sourceTree = "<group>";
 		};
 		FA02BC03CD04DE05EF06FA07 /* Views */ = {
@@ -413,6 +545,15 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		FEA476A25941853892DF8718 /* KyberKit */ = {
+			isa = PBXGroup;
+			children = (
+				2A6411BE2A63765FA00C6091 /* KyberOperations.swift */,
+			);
+			name = KyberKit;
+			path = Sources/KyberKit;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -422,17 +563,51 @@
 			buildPhases = (
 				9C8D3AEE84EE049F8A2C433E /* Sources */,
 				A3D72C034FEDB2251FA01AED /* Resources */,
+				3EFD9BBA727072FD1D467199 /* Embed App Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				79D6DCCADF4B1069824C7E51 /* PBXTargetDependency */,
+			);
+			name = nobordershealthcare;
+			productName = nobordershealthcare;
+			productReference = 30E64324D0111DDADE7820A1 /* nobordershealthcare.app */;
+			productType = "com.apple.product-type.application";
+		};
+		DCE79A399379E62056E7764F /* nobordershealthcareWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 98B21859B46A92D91AD58F81 /* Build configuration list for PBXNativeTarget "nobordershealthcareWatch" */;
+			buildPhases = (
+				759A5B8108B097F1D3D37EA2 /* Sources */,
+				D989E71D1F47C688C80DCE96 /* Frameworks */,
+				595F672D9F073139B3920C07 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = nobordershealthcare;
-			packageProductDependencies = (
-			);
-			productName = nobordershealthcare;
-			productReference = 30E64324D0111DDADE7820A1 /* nobordershealthcare.app */;
+			name = nobordershealthcareWatch;
+			productName = nobordershealthcareWatch;
+			productReference = 20440B3CA5CB17FAF8C4A8E2 /* nobordershealthcareWatch.app */;
 			productType = "com.apple.product-type.application";
+		};
+		F974925A7B3B24D5679DAEF2 /* NBHCWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 4656FA01F29E7909B82F741C /* Build configuration list for PBXNativeTarget "NBHCWidget" */;
+			buildPhases = (
+				507D582C444AF479730EE6BF /* Sources */,
+				D484E1630798136FE9A7707C /* Frameworks */,
+				EE1EF0A140FD9BCF6B3DAF34 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NBHCWidget;
+			productName = NBHCWidget;
+			productReference = A3E037BFF402CE8CD188F9DB /* NBHCWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -464,11 +639,20 @@
 			projectRoot = "";
 			targets = (
 				707367C639403DCB926318DB /* nobordershealthcare */,
+				F974925A7B3B24D5679DAEF2 /* NBHCWidget */,
+				DCE79A399379E62056E7764F /* nobordershealthcareWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		595F672D9F073139B3920C07 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A3D72C034FEDB2251FA01AED /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -477,9 +661,35 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		EE1EF0A140FD9BCF6B3DAF34 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		507D582C444AF479730EE6BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				06F844681DEA6A3F03CDEF36 /* LockScreenQRWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		759A5B8108B097F1D3D37EA2 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5BE8F7A71C9F6A39B64B9809 /* WatchContentView.swift in Sources */,
+				375ED576C991CBBD123641B5 /* WatchQRGenerator.swift in Sources */,
+				D322A6E0C1249C8B6CDB9AD8 /* WatchSessionManager.swift in Sources */,
+				524B40F941172FFF34FE9A6D /* NoBordersWatchApp.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9C8D3AEE84EE049F8A2C433E /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -532,7 +742,6 @@
 				BA11CB22DC33ED44FE55AF66 /* EmergencyScreenView.swift in Sources */,
 				CA11DB22EC33FD44AE55BF66 /* FallDetectionManager.swift in Sources */,
 				DA11EB22FC33AD44BE55CF66 /* WatchConnectivityManager.swift in Sources */,
-
 				D8BAB2007F0BA10830151A96 /* QRGeneratorView.swift in Sources */,
 				59FFA3135CFEA135659EB4CE /* ReferralView.swift in Sources */,
 				A3E18FEB484637A66DBFBFCC /* RegistrationView.swift in Sources */,
@@ -556,7 +765,39 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		79D6DCCADF4B1069824C7E51 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = NBHCWidget;
+			target = F974925A7B3B24D5679DAEF2 /* NBHCWidget */;
+			targetProxy = 2501B708A052668D8A5744C5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		11DD5A370030C69E8B329016 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"ARCHS[sdk=watchsimulator*]" = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchApp/nobordershealthcareWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = "arm64_32 arm7k x86_64";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WatchApp/Info.plist;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 6.2;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
 		7C9B804CC13C364A6CACDE3F /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -574,6 +815,45 @@
 				SWIFT_STRICT_CONCURRENCY = minimal;
 				SWIFT_VERSION = 6.2;
 				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		988C77D38BCAD6F1F45ED485 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Sources/NBHCWidget/NBHCWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/NBHCWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare.NBHCWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A3D717A2EACA7A63C136D808 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_OBJC_WEAK = NO;
+				CODE_SIGN_ENTITLEMENTS = Sources/NBHCWidget/NBHCWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = Sources/NBHCWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare.NBHCWidget;
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.2;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -730,9 +1010,42 @@
 			};
 			name = Debug;
 		};
+		FCBDA62DF572DC3961E281A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"ARCHS[sdk=watchsimulator*]" = arm64;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = WatchApp/nobordershealthcareWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = "";
+				"EXCLUDED_ARCHS[sdk=watchsimulator*]" = "arm64_32 arm7k x86_64";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = WatchApp/Info.plist;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = com.valeriy.nobordershealthcare.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
+				SWIFT_VERSION = 6.2;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		4656FA01F29E7909B82F741C /* Build configuration list for PBXNativeTarget "NBHCWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A3D717A2EACA7A63C136D808 /* Release */,
+				988C77D38BCAD6F1F45ED485 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		6694E781F8E3B05FE0576AA0 /* Build configuration list for PBXNativeTarget "nobordershealthcare" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -741,6 +1054,15 @@
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
+		};
+		98B21859B46A92D91AD58F81 /* Build configuration list for PBXNativeTarget "nobordershealthcareWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FCBDA62DF572DC3961E281A7 /* Release */,
+				11DD5A370030C69E8B329016 /* Debug */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		A5588DEBE6167482CD828F9D /* Build configuration list for PBXProject "nobordershealthcare" */ = {
 			isa = XCConfigurationList;

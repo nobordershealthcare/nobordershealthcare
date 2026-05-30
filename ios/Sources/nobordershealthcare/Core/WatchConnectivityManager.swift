@@ -61,16 +61,26 @@ final class WatchConnectivityManager: NSObject, WCSessionDelegate, @unchecked Se
         }
 
         // Build response on main actor (vault access is actor-isolated)
-        // Read from App Group shared container (nonisolated, no actor boundary crossing).
-        // JWT caching in UserDefaults allows Watch to get the emergency QR without
-        // crossing actor boundaries. Written by EmergencyCardService on token refresh.
+        // iPhone renders the QR PNG and sends it as Data to the Watch.
+        // CoreImage is not available on watchOS, so the Watch can't render QR itself.
+        // PNG data is read from App Group shared container (written on token refresh).
         var response: [String: Any] = [:]
         let shared = UserDefaults(suiteName: "group.com.nobords.shared")
-        if let jwt = shared?.string(forKey: "emergency_jwt") {
-            response["jwt"]   = jwt
-            response["stale"] = false
+
+        if let pngData = shared?.data(forKey: "emergency_qr_png") {
+            // Full data QR — pre-rendered by EmergencyCardService on token refresh
+            response["qr_png"] = pngData
+            response["mode"]   = "full"
+            response["stale"]  = shared?.bool(forKey: "emergency_qr_stale") ?? false
         } else if let pid = shared?.string(forKey: "patient_pid") {
-            response["pid"] = pid
+            // Static QR — rendered on demand from pid
+            let qrImage = QRGenerator.generateStaticQR(pid: pid,
+                                                       size: CGSize(width: 160, height: 160))
+            if let png = qrImage.flatMap({ $0.pngData() }) {
+                response["qr_png"] = png
+            }
+            response["mode"]  = "static"
+            response["stale"] = false
         }
         replyHandler(response)
     }

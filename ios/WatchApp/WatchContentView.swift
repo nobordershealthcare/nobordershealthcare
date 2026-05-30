@@ -1,10 +1,10 @@
 // WatchContentView.swift — Apple Watch emergency QR display.
-// TARGET: nobordershealthcareWatch (add via Xcode: File → New → Target → watchOS App)
+// TARGET: nobordershealthcareWatch (com.apple.product-type.application, watchOS 10+)
 //         Bundle ID: com.valeriy.nobordershealthcare.watchkitapp
 //
-// Shows the full data QR if available, static QR as fallback.
-// Data synced from iPhone via WatchConnectivity.
-// Circular border: gray = static, red = full data offline, blue = full data online.
+// The QR image is rendered by the iPhone (CoreImage not available on watchOS)
+// and sent as PNG bytes over WatchConnectivity.
+// Border: gray = static QR, red = full data QR.
 
 import SwiftUI
 import WatchKit
@@ -85,20 +85,14 @@ final class WatchEmergencyViewModel: ObservableObject {
     func loadFromPhone() {
         guard !isSyncing else { return }
         isSyncing = true
-        WatchConnectivityManager.shared.requestQRData { [weak self] data in
+        WatchSessionManager.shared.requestQRData { [weak self] data in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.isSyncing = false
-                if let jwt = data["jwt"] as? String {
-                    self.qrImage     = QRGenerator.generateFullDataQR(
-                        jwt: jwt, size: CGSize(width: 160, height: 160))
-                    self.hasFullData  = true
+                if let pngData = data["qr_png"] as? Data {
+                    self.qrImage     = WatchQRGenerator.imageFromData(pngData)
+                    self.hasFullData  = (data["mode"] as? String) == "full"
                     self.isStale     = data["stale"] as? Bool ?? false
-                } else if let pid = data["pid"] as? String {
-                    self.qrImage     = QRGenerator.generateStaticQR(
-                        pid: pid, size: CGSize(width: 160, height: 160))
-                    self.hasFullData  = false
-                    self.isStale     = false
                 }
             }
         }
