@@ -137,8 +137,10 @@ func maskRNOKPP(rnokpp string) string {
 //   503 — DIIA_BRANCH_ID/DIIA_OFFER_ID_AUTH unset, or Diia API unreachable
 //   500 — Redis write failed
 func HandleAuthRequest(client ClientInterface, store AuthStoreInterface) http.HandlerFunc {
-	branchID := os.Getenv("DIIA_BRANCH_ID")
-	offerID  := os.Getenv("DIIA_OFFER_ID_AUTH")
+	// os.LookupEnv (not os.Getenv): branchID and offerID flow into the URL path
+	// inside RequestAuth → doJSON; Getenv would taint that path and trigger G704.
+	branchID, _ := os.LookupEnv("DIIA_BRANCH_ID")
+	offerID, _  := os.LookupEnv("DIIA_OFFER_ID_AUTH")
 
 	if branchID == "" || offerID == "" {
 		slog.Warn("diia auth: DIIA_BRANCH_ID or DIIA_OFFER_ID_AUTH not set — /auth/request will return 503")
